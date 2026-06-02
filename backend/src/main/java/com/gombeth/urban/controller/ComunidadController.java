@@ -31,4 +31,34 @@ public class ComunidadController {
         return repository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Comunidad no encontrada con ID: " + id));
     }
+
+    @PutMapping("/{id}")
+    public Comunidad actualizar(
+            @PathVariable Long id,
+            @RequestBody Comunidad comunidadActualizada
+    ) {
+
+        Comunidad comunidad = repository.findById(id)
+                .orElseThrow(() ->
+                        new RuntimeException(
+                                "Comunidad no encontrada con ID: " + id
+                        )
+                );
+
+        comunidad.setNombre(comunidadActualizada.getNombre());
+        comunidad.setNifCif(comunidadActualizada.getNifCif());
+        comunidad.setDireccion(comunidadActualizada.getDireccion());
+        comunidad.setCodigoPostal(comunidadActualizada.getCodigoPostal());
+        comunidad.setPoblacion(comunidadActualizada.getPoblacion());
+        comunidad.setProvincia(comunidadActualizada.getProvincia());
+        comunidad.setPaiscod(comunidadActualizada.getPaiscod());
+        comunidad.setIban(comunidadActualizada.getIban());
+        comunidad.setBic(comunidadActualizada.getBic());
+        comunidad.setIdentificadorAcreedor(
+                comunidadActualizada.getIdentificadorAcreedor()
+        );
+        comunidad.setSufijo(comunidadActualizada.getSufijo());
+
+        return repository.save(comunidad);
+    }
 }
