@@ -1,0 +1,73 @@
+Listado de rutas de carpetas para el volumen Elements
+El número de serie del volumen es AC74-A1CD
+W:\PROYECTOS\GOMBETH-URBAN\GOMBETH-URBAN-FRONTEND\SRC
+|   index.html
+|   main.ts
+|   styles.scss
+|   
+\---app
+    |   app.config.ts
+    |   app.html
+    |   app.routes.ts
+    |   app.scss
+    |   app.spec.ts
+    |   app.ts
+    |   
+    +---core
+    |   +---models
+    |   |       comunidad.model.ts
+    |   |       recibo.model.ts
+    |   |       remesa.model.ts
+    |   |       usuario.model.ts
+    |   |       vecino.model.ts
+    |   |       
+    |   \---services
+    |           auth.spec.ts
+    |           auth.ts
+    |           comunidad.spec.ts
+    |           comunidad.ts
+    |           
+    +---features
+    |   +---auth
+    |   |   \---pages
+    |   |       \---login
+    |   |               login.html
+    |   |               login.scss
+    |   |               login.spec.ts
+    |   |               login.ts
+    |   |               
+    |   +---comunidades
+    |   |   \---pages
+    |   |       \---comunidades-list
+    |   |               comunidades-list.html
+    |   |               comunidades-list.scss
+    |   |               comunidades-list.spec.ts
+    |   |               comunidades-list.ts
+    |   |               
+    |   \---dashboard
+    |       \---pages
+    |           \---dashboard
+    |                   dashboard.html
+    |                   dashboard.scss
+    |                   dashboard.spec.ts
+    |                   dashboard.ts
+    |                   
+    \---layout
+        +---main-layout
+        |       main-layout.html
+        |       main-layout.scss
+        |       main-layout.spec.ts
+        |       main-layout.ts
+        |       
+        +---navbar
+        |       navbar.html
+        |       navbar.scss
+        |       navbar.spec.ts
+        |       navbar.ts
+        |       
+        \---sidebar
+                sidebar.html
+                sidebar.scss
+                sidebar.spec.ts
+                sidebar.ts
+                

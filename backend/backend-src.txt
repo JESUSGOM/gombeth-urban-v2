@@ -1,0 +1,22 @@
+Listado de rutas de carpetas para el volumen Elements
+El número de serie del volumen es AC74-A1CD
+W:\PROYECTOS\URBAN-BACKEND\SRC
++---main
+|   +---java
+|   |   \---com
+|   |       \---gombeth
+|   |           \---urban
+|   |                   UrbanBackendApplication.java
+|   |                   
+|   \---resources
+|       |   application.properties
+|       |   
+|       +---static
+|       \---templates
+\---test
+    \---java
+        \---com
+            \---gombeth
+                \---urban
+                        UrbanBackendApplicationTests.java
+                        

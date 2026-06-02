@@ -1,0 +1,64 @@
+.sidebar-container {
+  width: 260px;
+  min-height: 100vh;
+  background: #1f2937;
+  color: white;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.15);
+}
+
+.logo-section {
+  padding: 24px;
+  text-align: center;
+  border-bottom: 1px solid #374151;
+}
+
+.logo-circle {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: #2563eb;
+  color: white;
+  font-weight: bold;
+  font-size: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 12px auto;
+}
+
+.logo-section h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.version {
+  color: #9ca3af;
+  font-size: 12px;
+}
+
+.menu {
+  display: flex;
+  flex-direction: column;
+  padding: 16px 0;
+}
+
+.menu-item {
+  color: white;
+  text-decoration: none;
+  padding: 14px 24px;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  font-size: 15px;
+}
+
+.menu-item:hover {
+  background: #374151;
+}
+
+.menu-item.active {
+  background: #2563eb;
+  font-weight: 600;
+}
