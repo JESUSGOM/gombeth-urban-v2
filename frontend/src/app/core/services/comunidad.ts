@@ -22,4 +22,17 @@ export class ComunidadService {
       `${this.apiUrl}?page=${page}&size=${size}`
     );
   }
+
+  getComunidad(id: number): Observable<Comunidad> {
+    return this.http.get<Comunidad>(
+      `${this.apiUrl}/${id}`
+    );
+  }
+
+  actualizarComunidad(id: number, comunidad: Comunidad): Observable<Comunidad> {
+    return this.http.put<Comunidad>(
+      `${this.apiUrl}/${id}`,
+      comunidad
+    );
+  }
 }

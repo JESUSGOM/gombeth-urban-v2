@@ -46,7 +46,12 @@
               <button class="btn-icon btn-dark" title="Cuaderno C19">📄</button>
               <button class="btn-icon btn-success" title="QR">▣</button>
               <button class="btn-icon btn-danger-outline" title="PDF">PDF</button>
-              <button class="btn-icon btn-secondary-outline" title="Configurar">⚙</button>
+              <button
+                class="btn-icon btn-secondary-outline"
+                title="Configurar"
+                (click)="editarComunidad(comunidad.id)">
+                ⚙
+              </button>
             </td>
           </tr>
         }

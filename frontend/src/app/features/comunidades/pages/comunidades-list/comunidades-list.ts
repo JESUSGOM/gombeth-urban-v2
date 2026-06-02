@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 
 import { Comunidad } from '../../../../core/models/comunidad.model';
 import { ComunidadService } from '../../../../core/services/comunidad';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-comunidades-list',
@@ -14,6 +15,7 @@ export class ComunidadesList implements OnInit {
 
   private comunidadService = inject(ComunidadService);
   private cdr = inject(ChangeDetectorRef);
+  private router = inject(Router);
 
   comunidades: Comunidad[] = [];
 
@@ -73,4 +75,13 @@ export class ComunidadesList implements OnInit {
       (_, i) => i + 1
     );
   }
+
+  editarComunidad(id: number | undefined): void {
+    if (!id) {
+      return;
+    }
+
+    this.router.navigate(['/comunidades/editar', id]);
+  }
+
 }
