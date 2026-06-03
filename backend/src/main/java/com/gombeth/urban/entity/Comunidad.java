@@ -42,6 +42,12 @@ public class Comunidad {
     @Column(name = "pais_cod", length = 2)
     private String paiscod = "ES";
 
+    @Column(name = "usuario_id")
+    private Long usuarioId;
+
+    @Column(name = "administrador_id")
+    private Long administradorId;
+
     @Convert(converter = AesEncryptor.class)
     @Column(name = "identificador_acreedor", length = 255)
     private String identificadorAcreedor;
@@ -143,5 +149,21 @@ public class Comunidad {
 
     public void setIdentificadorAcreedor(String identificadorAcreedor) {
         this.identificadorAcreedor = identificadorAcreedor;
+    }
+
+    public Long getUsuarioId() {
+        return usuarioId;
+    }
+
+    public void setUsuarioId(Long usuarioId) {
+        this.usuarioId = usuarioId;
+    }
+
+    public Long getAdministradorId() {
+        return administradorId;
+    }
+
+    public void setAdministradorId(Long administradorId) {
+        this.administradorId = administradorId;
     }
 }

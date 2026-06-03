@@ -20,9 +20,19 @@ public class ComunidadController {
 
     @GetMapping
     public Page<Comunidad> listar(
+            @RequestParam(required = false) Long usuarioId,
+            @RequestParam(required = false) Long administradorId,
             @PageableDefault(size = 10, sort = "nombre", direction = Sort.Direction.ASC)
             Pageable pageable
     ) {
+        if (usuarioId != null) {
+            return repository.findByUsuarioId(usuarioId, pageable);
+        }
+
+        if (administradorId != null) {
+            return repository.findByAdministradorId(administradorId, pageable);
+        }
+
         return repository.findAll(pageable);
     }
 
