@@ -6,6 +6,7 @@ import { Dashboard } from './features/dashboard/pages/dashboard/dashboard';
 import { ComunidadesList } from './features/comunidades/pages/comunidades-list/comunidades-list';
 import { Login } from './features/auth/pages/login/login';
 import { ComunidadEdit } from './features/comunidades/pages/comunidad-edit/comunidad-edit';
+import { authGuard } from './core/guards/auth.guard';
 
 export const routes: Routes = [
 
@@ -23,6 +24,7 @@ export const routes: Routes = [
   {
     path: '',
     component: MainLayout,
+    canActivate: [authGuard],
     children: [
       {
         path: 'dashboard',

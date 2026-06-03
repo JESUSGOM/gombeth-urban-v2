@@ -15,28 +15,33 @@
 }
 
 .logo-circle {
-  width: 60px;
-  height: 60px;
-  border-radius: 50%;
-  background: #2563eb;
-  color: white;
-  font-weight: bold;
-  font-size: 22px;
+  width: 90px;
+  height: 90px;
+  margin: 0 auto 12px auto;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 0 auto 12px auto;
+}
+
+.logo-image {
+  width: 90px;
+  height: 90px;
+  object-fit: contain;
 }
 
 .logo-section h2 {
-  margin: 0;
-  font-size: 20px;
-  font-weight: 600;
+  margin: 10px 0 0 0;
+  font-size: 24px;
+  font-weight: 700;
+  color: white;
 }
 
 .version {
+  display: block;
+  margin-top: 4px;
   color: #9ca3af;
-  font-size: 12px;
+  font-size: 13px;
+  letter-spacing: 1px;
 }
 
 .menu {

@@ -32,13 +32,28 @@ export class ComunidadesList implements OnInit {
   }
 
   cargarComunidades(): void {
+
     this.cargando = true;
     this.error = '';
 
+    const usuario = JSON.parse(
+      localStorage.getItem('usuario') || 'null'
+    );
+
+    const usuarioId = usuario?.usuarioId;
+
+    console.log('USUARIO LOGIN:', usuario);
+    console.log('USUARIO ID:', usuarioId);
+
     this.comunidadService
-      .getComunidades(this.paginaActual - 1, this.tamanioPagina)
+      .getComunidades(
+        this.paginaActual - 1,
+        this.tamanioPagina,
+        usuarioId
+      )
       .subscribe({
         next: (data) => {
+
           console.log('RESPUESTA PAGINADA:', data);
           console.log('CONTENT:', data.content);
           console.log('TOTAL:', data.totalElements);
@@ -51,7 +66,9 @@ export class ComunidadesList implements OnInit {
           this.cdr.detectChanges();
         },
         error: (err) => {
+
           console.error('Error cargando comunidades:', err);
+
           this.error = 'No se pudieron cargar las comunidades.';
           this.cargando = false;
 
@@ -61,6 +78,7 @@ export class ComunidadesList implements OnInit {
   }
 
   cambiarPagina(pagina: number): void {
+
     if (pagina < 1 || pagina > this.totalPaginas) {
       return;
     }
@@ -77,11 +95,11 @@ export class ComunidadesList implements OnInit {
   }
 
   editarComunidad(id: number | undefined): void {
+
     if (!id) {
       return;
     }
 
     this.router.navigate(['/comunidades/editar', id]);
   }
-
 }

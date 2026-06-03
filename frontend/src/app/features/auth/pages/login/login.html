@@ -1,1 +1,62 @@
-<p>login works!</p>
+<div class="login-page">
+  <div class="login-container">
+
+    <div class="login-card">
+      <div class="login-body">
+
+        <img
+          src="/images/logo.png"
+          alt="Gombeth Urban"
+          class="logo-img">
+
+        <h3>
+          Gestor profesional de comunidades y automatización bancaria
+        </h3>
+
+        @if (error) {
+          <div class="alert-error">
+            {{ error }}
+          </div>
+        }
+
+        <div class="form-group">
+          <label>Usuario</label>
+          <input
+            type="text"
+            [(ngModel)]="username"
+            required
+            autofocus>
+        </div>
+
+        <div class="form-group">
+          <label>Contraseña</label>
+          <input
+            type="password"
+            [(ngModel)]="password"
+            required
+            (keyup.enter)="login()">
+        </div>
+
+        <button
+          class="login-button"
+          (click)="login()"
+          [disabled]="cargando">
+          {{ cargando ? 'Accediendo...' : 'Acceder al sistema' }}
+        </button>
+
+        <div class="register-box">
+          <p>
+            ¿No tienes cuenta?
+            <a href="#">Regístrate aquí</a>
+          </p>
+        </div>
+
+      </div>
+    </div>
+
+    <p class="footer-text">
+      © 2026 GOMBETH URBAN V2 - Normativa Bancaria
+    </p>
+
+  </div>
+</div>

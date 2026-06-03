@@ -1,45 +1,42 @@
-<div class="dashboard">
-
-  <h2>Dashboard</h2>
-
-  <div class="cards">
-
-    <div class="card">
-      <h3>Comunidades</h3>
-      <p>61</p>
+<div class="dashboard-page">
+  <div class="dashboard-header">
+    <div>
+      <h1>Panel de Control</h1>
     </div>
-
-    <div class="card">
-      <h3>Vecinos</h3>
-      <p>0</p>
-    </div>
-
-    <div class="card">
-      <h3>Remesas</h3>
-      <p>0</p>
-    </div>
-
-    <div class="card">
-      <h3>Ingresos</h3>
-      <p>0 €</p>
-    </div>
-
   </div>
-
-  <div class="backend-card">
-
-    <h3>Estado del Backend</h3>
-
-    <p>
-      <strong>Estado:</strong>
-      {{ backendStatus }}
-    </p>
-
-    <p>
-      <strong>Aplicación:</strong>
-      {{ backendApp }}
-    </p>
-
+  <div class="stats-grid">
+    <div class="stat-card border-blue" (click)="irAComunidades()">
+      <div>
+        <div class="stat-title">Comunidades</div>
+        <div class="stat-number">{{ totalComunidades }}</div>
+      </div>
+      <div class="stat-icon blue">🏢</div>
+    </div>
+    <div class="stat-card border-green">
+      <div>
+        <div class="stat-title">Propietarios</div>
+        <div class="stat-number">{{ totalVecinos }}</div>
+      </div>
+      <div class="stat-icon green">👥</div>
+    </div>
+    <div class="stat-card border-red">
+      <div>
+        <div class="stat-title">Incidencias</div>
+        <div class="stat-number">{{ totalIncidencias }}</div>
+        <div class="stat-subtitle">En curso</div>
+      </div>
+      <div class="stat-icon red">⚠️</div>
+    </div>
   </div>
-
+  <div class="welcome-card">
+    <img src="/images/logo.png" alt="Gombeth Urban" class="welcome-logo">
+    <h2>Gestión Integral SEPA</h2>
+    <p>
+      Bienvenido al centro de mando. Desde aquí puede supervisar el estado
+      financiero de sus comunidades y la gestión de incidencias QR.
+    </p>
+    <button class="start-button" (click)="irAComunidades()">
+      ➜ Comenzar Gestión
+    </button>
+  </div>
 </div>

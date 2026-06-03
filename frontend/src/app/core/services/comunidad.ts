@@ -16,11 +16,17 @@ export class ComunidadService {
 
   getComunidades(
     page: number = 0,
-    size: number = 10
+    size: number = 10,
+    usuarioId?: number
   ): Observable<PageResponse<Comunidad>> {
-    return this.http.get<PageResponse<Comunidad>>(
-      `${this.apiUrl}?page=${page}&size=${size}`
-    );
+
+    let url = `${this.apiUrl}?page=${page}&size=${size}`;
+
+    if (usuarioId) {
+      url += `&usuarioId=${usuarioId}`;
+    }
+
+    return this.http.get<PageResponse<Comunidad>>(url);
   }
 
   getComunidad(id: number): Observable<Comunidad> {

@@ -1,33 +1,55 @@
-import { Component, OnInit, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
-
-import { Health, HealthResponse } from '../../../../core/services/health';
+import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
+import { Router } from '@angular/router';
+import { HttpClient } from '@angular/common/http';
 
 @Component({
   selector: 'app-dashboard',
-  imports: [CommonModule],
+  imports: [],
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.scss',
 })
 export class Dashboard implements OnInit {
 
-  private healthService = inject(Health);
+  private router = inject(Router);
+  private http = inject(HttpClient);
+  private cdr = inject(ChangeDetectorRef);
 
-  backendStatus = 'Desconocido';
-  backendApp = '';
+  username = 'Usuario';
+
+  totalComunidades = 0;
+  totalVecinos = 0;
+  totalIncidencias = 0;
 
   ngOnInit(): void {
+    const usuario = JSON.parse(
+      localStorage.getItem('usuario') || 'null'
+    );
 
-    this.healthService.getHealth().subscribe({
-      next: (response: HealthResponse) => {
-        this.backendStatus = response.status;
-        this.backendApp = response.app;
-      },
-      error: (error) => {
-        console.error(error);
-        this.backendStatus = 'ERROR';
-      }
-    });
+    if (usuario) {
+      this.username = usuario.username;
+    }
 
+    const usuarioId = usuario?.usuarioId;
+
+    this.http
+      .get<any>(`http://localhost:8080/api/dashboard?usuarioId=${usuarioId}`)
+      .subscribe({
+        next: (data) => {
+          console.log('DASHBOARD:', data);
+
+          this.totalComunidades = data.totalComunidades ?? 0;
+          this.totalVecinos = data.totalPropietarios ?? 0;
+          this.totalIncidencias = data.totalIncidencias ?? 0;
+
+          this.cdr.detectChanges();
+        },
+        error: (err) => {
+          console.error('Error cargando dashboard:', err);
+        }
+      });
+  }
+
+  irAComunidades(): void {
+    this.router.navigate(['/comunidades']);
   }
 }
