@@ -4,6 +4,8 @@ import { ActivatedRoute, Router } from '@angular/router';
 
 import { Vecino } from '../../../../core/models/vecino.model';
 import { VecinoService } from '../../../../core/services/vecino';
+import { Comunidad } from '../../../../core/models/comunidad.model';
+import { ComunidadService } from '../../../../core/services/comunidad';
 
 @Component({
   selector: 'app-vecinos-list',
@@ -16,9 +18,11 @@ export class VecinosList implements OnInit {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private vecinoService = inject(VecinoService);
+  private comunidadService = inject(ComunidadService);
   private cdr = inject(ChangeDetectorRef);
 
   comunidadId = 0;
+  comunidad?: Comunidad;
   vecinos: Vecino[] = [];
 
   cargando = true;
@@ -34,7 +38,22 @@ export class VecinosList implements OnInit {
       this.route.snapshot.paramMap.get('id')
     );
 
+    this.cargarComunidad();
     this.cargarVecinos();
+  }
+
+  cargarComunidad(): void {
+    this.comunidadService
+      .getComunidad(this.comunidadId)
+      .subscribe({
+        next: (data) => {
+          this.comunidad = data;
+          this.cdr.detectChanges();
+        },
+        error: (err) => {
+          console.error('Error cargando comunidad:', err);
+        }
+      });
   }
 
   cargarVecinos(): void {
@@ -49,21 +68,16 @@ export class VecinosList implements OnInit {
       )
       .subscribe({
         next: (data) => {
-          console.log('VECINOS:', data);
-
           this.vecinos = [...(data.content ?? [])];
           this.totalPaginas = data.totalPages ?? 0;
           this.totalElementos = data.totalElements ?? 0;
           this.cargando = false;
-
           this.cdr.detectChanges();
         },
         error: (err) => {
           console.error('Error cargando vecinos:', err);
-
           this.error = 'No se pudieron cargar los propietarios.';
           this.cargando = false;
-
           this.cdr.detectChanges();
         }
       });

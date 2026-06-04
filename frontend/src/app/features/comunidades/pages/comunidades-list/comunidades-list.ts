@@ -102,4 +102,12 @@ export class ComunidadesList implements OnInit {
 
     this.router.navigate(['/comunidades/editar', id]);
   }
+
+  verVecinos(id: number | undefined): void {
+    if (!id) {
+      return;
+    }
+
+    this.router.navigate(['/vecinos/comunidad', id]);
+  }
 }

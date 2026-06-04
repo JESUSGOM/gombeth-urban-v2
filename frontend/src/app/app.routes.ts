@@ -6,6 +6,8 @@ import { Dashboard } from './features/dashboard/pages/dashboard/dashboard';
 import { ComunidadesList } from './features/comunidades/pages/comunidades-list/comunidades-list';
 import { Login } from './features/auth/pages/login/login';
 import { ComunidadEdit } from './features/comunidades/pages/comunidad-edit/comunidad-edit';
+import { VecinosList } from './features/vecinos/pages/vecinos-list/vecinos-list';
+
 import { authGuard } from './core/guards/auth.guard';
 
 export const routes: Routes = [
@@ -37,6 +39,14 @@ export const routes: Routes = [
       {
         path: 'comunidades/editar/:id',
         component: ComunidadEdit
+      },
+      {
+        path: 'vecinos',
+        component: VecinosList
+      },
+      {
+        path: 'vecinos/comunidad/:id',
+        component: VecinosList
       }
     ]
   },

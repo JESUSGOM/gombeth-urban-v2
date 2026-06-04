@@ -1,116 +1,225 @@
 .vecinos-page {
-  padding: 24px;
+  width: 100%;
+  padding: 24px 28px;
+  overflow: hidden;
+}
+
+.breadcrumb {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  font-size: 14px;
+  margin-bottom: 24px;
+  color: #6b7280;
+
+  a {
+    color: #2563eb;
+    cursor: pointer;
+    text-decoration: none;
+  }
+
+  a:hover {
+    text-decoration: underline;
+  }
 }
 
 .page-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: 22px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid #d1d5db;
 }
 
 .page-header h2 {
   margin: 0;
-  font-size: 28px;
-  color: #1f2937;
+  font-size: 32px;
+  color: #111827;
+  font-weight: 800;
 }
 
 .page-header p {
-  margin-top: 5px;
-  color: #6b7280;
+  margin: 8px 0 0 0;
+  color: #4b5563;
+  font-size: 15px;
+}
+
+.header-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.search-input {
+  width: 280px;
+  height: 38px;
+  padding: 0 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+}
+
+.search-button,
+.primary-button,
+.secondary-button {
+  height: 38px;
+  border: none;
+  border-radius: 6px;
+  padding: 0 14px;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.search-button,
+.primary-button {
+  background: #2563eb;
+  color: white;
 }
 
 .secondary-button {
   background: #6b7280;
   color: white;
-  border: none;
-  padding: 10px 16px;
-  border-radius: 6px;
-  cursor: pointer;
-}
-
-.secondary-button:hover {
-  background: #4b5563;
 }
 
 .table-card {
+  width: 100%;
   background: white;
-  border-radius: 12px;
-  padding: 20px;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 .125rem .25rem rgba(0, 0, 0, .075);
 }
 
 .table-summary {
-  margin-bottom: 15px;
-  font-weight: 600;
+  padding: 12px 16px;
+  font-weight: 700;
   color: #374151;
 }
 
 table {
   width: 100%;
   border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 14px;
 }
 
 thead {
-  background: #111827;
+  background: #212529;
   color: white;
 }
 
 th {
-  padding: 12px;
   text-align: left;
+  padding: 12px 14px;
+  font-weight: 800;
 }
 
 td {
-  padding: 10px 12px;
+  padding: 10px 14px;
   border-bottom: 1px solid #e5e7eb;
+  vertical-align: middle;
 }
 
 tbody tr:hover {
-  background: #f9fafb;
+  background: rgba(13, 110, 253, 0.05);
+}
+
+.vivienda-col {
+  width: 110px;
+  font-weight: 800;
 }
 
 .nombre-col {
-  font-weight: 500;
+  font-weight: 700;
+}
+
+.muted {
+  color: #6b7280;
 }
 
 .iban-col {
-  font-family: monospace;
+  color: #2563eb;
+  font-family: "Courier New", monospace;
   font-size: 13px;
+}
+
+.center {
+  text-align: center;
+}
+
+.sepa-badge {
+  background: #d1fae5;
+  color: #047857;
+  border: 1px solid #a7f3d0;
+  border-radius: 6px;
+  padding: 4px 9px;
+}
+
+.status-active {
+  background: #198754;
+  color: white;
+  padding: 4px 11px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.status-inactive {
+  background: #dc2626;
+  color: white;
+  padding: 4px 11px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
 }
 
 .actions {
   display: flex;
-  gap: 6px;
+  justify-content: center;
+  align-items: center;
+  gap: 5px;
 }
 
-.btn-icon {
+.btn-action {
+  width: 34px;
+  height: 34px;
+  border-radius: 4px;
   border: none;
   cursor: pointer;
-  border-radius: 4px;
-  padding: 6px 8px;
+  font-size: 14px;
 }
 
-.btn-warning {
+.btn-dark {
+  background: #111827;
+  color: white;
+}
+
+.btn-pdf {
+  background: white;
+  color: #dc2626;
+  border: 1px solid #dc2626;
+}
+
+.btn-edit {
   background: #f59e0b;
   color: white;
 }
 
-.btn-danger {
+.btn-delete {
   background: #dc2626;
   color: white;
 }
 
 .pagination-bar {
-  margin-top: 20px;
   display: flex;
-  gap: 8px;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 20px;
 }
 
 .page-button {
   border: 1px solid #d1d5db;
   background: white;
-  padding: 8px 12px;
+  padding: 7px 11px;
   border-radius: 6px;
   cursor: pointer;
 }
@@ -122,7 +231,7 @@ tbody tr:hover {
 }
 
 .page-button:disabled {
-  opacity: 0.5;
+  opacity: .5;
   cursor: not-allowed;
 }
 
@@ -132,4 +241,167 @@ tbody tr:hover {
   padding: 12px;
   border-radius: 8px;
   margin-bottom: 16px;
+}
+
+th,
+td {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+th:nth-child(1),
+td:nth-child(1) {
+  width: 7%;
+}
+
+th:nth-child(2),
+td:nth-child(2) {
+  width: 26%;
+}
+
+th:nth-child(3),
+td:nth-child(3) {
+  width: 10%;
+}
+
+th:nth-child(4),
+td:nth-child(4) {
+  width: 25%;
+}
+
+th:nth-child(5),
+td:nth-child(5) {
+  width: 8%;
+  text-align: center;
+}
+
+th:nth-child(6),
+td:nth-child(6) {
+  width: 8%;
+  text-align: center;
+}
+
+th:nth-child(7),
+td:nth-child(7) {
+  width: 16%;
+  text-align: center;
+}
+
+th:nth-child(7),
+td:nth-child(7) {
+  width: 18%;
+  min-width: 190px;
+  text-align: center;
+  overflow: visible;
+}
+
+.actions {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 5px;
+  min-width: 180px;
+  overflow: visible;
+}
+
+.btn-action {
+  width: 32px;
+  min-width: 32px;
+  height: 32px;
+  flex: 0 0 32px;
+}
+
+.vecinos-page {
+  padding: 18px 22px;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.table-card {
+  max-width: 100%;
+  overflow: hidden;
+}
+
+table {
+  width: 100%;
+  min-width: 0 !important;
+  table-layout: fixed;
+  font-size: 12px;
+}
+
+th,
+td {
+  padding: 7px 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.page-header {
+  margin-bottom: 14px;
+  padding-bottom: 10px;
+}
+
+.page-header h2 {
+  font-size: 26px;
+}
+
+.breadcrumb {
+  margin-bottom: 14px;
+}
+
+th:nth-child(1),
+td:nth-child(1) {
+  width: 6%;
+}
+
+th:nth-child(2),
+td:nth-child(2) {
+  width: 24%;
+}
+
+th:nth-child(3),
+td:nth-child(3) {
+  width: 9%;
+}
+
+th:nth-child(4),
+td:nth-child(4) {
+  width: 27%;
+}
+
+th:nth-child(5),
+td:nth-child(5) {
+  width: 7%;
+  text-align: center;
+}
+
+th:nth-child(6),
+td:nth-child(6) {
+  width: 8%;
+  text-align: center;
+}
+
+th:nth-child(7),
+td:nth-child(7) {
+  width: 19%;
+  text-align: center;
+  overflow: visible;
+}
+
+.actions {
+  display: flex;
+  justify-content: center;
+  gap: 3px;
+  min-width: 0;
+  overflow: visible;
+}
+
+.btn-action {
+  width: 26px;
+  min-width: 26px;
+  height: 26px;
+  flex: 0 0 26px;
+  font-size: 11px;
 }
