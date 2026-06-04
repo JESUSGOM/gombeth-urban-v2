@@ -1,0 +1,122 @@
+<div class="vecinos-page">
+
+  <div class="page-header">
+    <div>
+      <h2>Vecinos</h2>
+      <p>Vecino ID: {{ comunidadId }}</p>
+    </div>
+
+    <button
+      class="secondary-button"
+      (click)="volver()">
+      Volver a comunidades
+    </button>
+  </div>
+
+  @if (error) {
+    <div class="error-card">
+      {{ error }}
+    </div>
+  }
+
+  <div class="table-card">
+
+    <div class="table-summary">
+      Total propietarios: {{ totalElementos }}
+    </div>
+
+    <table>
+      <thead>
+      <tr>
+        <th>Vivienda</th>
+        <th>Propietario</th>
+        <th>NIF / CIF</th>
+        <th>IBAN</th>
+        <th>Gestión</th>
+      </tr>
+      </thead>
+
+      <tbody>
+
+        @for (vecino of vecinos; track vecino.id) {
+
+          <tr>
+
+            <td>
+              {{ vecino.vivienda || '-' }}
+            </td>
+
+            <td class="nombre-col">
+              {{ vecino.nombre }}
+            </td>
+
+            <td>
+              {{ vecino.nif || '-' }}
+            </td>
+
+            <td class="iban-col">
+              {{ vecino.iban || '-' }}
+            </td>
+
+            <td class="actions">
+
+              <button
+                class="btn-icon btn-warning"
+                title="Editar">
+                ✏️
+              </button>
+
+              <button
+                class="btn-icon btn-danger"
+                title="Eliminar">
+                🗑
+              </button>
+
+            </td>
+
+          </tr>
+
+        }
+
+      </tbody>
+
+    </table>
+
+    <div class="pagination-bar">
+
+      <button
+        class="page-button"
+        (click)="cambiarPagina(paginaActual - 1)"
+        [disabled]="paginaActual === 1">
+
+        Anterior
+
+      </button>
+
+      @for (pagina of paginas(); track pagina) {
+
+        <button
+          class="page-button"
+          [class.active]="pagina === paginaActual"
+          (click)="cambiarPagina(pagina)">
+
+          {{ pagina }}
+
+        </button>
+
+      }
+
+      <button
+        class="page-button"
+        (click)="cambiarPagina(paginaActual + 1)"
+        [disabled]="paginaActual === totalPaginas">
+
+        Siguiente
+
+      </button>
+
+    </div>
+
+  </div>
+
+</div>
