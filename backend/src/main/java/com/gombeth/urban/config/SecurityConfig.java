@@ -25,7 +25,9 @@ public class SecurityConfig {
                                 "/api/comunidades",
                                 "/api/comunidades/**",
                                 "/api/dashboard",
-                                "/api/dashboard/**"
+                                "/api/dashboard/**",
+                                "/api/vecinos",
+                                "/api/vecinos/**"
                         ).permitAll()
                         .anyRequest().authenticated()
                 )
