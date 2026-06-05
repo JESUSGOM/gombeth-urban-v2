@@ -12,5 +12,14 @@ public interface VecinoRepository extends JpaRepository<Vecino, Long> {
             Pageable pageable
     );
 
-    Page<Vecino> findByComunidadId(Long comunidadId, Pageable pageable);
+    Page<Vecino> findByComunidadId(
+            Long comunidadId,
+            Pageable pageable
+    );
+
+    Page<Vecino> findByComunidadIdAndActivo(
+            Long comunidadId,
+            boolean activo,
+            Pageable pageable
+    );
 }

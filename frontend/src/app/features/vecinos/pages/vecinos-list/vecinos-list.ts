@@ -33,6 +33,8 @@ export class VecinosList implements OnInit {
   totalPaginas = 0;
   totalElementos = 0;
 
+  estadoFiltro = 'activos';
+
   ngOnInit(): void {
     this.comunidadId = Number(
       this.route.snapshot.paramMap.get('id')
@@ -64,7 +66,8 @@ export class VecinosList implements OnInit {
       .getVecinosPorComunidad(
         this.comunidadId,
         this.paginaActual - 1,
-        this.tamanioPagina
+        this.tamanioPagina,
+        this.estadoFiltro
       )
       .subscribe({
         next: (data) => {
@@ -81,6 +84,12 @@ export class VecinosList implements OnInit {
           this.cdr.detectChanges();
         }
       });
+  }
+
+  cambiarEstadoFiltro(estado: string): void {
+    this.estadoFiltro = estado;
+    this.paginaActual = 1;
+    this.cargarVecinos();
   }
 
   cambiarPagina(pagina: number): void {
@@ -113,5 +122,36 @@ export class VecinosList implements OnInit {
 
   nuevoVecino(): void {
     this.router.navigate(['/vecinos/nuevo/comunidad', this.comunidadId]);
+  }
+
+  eliminarVecino(id: number | undefined): void {
+
+    if (!id) {
+      return;
+    }
+
+    const confirmar = confirm(
+      '¿Desea dar de baja este propietario?'
+    );
+
+    if (!confirmar) {
+      return;
+    }
+
+    this.vecinoService
+      .eliminarVecino(id)
+      .subscribe({
+        next: () => {
+          this.cargarVecinos();
+        },
+        error: (err) => {
+          console.error(err);
+
+          this.error =
+            'No se pudo dar de baja el propietario.';
+
+          this.cdr.detectChanges();
+        }
+      });
   }
 }

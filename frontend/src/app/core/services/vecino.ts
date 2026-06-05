@@ -31,10 +31,12 @@ export class VecinoService {
   getVecinosPorComunidad(
     comunidadId: number,
     page: number = 0,
-    size: number = 10
+    size: number = 10,
+    estado: string = 'activos'
   ): Observable<PageResponse<Vecino>> {
+
     return this.http.get<PageResponse<Vecino>>(
-      `${this.apiUrl}/comunidad/${comunidadId}?page=${page}&size=${size}`
+      `${this.apiUrl}/comunidad/${comunidadId}?page=${page}&size=${size}&estado=${estado}`
     );
   }
 
@@ -55,6 +57,12 @@ export class VecinoService {
     return this.http.post<Vecino>(
       this.apiUrl,
       vecino
+    );
+  }
+
+  eliminarVecino(id: number) {
+    return this.http.delete<void>(
+      `${this.apiUrl}/${id}`
     );
   }
 }

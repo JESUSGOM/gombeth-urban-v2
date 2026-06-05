@@ -59,9 +59,29 @@ public class VecinoController {
     @GetMapping("/comunidad/{comunidadId}")
     public Page<Vecino> listarPorComunidad(
             @PathVariable Long comunidadId,
+            @RequestParam(defaultValue = "activos") String estado,
             Pageable pageable
     ) {
-        return vecinoRepository.findByComunidadId(comunidadId, pageable);
+        if ("bajas".equalsIgnoreCase(estado)) {
+            return vecinoRepository.findByComunidadIdAndActivo(
+                    comunidadId,
+                    false,
+                    pageable
+            );
+        }
+
+        if ("todos".equalsIgnoreCase(estado)) {
+            return vecinoRepository.findByComunidadId(
+                    comunidadId,
+                    pageable
+            );
+        }
+
+        return vecinoRepository.findByComunidadIdAndActivo(
+                comunidadId,
+                true,
+                pageable
+        );
     }
 
     @GetMapping("/{id}")
@@ -98,6 +118,12 @@ public class VecinoController {
         vecino.setDomiciliado(datos.isDomiciliado());
         vecino.setActivo(datos.isActivo());
 
+        vecino.setReferenciaMandato(datos.getReferenciaMandato());
+        vecino.setDireccionNotificacion(datos.getDireccionNotificacion());
+        vecino.setRutaMandatoFirmado(datos.getRutaMandatoFirmado());
+        vecino.setCoeficiente(datos.getCoeficiente());
+        vecino.setNotas(datos.getNotas());
+
         return vecinoRepository.save(vecino);
     }
 
@@ -112,7 +138,17 @@ public class VecinoController {
         if (datos.getPaisCod() == null || datos.getPaisCod().isBlank()) {
             datos.setPaisCod("ES");
         }
+        if (datos.getReferenciaMandato() == null || datos.getReferenciaMandato().isBlank()) {
+            datos.setReferenciaMandato("GTI-" + System.currentTimeMillis() / 1000);
+        }
 
         return vecinoRepository.save(datos);
+    }
+
+    @DeleteMapping("/{id}")
+    public void darDeBaja(@PathVariable Long id) {
+        Vecino vecino = vecinoRepository.findById(id).orElseThrow(() -> new RuntimeException("Vecino no encontrado"));
+        vecino.setActivo(false);
+        vecinoRepository.save(vecino);
     }
 }

@@ -37,6 +37,29 @@
     </div>
   }
 
+  <div class="filter-bar">
+    <button
+      class="filter-button"
+      [class.active]="estadoFiltro === 'activos'"
+      (click)="cambiarEstadoFiltro('activos')">
+      Activos
+    </button>
+
+    <button
+      class="filter-button"
+      [class.active]="estadoFiltro === 'bajas'"
+      (click)="cambiarEstadoFiltro('bajas')">
+      Bajas
+    </button>
+
+    <button
+      class="filter-button"
+      [class.active]="estadoFiltro === 'todos'"
+      (click)="cambiarEstadoFiltro('todos')">
+      Todos
+    </button>
+  </div>
+
   <div class="table-card">
 
     <div class="table-summary">
@@ -95,7 +118,7 @@
               <button class="btn-action btn-dark" title="Conceptos de cobro">☰</button>
               <button class="btn-action btn-pdf" title="Mandato SEPA">📄</button>
               <button class="btn-action btn-edit" title="Editar propietario" (click)="editarVecino(vecino.id)">✏️</button>
-              <button class="btn-action btn-delete" title="Eliminar propietario">🗑</button>
+              <button class="btn-action btn-delete" title="Eliminar propietario" (click)="eliminarVecino(vecino.id)">🗑</button>
             </td>
           </tr>
         }

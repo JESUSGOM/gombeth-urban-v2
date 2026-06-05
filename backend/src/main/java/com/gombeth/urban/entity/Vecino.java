@@ -91,6 +91,7 @@ public class Vecino {
     @Column(nullable = false)
     private Boolean activo;
 
+    @Lob
     @Column(columnDefinition = "TEXT")
     private String notas;
 
@@ -129,4 +130,14 @@ public class Vecino {
     public void setDomiciliado(boolean domiciliado) {this.domiciliado = domiciliado;}
     public boolean isActivo() {return activo;}
     public void setActivo(boolean activo) {this.activo = activo;}
+    public String getReferenciaMandato() {return referenciaMandato;}
+    public void setReferenciaMandato(String referenciaMandato) {this.referenciaMandato = referenciaMandato;}
+    public String getDireccionNotificacion() {return direccionNotificacion;}
+    public void setDireccionNotificacion(String direccionNotificacion) {this.direccionNotificacion = direccionNotificacion;}
+    public String getRutaMandatoFirmado() {return rutaMandatoFirmado;}
+    public void setRutaMandatoFirmado(String rutaMandatoFirmado) {this.rutaMandatoFirmado = rutaMandatoFirmado;}
+    public BigDecimal getCoeficiente() {return coeficiente;}
+    public void setCoeficiente(BigDecimal coeficiente) {this.coeficiente = coeficiente;}
+    public String getNotas() {return notas;}
+    public void setNotas(String notas) {this.notas = notas;}
 }

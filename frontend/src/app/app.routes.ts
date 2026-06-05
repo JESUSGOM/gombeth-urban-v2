@@ -54,7 +54,7 @@ export const routes: Routes = [
         component: VecinoEdit
       },
       {
-        path: 'vecinos/nuevo/comunidad:comunidadId',
+        path: 'vecinos/nuevo/comunidad/:comunidadId',
         component: VecinoEdit
       }
     ]
