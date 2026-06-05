@@ -21,13 +21,49 @@ export class VecinoEdit implements OnInit {
 
   vecino?: Vecino;
 
+  esNuevo = false;
   guardando = false;
   mensaje = '';
   error = '';
 
   ngOnInit(): void {
-    const id = Number(this.route.snapshot.paramMap.get('id'));
+    const id = this.route.snapshot.paramMap.get('id');
+    const comunidadId = this.route.snapshot.paramMap.get('comunidadId');
 
+    if (id) {
+      this.cargarVecino(Number(id));
+      return;
+    }
+
+    if (comunidadId) {
+      this.esNuevo = true;
+
+      this.vecino = {
+        id: 0,
+        comunidadId: Number(comunidadId),
+        nombre: '',
+        vivienda: '',
+        nif: '',
+        iban: '',
+        bic: '',
+        email: '',
+        telefono1: '',
+        telefono2: '',
+        telefono3: '',
+        direccion: '',
+        poblacion: '',
+        provincia: '',
+        codigoPostal: '',
+        paisCod: 'ES',
+        domiciliado: true,
+        activo: true
+      };
+
+      this.cdr.detectChanges();
+    }
+  }
+
+  cargarVecino(id: number): void {
     this.vecinoService.getVecino(id).subscribe({
       next: (data) => {
         this.vecino = { ...data };
@@ -42,13 +78,52 @@ export class VecinoEdit implements OnInit {
   }
 
   guardar(): void {
-    if (!this.vecino || !this.vecino.id) {
+    if (!this.vecino) {
       return;
     }
 
     this.guardando = true;
     this.mensaje = '';
     this.error = '';
+
+    if (this.esNuevo) {
+      this.crear();
+      return;
+    }
+
+    this.actualizar();
+  }
+
+  crear(): void {
+    if (!this.vecino) {
+      return;
+    }
+
+    this.vecinoService
+      .crearVecino(this.vecino)
+      .subscribe({
+        next: (data) => {
+          this.mensaje = 'Propietario creado correctamente.';
+          this.guardando = false;
+
+          this.router.navigate([
+            '/vecinos/comunidad',
+            data.comunidadId
+          ]);
+        },
+        error: (err) => {
+          console.error('Error creando propietario:', err);
+          this.error = 'No se pudo crear el propietario.';
+          this.guardando = false;
+          this.cdr.detectChanges();
+        }
+      });
+  }
+
+  actualizar(): void {
+    if (!this.vecino || !this.vecino.id) {
+      return;
+    }
 
     this.vecinoService
       .actualizarVecino(this.vecino.id, this.vecino)

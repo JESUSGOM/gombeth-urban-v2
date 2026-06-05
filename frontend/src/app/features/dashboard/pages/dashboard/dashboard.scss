@@ -149,3 +149,12 @@
   cursor: pointer;
   box-shadow: 0 .125rem .25rem rgba(0, 0, 0, .075);
 }
+
+.dashboard-page {
+  height: 100%;
+  overflow: hidden;
+}
+
+.welcome-card {
+  min-height: 260px;
+}

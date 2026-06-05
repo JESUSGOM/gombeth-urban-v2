@@ -50,4 +50,11 @@ export class VecinoService {
       vecino
     );
   }
+
+  crearVecino(vecino: Vecino): Observable<Vecino> {
+    return this.http.post<Vecino>(
+      this.apiUrl,
+      vecino
+    );
+  }
 }

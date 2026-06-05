@@ -100,4 +100,19 @@ public class VecinoController {
 
         return vecinoRepository.save(vecino);
     }
+
+    @PostMapping
+    public Vecino crear(@RequestBody Vecino datos) {
+        if (datos.getComunidadId() == null) {
+            throw new RuntimeException("La comunidad es obligatoria");
+        }
+
+        datos.setActivo(true);
+
+        if (datos.getPaisCod() == null || datos.getPaisCod().isBlank()) {
+            datos.setPaisCod("ES");
+        }
+
+        return vecinoRepository.save(datos);
+    }
 }

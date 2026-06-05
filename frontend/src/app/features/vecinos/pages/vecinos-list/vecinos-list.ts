@@ -110,4 +110,8 @@ export class VecinosList implements OnInit {
 
     this.router.navigate(['/vecinos/editar', id]);
   }
+
+  nuevoVecino(): void {
+    this.router.navigate(['/vecinos/nuevo/comunidad', this.comunidadId]);
+  }
 }

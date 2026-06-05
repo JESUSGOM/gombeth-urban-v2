@@ -52,6 +52,10 @@ export const routes: Routes = [
       {
         path: 'vecinos/editar/:id',
         component: VecinoEdit
+      },
+      {
+        path: 'vecinos/nuevo/comunidad:comunidadId',
+        component: VecinoEdit
       }
     ]
   },
