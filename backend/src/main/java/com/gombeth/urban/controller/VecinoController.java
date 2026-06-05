@@ -63,4 +63,41 @@ public class VecinoController {
     ) {
         return vecinoRepository.findByComunidadId(comunidadId, pageable);
     }
+
+    @GetMapping("/{id}")
+    public Vecino obtenerPorId(@PathVariable Long id) {
+        return vecinoRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Vecino no encontrado"));
+    }
+
+    @PutMapping("/{id}")
+    public Vecino actualizar(
+            @PathVariable Long id,
+            @RequestBody Vecino datos
+    ) {
+        Vecino vecino = vecinoRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Vecino no encontrado"));
+
+        vecino.setNombre(datos.getNombre());
+        vecino.setNif(datos.getNif());
+        vecino.setIban(datos.getIban());
+        vecino.setBic(datos.getBic());
+        vecino.setEmail(datos.getEmail());
+
+        vecino.setTelefono1(datos.getTelefono1());
+        vecino.setTelefono2(datos.getTelefono2());
+        vecino.setTelefono3(datos.getTelefono3());
+
+        vecino.setDireccion(datos.getDireccion());
+        vecino.setPoblacion(datos.getPoblacion());
+        vecino.setProvincia(datos.getProvincia());
+        vecino.setCodigoPostal(datos.getCodigoPostal());
+        vecino.setPaisCod(datos.getPaisCod());
+
+        vecino.setVivienda(datos.getVivienda());
+        vecino.setDomiciliado(datos.isDomiciliado());
+        vecino.setActivo(datos.isActivo());
+
+        return vecinoRepository.save(vecino);
+    }
 }

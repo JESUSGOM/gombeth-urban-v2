@@ -9,6 +9,7 @@ import { ComunidadEdit } from './features/comunidades/pages/comunidad-edit/comun
 import { VecinosList } from './features/vecinos/pages/vecinos-list/vecinos-list';
 
 import { authGuard } from './core/guards/auth.guard';
+import { VecinoEdit } from './features/vecinos/pages/vecino-edit/vecino-edit';
 
 export const routes: Routes = [
 
@@ -47,6 +48,10 @@ export const routes: Routes = [
       {
         path: 'vecinos/comunidad/:id',
         component: VecinosList
+      },
+      {
+        path: 'vecinos/editar/:id',
+        component: VecinoEdit
       }
     ]
   },
@@ -55,5 +60,7 @@ export const routes: Routes = [
     path: '**',
     redirectTo: 'dashboard'
   }
+
+
 
 ];

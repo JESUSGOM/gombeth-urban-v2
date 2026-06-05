@@ -37,4 +37,17 @@ export class VecinoService {
       `${this.apiUrl}/comunidad/${comunidadId}?page=${page}&size=${size}`
     );
   }
+
+  getVecino(id: number): Observable<Vecino> {
+    return this.http.get<Vecino>(
+      `${this.apiUrl}/${id}`
+    );
+  }
+
+  actualizarVecino(id: number, vecino: Vecino): Observable<Vecino> {
+    return this.http.put<Vecino>(
+      `${this.apiUrl}/${id}`,
+      vecino
+    );
+  }
 }

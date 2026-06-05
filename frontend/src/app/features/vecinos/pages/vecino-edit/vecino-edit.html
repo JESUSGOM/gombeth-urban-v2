@@ -1,0 +1,136 @@
+<div class="edit-page">
+
+  @if (vecino) {
+
+    <div class="form-card">
+
+      <div class="form-title-bar">
+        <h2>✎ FICHA MAESTRA DEL PROPIETARIO</h2>
+        <button class="close-button" (click)="volver()">×</button>
+      </div>
+
+      <div class="form-body">
+
+        @if (error) {
+          <div class="error-card">{{ error }}</div>
+        }
+
+        @if (mensaje) {
+          <div class="success-card">{{ mensaje }}</div>
+        }
+
+        <div class="form-grid">
+
+          <div class="form-group wide">
+            <label>Nombre / Razón Social</label>
+            <input type="text" [(ngModel)]="vecino.nombre">
+          </div>
+
+          <div class="form-group">
+            <label>NIF / CIF</label>
+            <input type="text" [(ngModel)]="vecino.nif">
+          </div>
+
+          <div class="form-group">
+            <label>Vivienda</label>
+            <input type="text" [(ngModel)]="vecino.vivienda">
+          </div>
+
+          <div class="form-group wide">
+            <label>Email Principal</label>
+            <input type="email" [(ngModel)]="vecino.email">
+          </div>
+
+          <div class="form-group">
+            <label>Teléfono 1</label>
+            <input type="text" [(ngModel)]="vecino.telefono1">
+          </div>
+
+          <div class="form-group">
+            <label>Teléfono 2</label>
+            <input type="text" [(ngModel)]="vecino.telefono2">
+          </div>
+
+          <div class="form-group">
+            <label>Teléfono 3</label>
+            <input type="text" [(ngModel)]="vecino.telefono3">
+          </div>
+
+          <div class="separator"></div>
+
+          <div class="form-group full">
+            <label>Dirección</label>
+            <input type="text" [(ngModel)]="vecino.direccion">
+          </div>
+
+          <div class="form-group">
+            <label>Población</label>
+            <input type="text" [(ngModel)]="vecino.poblacion">
+          </div>
+
+          <div class="form-group">
+            <label>Provincia</label>
+            <input type="text" [(ngModel)]="vecino.provincia">
+          </div>
+
+          <div class="form-group">
+            <label>CP</label>
+            <input type="text" [(ngModel)]="vecino.codigoPostal">
+          </div>
+
+          <div class="form-group">
+            <label>País</label>
+            <input type="text" [(ngModel)]="vecino.paisCod">
+          </div>
+
+          <div class="form-group wide">
+            <label class="blue-label">Dirección Notificación</label>
+            <input type="text" [(ngModel)]="vecino.direccionNotificacion">
+          </div>
+
+          <div class="form-group full">
+            <label>IBAN</label>
+            <input class="mono" type="text" [(ngModel)]="vecino.iban">
+          </div>
+
+          <div class="form-group">
+            <label>BIC</label>
+            <input type="text" [(ngModel)]="vecino.bic">
+          </div>
+
+          <div class="switch-row full">
+            <label>
+              <input type="checkbox" [(ngModel)]="vecino.domiciliado">
+              ¿DOMICILIAR RECIBOS?
+            </label>
+
+            <label>
+              <input type="checkbox" [(ngModel)]="vecino.activo">
+              Vecino Activo
+            </label>
+          </div>
+
+        </div>
+
+      </div>
+
+      <div class="form-footer">
+        <button class="secondary-button" (click)="volver()">Cancelar</button>
+
+        <button
+          class="primary-button"
+          (click)="guardar()"
+          [disabled]="guardando">
+          {{ guardando ? 'GUARDANDO...' : 'ACTUALIZAR FICHA' }}
+        </button>
+      </div>
+
+    </div>
+
+  } @else {
+    <div class="info-card">
+      Cargando propietario...
+    </div>
+  }
+
+</div>
