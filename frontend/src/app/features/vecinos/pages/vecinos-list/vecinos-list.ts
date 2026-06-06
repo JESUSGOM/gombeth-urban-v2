@@ -154,4 +154,16 @@ export class VecinosList implements OnInit {
         }
       });
   }
+
+  verMandato(id: number | undefined): void {
+
+    if (!id) {
+      return;
+    }
+
+    window.open(
+      `http://localhost:8080/api/vecinos/${id}/mandato-pdf`,
+      '_blank'
+    );
+  }
 }

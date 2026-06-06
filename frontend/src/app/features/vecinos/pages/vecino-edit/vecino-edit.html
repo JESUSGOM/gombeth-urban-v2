@@ -139,25 +139,54 @@
 
         </div>
 
+        <!-- DOCUMENTACIÓN -->
+
+        <div class="documentos-card">
+
+          <h3>📄 Documentación</h3>
+
+          <input
+            type="file"
+            (change)="seleccionarDocumento($event)">
+
+          <button
+            type="button"
+            class="primary-button"
+            (click)="subirDocumento()">
+            Subir PDF
+          </button>
+
+        </div>
+
       </div>
 
       <div class="form-footer">
-        <button class="secondary-button" (click)="volver()">Cancelar</button>
+
+        <button
+          class="secondary-button"
+          (click)="volver()">
+          Cancelar
+        </button>
 
         <button
           class="primary-button"
           (click)="guardar()"
           [disabled]="guardando">
+
           {{ guardando ? 'GUARDANDO...' : (esNuevo ? 'CREAR PROPIETARIO' : 'ACTUALIZAR FICHA') }}
+
         </button>
+
       </div>
 
     </div>
 
   } @else {
+
     <div class="info-card">
       Cargando propietario...
     </div>
+
   }
 
 </div>

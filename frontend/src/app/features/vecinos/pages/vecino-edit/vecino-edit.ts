@@ -25,6 +25,7 @@ export class VecinoEdit implements OnInit {
   guardando = false;
   mensaje = '';
   error = '';
+  archivoSeleccionado?: File;
 
   ngOnInit(): void {
     const id = this.route.snapshot.paramMap.get('id');
@@ -150,5 +151,43 @@ export class VecinoEdit implements OnInit {
     }
 
     this.router.navigate(['/comunidades']);
+  }
+
+  seleccionarDocumento(event: any): void {
+
+    if (event.target.files.length > 0) {
+      this.archivoSeleccionado =
+
+
+        subirDocumento(): void {
+
+        if (!this.archivoSeleccionado) {
+        alert('Seleccione un PDF');
+        return;
+      }
+
+      const formData = new FormData();
+
+      formData.append(
+        'file',
+        this.archivoSeleccionado
+      );
+
+      fetch(
+        `http://localhost:8080/api/documentos/${this.vecino.id}`,
+        {
+          method: 'POST',
+          body: formData
+        }
+      )
+        .then(() => {
+          alert('Documento subido correctamente');
+        })
+        .catch(() => {
+          alert('Error subiendo documento');
+        });
+    } event.target.files[0];
+    }
+
   }
 }

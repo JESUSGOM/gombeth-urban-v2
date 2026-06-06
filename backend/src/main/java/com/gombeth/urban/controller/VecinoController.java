@@ -7,6 +7,12 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.web.bind.annotation.*;
+import com.gombeth.urban.entity.Comunidad;
+import com.gombeth.urban.repository.ComunidadRepository;
+import com.gombeth.urban.service.PdfService;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 
 import java.util.List;
 
@@ -16,13 +22,19 @@ public class VecinoController {
 
     private final VecinoRepository vecinoRepository;
     private final JdbcTemplate jdbcTemplate;
+    private final ComunidadRepository comunidadRepository;
+    private final PdfService pdfService;
 
     public VecinoController(
             VecinoRepository vecinoRepository,
-            JdbcTemplate jdbcTemplate
+            JdbcTemplate jdbcTemplate,
+            ComunidadRepository comunidadRepository,
+            PdfService pdfService
     ) {
         this.vecinoRepository = vecinoRepository;
         this.jdbcTemplate = jdbcTemplate;
+        this.comunidadRepository = comunidadRepository;
+        this.pdfService = pdfService;
     }
 
     @GetMapping
@@ -150,5 +162,27 @@ public class VecinoController {
         Vecino vecino = vecinoRepository.findById(id).orElseThrow(() -> new RuntimeException("Vecino no encontrado"));
         vecino.setActivo(false);
         vecinoRepository.save(vecino);
+    }
+
+    @GetMapping("/{id}/mandato-pdf")
+    public ResponseEntity<byte[]> descargarMandatoPdf(@PathVariable Long id) {
+
+        Vecino vecino = vecinoRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Vecino no encontrado"));
+
+        Comunidad comunidad = comunidadRepository.findById(vecino.getComunidadId())
+                .orElseThrow(() -> new RuntimeException("Comunidad no encontrada"));
+
+        byte[] pdf = pdfService.generarMandatoSepa(comunidad, vecino);
+
+        String nombreArchivo = "mandato_sepa_" + vecino.getId() + ".pdf";
+
+        return ResponseEntity.ok()
+                .header(
+                        HttpHeaders.CONTENT_DISPOSITION,
+                        "inline; filename=\"" + nombreArchivo + "\""
+                )
+                .contentType(MediaType.APPLICATION_PDF)
+                .body(pdf);
     }
 }
