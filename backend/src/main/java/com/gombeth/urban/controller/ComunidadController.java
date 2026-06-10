@@ -7,15 +7,27 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.web.bind.annotation.*;
+import com.gombeth.urban.dto.CoeficientesResumenResponse;
+import com.gombeth.urban.repository.VecinoRepository;
+import com.gombeth.urban.dto.CoeficienteVecinoDetalleResponse;
+
+import java.util.List;
+
+import java.math.BigDecimal;
 
 @RestController
 @RequestMapping("/api/comunidades")
 public class ComunidadController {
 
     private final ComunidadRepository repository;
+    private final VecinoRepository vecinoRepository;
 
-    public ComunidadController(ComunidadRepository repository) {
+    public ComunidadController(
+            ComunidadRepository repository,
+            VecinoRepository vecinoRepository
+    ) {
         this.repository = repository;
+        this.vecinoRepository = vecinoRepository;
     }
 
     @GetMapping
@@ -70,5 +82,39 @@ public class ComunidadController {
         comunidad.setSufijo(comunidadActualizada.getSufijo());
 
         return repository.save(comunidad);
+    }
+
+    @GetMapping("/{id}/coeficientes/resumen")
+    public CoeficientesResumenResponse resumenCoeficientes(
+            @PathVariable Long id
+    ) {
+        BigDecimal total = vecinoRepository
+                .sumarCoeficientesActivosPorComunidad(id);
+
+        long numeroPropietarios = vecinoRepository
+                .countByComunidadIdAndActivo(id, true);
+
+        BigDecimal cien = new BigDecimal("100.0000");
+
+        boolean correcto = total.compareTo(cien) == 0;
+
+        String mensaje = correcto
+                ? "Los coeficientes activos suman 100."
+                : "Los coeficientes activos no suman 100.";
+
+        return new CoeficientesResumenResponse(
+                id,
+                total,
+                correcto,
+                numeroPropietarios,
+                mensaje
+        );
+    }
+
+    @GetMapping("/{id}/coeficientes/detalle")
+    public List<CoeficienteVecinoDetalleResponse> detalleCoeficientes(
+            @PathVariable Long id
+    ) {
+        return vecinoRepository.detalleCoeficientesPorComunidad(id);
     }
 }

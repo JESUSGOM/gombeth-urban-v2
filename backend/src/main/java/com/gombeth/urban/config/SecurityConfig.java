@@ -27,7 +27,13 @@ public class SecurityConfig {
                                 "/api/dashboard",
                                 "/api/dashboard/**",
                                 "/api/vecinos",
-                                "/api/vecinos/**"
+                                "/api/vecinos/**",
+                                "/api/documentos",
+                                "/api/documentos/**",
+                                "/api/prpiedades",
+                                "/api/propiedades/**",
+                                "/api/presupuestos",
+                                "/api/presupuestos/**"
                         ).permitAll()
                         .anyRequest().authenticated()
                 )

@@ -1,0 +1,347 @@
+<div class="page-container">
+
+  <div class="page-header compact-header">
+
+    <div>
+      <h2>💰 Presupuestos</h2>
+      <p>Presupuesto anual por comunidad y cuenta contable</p>
+    </div>
+
+    <div class="toolbar-card">
+
+      <div class="toolbar-item comunidad-item">
+        <label>Comunidad</label>
+        <input
+          type="text"
+          [value]="comunidad?.nombre || ''"
+          readonly>
+      </div>
+
+      <div class="toolbar-item year-item">
+        <label>Año</label>
+        <input
+          type="number"
+          [(ngModel)]="anio">
+      </div>
+
+      <div class="toolbar-item reparto-item">
+        <label>Método reparto</label>
+        <select [(ngModel)]="metodoReparto">
+          <option value="COEFICIENTE">
+            Por coeficiente
+          </option>
+          <option value="IGUALITARIO">
+            A partes iguales
+          </option>
+        </select>
+      </div>
+
+      <div class="toolbar-buttons">
+        <button
+          class="primary-button"
+          (click)="guardarMetodoReparto()"
+          [disabled]="guardandoMetodo">
+          {{ guardandoMetodo ? 'Guardando...' : 'Guardar método' }}
+        </button>
+
+        <button
+          class="primary-button"
+          (click)="cargarPresupuestos()">
+          Cargar
+        </button>
+      </div>
+
+    </div>
+
+  </div>
+
+  @if (error) {
+    <div class="error-card">
+      {{ error }}
+    </div>
+  }
+
+  @if (mensaje) {
+    <div class="success-card">
+      {{ mensaje }}
+    </div>
+  }
+
+  @if (
+    resumenCoeficientes &&
+    !resumenCoeficientes.correcto &&
+    metodoReparto === 'COEFICIENTE'
+    ) {
+    <div class="error-card">
+      <strong>⚠ Coeficientes incorrectos</strong>
+      <br>
+      Total actual:
+      {{ resumenCoeficientes.totalCoeficiente | number:'1.4-4' }} %
+      <br>
+      Deben sumar exactamente 100 %.
+      <br>
+      Faltan:
+      {{ (100 - resumenCoeficientes.totalCoeficiente) | number:'1.4-4' }} %
+    </div>
+  }
+
+  <div class="summary-card">
+    <span>Total presupuesto:</span>
+    <strong>
+      {{ total | number:'1.2-2' }} €
+    </strong>
+  </div>
+
+  <div class="table-card">
+
+    <h3>📋 Histórico de revisiones presupuestarias</h3>
+
+    <table>
+
+      <thead>
+      <tr>
+        <th>Versión</th>
+        <th>Periodo</th>
+        <th class="right">Importe</th>
+        <th>Estado</th>
+        <th>Motivo</th>
+        <th class="center">Acciones</th>
+      </tr>
+      </thead>
+
+      <tbody>
+
+        @for (r of revisiones; track r.id) {
+
+          <tr>
+
+            <td>
+              V{{ r.version }}
+            </td>
+
+            <td>
+              {{ r.mesInicio }} - {{ r.mesFin }}
+            </td>
+
+            <td class="right">
+              {{ r.importeRevision | number:'1.2-2' }} €
+            </td>
+
+            <td>
+              {{ r.estado }}
+            </td>
+
+            <td>
+              {{ r.motivoRevision }}
+            </td>
+
+            <td class="right">
+
+              @if (r.estado === 'BORRADOR') {
+
+                <button
+                  class="approve-button"
+                  (click)="aprobarRevision(r.id)">
+                  Aprobar revisión
+                </button>
+
+                <button
+                  class="delete-button"
+                  (click)="eliminarRevision(r.id)">
+                  Eliminar
+                </button>
+
+              }
+
+            </td>
+
+          </tr>
+
+        }
+
+      </tbody>
+
+    </table>
+
+  </div>
+
+  <div class="top-grid">
+
+    <div class="table-card">
+
+      <h3>
+        Reparto presupuesto
+        ({{ metodoReparto }})
+      </h3>
+
+      <table>
+        <thead>
+        <tr>
+          <th>Vivienda</th>
+          <th>Propietario</th>
+          <th class="right">Coeficiente</th>
+          <th class="right">Importe anual</th>
+          <th class="right">Importe mensual</th>
+        </tr>
+        </thead>
+
+        <tbody>
+          @for (r of reparto; track r.vecinoId) {
+            <tr>
+              <td>{{ r.vivienda }}</td>
+              <td>{{ r.nombre }}</td>
+              <td class="right">
+                {{ r.coeficiente | number:'1.4-4' }} %
+              </td>
+              <td class="right">
+                {{ r.importeAnual | number:'1.2-2' }} €
+              </td>
+              <td class="right">
+                {{ r.importeMensual | number:'1.2-2' }} €
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+
+    </div>
+
+    <div class="table-card">
+
+      <h3>Presupuesto anual</h3>
+
+      <table>
+        <thead>
+        <tr>
+          <th>Cuenta</th>
+          <th>Descripción</th>
+          <th>Año</th>
+          <th class="right">Importe</th>
+        </tr>
+        </thead>
+
+        <tbody>
+          @for (p of presupuestos; track p.id) {
+            <tr>
+              <td>{{ p.cuentaCodigo }}</td>
+              <td>{{ p.cuentaDescripcion }}</td>
+              <td>{{ p.anio }}</td>
+              <td class="right">
+                {{ p.importe | number:'1.2-2' }} €
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+
+    </div>
+
+  </div>
+
+  <div class="table-card">
+
+    <div class="section-header">
+      <h3>Cuotas presupuestarias generadas</h3>
+
+      <div class="header-buttons">
+
+        <!--
+        <button
+          class="btn btn-success"
+          (click)="aprobarCuotas()">
+          Aprobar cuotas
+        </button>
+        -->
+
+        <button
+          class="generate-button"
+          (click)="generarBorradorCuotas()"
+          [disabled]="
+            generandoCuotas ||
+            (
+              metodoReparto === 'COEFICIENTE' &&
+              resumenCoeficientes &&
+              !resumenCoeficientes.correcto
+            )
+          ">
+          {{ generandoCuotas ? 'Generando...' : 'Generar borrador de cuotas' }}
+        </button>
+
+      </div>
+    </div>
+
+    @if (
+      metodoReparto === 'COEFICIENTE' &&
+      resumenCoeficientes &&
+      !resumenCoeficientes.correcto
+      ) {
+      <div class="error-card">
+        No se pueden generar cuotas por coeficiente hasta que los coeficientes sumen 100 %.
+      </div>
+    }
+
+    <table>
+      <thead>
+      <tr>
+        <th>Vivienda</th>
+        <th>Propietario</th>
+        <th>Descripción</th>
+
+        <th>Versión</th>
+        <th>Periodo</th>
+
+        <th class="right">Coeficiente</th>
+        <th class="right">Importe anual</th>
+        <th class="right">Importe mensual</th>
+
+        <th>Motivo</th>
+        <th>Estado</th>
+      </tr>
+      </thead>
+
+      <tbody>
+        @for (c of cuotasBorrador; track c.id) {
+          <tr>
+
+            <td>{{ c.vivienda }}</td>
+
+            <td>{{ c.nombre }}</td>
+
+            <td>{{ c.descripcion }}</td>
+
+            <td>
+              V{{ c.version }}
+            </td>
+
+            <td>
+              {{ c.mesInicio }} - {{ c.mesFin }}
+            </td>
+
+            <td class="right">
+              {{ c.coeficiente | number:'1.4-4' }} %
+            </td>
+
+            <td class="right">
+              {{ c.importeAnual | number:'1.2-2' }} €
+            </td>
+
+            <td class="right">
+              {{ c.importeMensual | number:'1.2-2' }} €
+            </td>
+
+            <td>
+              {{ c.motivoRevision }}
+            </td>
+
+            <td>
+              {{ c.estado }}
+            </td>
+
+          </tr>
+        }
+      </tbody>
+    </table>
+
+  </div>
+
+</div>

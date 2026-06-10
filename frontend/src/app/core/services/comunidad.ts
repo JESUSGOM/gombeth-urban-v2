@@ -5,6 +5,9 @@ import { Observable } from 'rxjs';
 import { Comunidad } from '../models/comunidad.model';
 import { PageResponse } from '../models/page-response.model';
 
+import { CoeficientesResumen } from '../models/coeficientes-resumen.model';
+import { ConfiguracionReparto } from '../models/configuracion-reparto.model';
+
 @Injectable({
   providedIn: 'root'
 })
@@ -39,6 +42,32 @@ export class ComunidadService {
     return this.http.put<Comunidad>(
       `${this.apiUrl}/${id}`,
       comunidad
+    );
+  }
+
+  getResumenCoeficientes(
+    comunidadId: number
+  ): Observable<CoeficientesResumen> {
+    return this.http.get<CoeficientesResumen>(
+      `${this.apiUrl}/${comunidadId}/coeficientes/resumen`
+    );
+  }
+
+  getConfiguracionReparto(
+    comunidadId: number
+  ): Observable<ConfiguracionReparto> {
+    return this.http.get<ConfiguracionReparto>(
+      `${this.apiUrl}/${comunidadId}/configuracion-reparto`
+    );
+  }
+
+  guardarConfiguracionReparto(
+    comunidadId: number,
+    metodoReparto: string
+  ): Observable<ConfiguracionReparto> {
+    return this.http.put<ConfiguracionReparto>(
+      `${this.apiUrl}/${comunidadId}/configuracion-reparto`,
+      { metodoReparto }
     );
   }
 }

@@ -10,6 +10,8 @@ import { VecinosList } from './features/vecinos/pages/vecinos-list/vecinos-list'
 
 import { authGuard } from './core/guards/auth.guard';
 import { VecinoEdit } from './features/vecinos/pages/vecino-edit/vecino-edit';
+import { PresupuestosList } from './features/presupuestos/pages/presupuestos-list/presupuestos-list';
+
 
 export const routes: Routes = [
 
@@ -56,6 +58,10 @@ export const routes: Routes = [
       {
         path: 'vecinos/nuevo/comunidad/:comunidadId',
         component: VecinoEdit
+      },
+      {
+        path: 'presupuestos',
+        component: PresupuestosList
       }
     ]
   },

@@ -43,11 +43,15 @@ public class AuthController {
             return new LoginResponse(false, null, null, null, null, "Contraseña incorrecta");
         }
 
-        String administradorNombre = jdbcTemplate.queryForObject(
-                "SELECT nombre FROM administradores WHERE id = ?",
-                String.class,
-                usuario.getAdministradorId()
-        );
+        String administradorNombre = null;
+
+        if (usuario.getAdministradorId() != null) {
+            administradorNombre = jdbcTemplate.queryForObject(
+                    "SELECT nombre FROM administradores WHERE id = ?",
+                    String.class,
+                    usuario.getAdministradorId()
+            );
+        }
 
         return new LoginResponse(
                 true,
@@ -57,5 +61,10 @@ public class AuthController {
                 administradorNombre,
                 "Login correcto"
         );
+    }
+
+    @GetMapping("/bcrypt/{password}")
+    public String bcrypt(@PathVariable String password) {
+        return new BCryptPasswordEncoder().encode(password);
     }
 }

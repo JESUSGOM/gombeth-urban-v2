@@ -100,25 +100,23 @@ export class VecinoEdit implements OnInit {
       return;
     }
 
-    this.vecinoService
-      .crearVecino(this.vecino)
-      .subscribe({
-        next: (data) => {
-          this.mensaje = 'Propietario creado correctamente.';
-          this.guardando = false;
+    this.vecinoService.crearVecino(this.vecino).subscribe({
+      next: (data) => {
+        this.mensaje = 'Propietario creado correctamente.';
+        this.guardando = false;
 
-          this.router.navigate([
-            '/vecinos/comunidad',
-            data.comunidadId
-          ]);
-        },
-        error: (err) => {
-          console.error('Error creando propietario:', err);
-          this.error = 'No se pudo crear el propietario.';
-          this.guardando = false;
-          this.cdr.detectChanges();
-        }
-      });
+        this.router.navigate([
+          '/vecinos/comunidad',
+          data.comunidadId
+        ]);
+      },
+      error: (err) => {
+        console.error('Error creando propietario:', err);
+        this.error = 'No se pudo crear el propietario.';
+        this.guardando = false;
+        this.cdr.detectChanges();
+      }
+    });
   }
 
   actualizar(): void {
@@ -126,22 +124,20 @@ export class VecinoEdit implements OnInit {
       return;
     }
 
-    this.vecinoService
-      .actualizarVecino(this.vecino.id, this.vecino)
-      .subscribe({
-        next: (data) => {
-          this.vecino = { ...data };
-          this.mensaje = 'Propietario guardado correctamente.';
-          this.guardando = false;
-          this.cdr.detectChanges();
-        },
-        error: (err) => {
-          console.error('Error guardando propietario:', err);
-          this.error = 'No se pudo guardar el propietario.';
-          this.guardando = false;
-          this.cdr.detectChanges();
-        }
-      });
+    this.vecinoService.actualizarVecino(this.vecino.id, this.vecino).subscribe({
+      next: (data) => {
+        this.vecino = { ...data };
+        this.mensaje = 'Propietario guardado correctamente.';
+        this.guardando = false;
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        console.error('Error guardando propietario:', err);
+        this.error = 'No se pudo guardar el propietario.';
+        this.guardando = false;
+        this.cdr.detectChanges();
+      }
+    });
   }
 
   volver(): void {
@@ -153,41 +149,46 @@ export class VecinoEdit implements OnInit {
     this.router.navigate(['/comunidades']);
   }
 
-  seleccionarDocumento(event: any): void {
+  seleccionarDocumento(event: Event): void {
+    const input = event.target as HTMLInputElement;
 
-    if (event.target.files.length > 0) {
-      this.archivoSeleccionado =
-
-
-        subirDocumento(): void {
-
-        if (!this.archivoSeleccionado) {
-        alert('Seleccione un PDF');
-        return;
-      }
-
-      const formData = new FormData();
-
-      formData.append(
-        'file',
-        this.archivoSeleccionado
-      );
-
-      fetch(
-        `http://localhost:8080/api/documentos/${this.vecino.id}`,
-        {
-          method: 'POST',
-          body: formData
-        }
-      )
-        .then(() => {
-          alert('Documento subido correctamente');
-        })
-        .catch(() => {
-          alert('Error subiendo documento');
-        });
-    } event.target.files[0];
+    if (!input.files || input.files.length === 0) {
+      this.archivoSeleccionado = undefined;
+      return;
     }
 
+    this.archivoSeleccionado = input.files[0];
+  }
+
+  subirDocumento(): void {
+    if (!this.vecino?.id) {
+      alert('Primero debe guardar el propietario.');
+      return;
+    }
+
+    if (!this.archivoSeleccionado) {
+      alert('Seleccione un PDF.');
+      return;
+    }
+
+    const formData = new FormData();
+
+    formData.append('file', this.archivoSeleccionado);
+
+    fetch(`http://localhost:8080/api/documentos/${this.vecino.id}`, {
+      method: 'POST',
+      body: formData
+    })
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error('Error HTTP ' + response.status);
+        }
+
+        alert('Documento subido correctamente.');
+      })
+      .catch((err) => {
+        console.error('Error subiendo documento:', err);
+        alert('Error subiendo documento.');
+      });
   }
 }
