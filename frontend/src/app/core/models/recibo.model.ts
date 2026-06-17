@@ -1,15 +1,15 @@
 export interface Recibo {
-  id?: number;
-
-  vecinoId?: number;
-
-  comunidadId?: number;
-
-  concepto?: string;
-
-  importe?: number;
-
-  fechaVencimiento?: string;
-
-  estado?: string;
+  id: number;
+  estado: string;
+  fechaCobroBanco: string | null;
+  fechaEmision: string;
+  importe: number;
+  comunidadId: number;
+  movimientoBancarioId: number | null;
+  vecinoId: number;
+  cuotaPresupuestoId: number | null;
+  pagadoAcumulado: number;
+  concepto: string | null;
+  tipoRemesa: string | null;
+  etiquetaExtra: string | null;
 }

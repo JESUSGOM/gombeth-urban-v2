@@ -7,11 +7,11 @@ import { ComunidadesList } from './features/comunidades/pages/comunidades-list/c
 import { Login } from './features/auth/pages/login/login';
 import { ComunidadEdit } from './features/comunidades/pages/comunidad-edit/comunidad-edit';
 import { VecinosList } from './features/vecinos/pages/vecinos-list/vecinos-list';
-
-import { authGuard } from './core/guards/auth.guard';
 import { VecinoEdit } from './features/vecinos/pages/vecino-edit/vecino-edit';
 import { PresupuestosList } from './features/presupuestos/pages/presupuestos-list/presupuestos-list';
+import { RecibosList } from './features/recibos/pages/recibos-list/recibos-list';
 
+import { authGuard } from './core/guards/auth.guard';
 
 export const routes: Routes = [
 
@@ -62,6 +62,10 @@ export const routes: Routes = [
       {
         path: 'presupuestos',
         component: PresupuestosList
+      },
+      {
+        path: 'recibos/comunidad/:id',
+        component: RecibosList
       }
     ]
   },
@@ -70,7 +74,5 @@ export const routes: Routes = [
     path: '**',
     redirectTo: 'dashboard'
   }
-
-
 
 ];

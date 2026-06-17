@@ -78,11 +78,9 @@ export class ComunidadesList implements OnInit {
   }
 
   cambiarPagina(pagina: number): void {
-
     if (pagina < 1 || pagina > this.totalPaginas) {
       return;
     }
-
     this.paginaActual = pagina;
     this.cargarComunidades();
   }
@@ -95,11 +93,9 @@ export class ComunidadesList implements OnInit {
   }
 
   editarComunidad(id: number | undefined): void {
-
     if (!id) {
       return;
     }
-
     this.router.navigate(['/comunidades/editar', id]);
   }
 
@@ -107,7 +103,13 @@ export class ComunidadesList implements OnInit {
     if (!id) {
       return;
     }
-
     this.router.navigate(['/vecinos/comunidad', id]);
+  }
+
+  verRecibos(id: number | undefined): void {
+    if (!id) {
+      return;
+    }
+    this.router.navigate(['/recibos/comunidad', id]);
   }
 }

@@ -131,4 +131,14 @@ public class ReciboController {
                 + " - V"
                 + cuota.getVersion();
     }
+
+    @GetMapping
+    public List<ContabilidadRecibo> listarRecibos(
+            @RequestParam Long comunidadId
+    ) {
+        return contabilidadReciboRepository
+                .findByComunidadIdOrderByFechaEmisionDescIdDesc(
+                        comunidadId
+                );
+    }
 }
