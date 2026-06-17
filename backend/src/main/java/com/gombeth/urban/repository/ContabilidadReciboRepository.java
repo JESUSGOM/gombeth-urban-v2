@@ -2,6 +2,7 @@ package com.gombeth.urban.repository;
 
 import com.gombeth.urban.entity.ContabilidadRecibo;
 import org.springframework.data.jpa.repository.JpaRepository;
+import java.time.LocalDate;
 
 import java.util.List;
 
@@ -16,5 +17,12 @@ public interface ContabilidadReciboRepository extends JpaRepository<Contabilidad
     List<ContabilidadRecibo> findByComunidadIdAndEstadoOrderByFechaEmisionAscIdAsc(
             Long comunidadId,
             String estado
+    );
+
+    List<ContabilidadRecibo> findByComunidadIdAndEstadoAndFechaEmisionBetweenOrderByFechaEmisionAscIdAsc(
+            Long comunidadId,
+            String estado,
+            LocalDate fechaDesde,
+            LocalDate fechaHasta
     );
 }

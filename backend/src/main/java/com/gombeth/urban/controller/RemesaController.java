@@ -53,21 +53,28 @@ public class RemesaController {
     @PostMapping("/generar")
     public Map<String, Object> generarRemesa(
             @RequestParam Long comunidadId,
-            @RequestParam String fechaCobro
+            @RequestParam String fechaCobro,
+            @RequestParam String fechaDesde,
+            @RequestParam String fechaHasta
     ) {
         LocalDate fechaCobroDate = LocalDate.parse(fechaCobro);
+        LocalDate fechaDesdeDate = LocalDate.parse(fechaDesde);
+        LocalDate fechaHastaDate = LocalDate.parse(fechaHasta);
 
         List<ContabilidadRecibo> recibosPendientes =
-                reciboRepository.findByComunidadIdAndEstadoOrderByFechaEmisionAscIdAsc(
-                        comunidadId,
-                        "PENDIENTE"
-                );
+                reciboRepository
+                        .findByComunidadIdAndEstadoAndFechaEmisionBetweenOrderByFechaEmisionAscIdAsc(
+                                comunidadId,
+                                "PENDIENTE",
+                                fechaDesdeDate,
+                                fechaHastaDate
+                        );
 
         if (recibosPendientes.isEmpty()) {
             return Map.of(
                     "comunidadId", comunidadId,
                     "lineasGeneradas", 0,
-                    "mensaje", "No existen recibos pendientes para generar remesa"
+                    "mensaje", "No existen recibos pendientes para generar remesa en el periodo indicado"
             );
         }
 
