@@ -245,4 +245,12 @@ public class RemesaController {
                 .contentType(MediaType.APPLICATION_XML)
                 .body(bytes);
     }
+
+    @GetMapping
+    public List<FicheroGenerado> listarRemesas(
+            @RequestParam Long comunidadId
+    ) {
+        return ficheroGeneradoRepository
+                .findByComunidadIdOrderByIdDesc(comunidadId);
+    }
 }
