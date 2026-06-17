@@ -112,4 +112,12 @@ export class ComunidadesList implements OnInit {
     }
     this.router.navigate(['/recibos/comunidad', id]);
   }
+
+  verRemesas(id: number | undefined): void {
+    if (!id) {
+      return;
+    }
+
+    this.router.navigate(['/remesas/comunidad', id]);
+  }
 }

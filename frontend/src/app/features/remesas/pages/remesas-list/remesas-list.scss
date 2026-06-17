@@ -1,0 +1,108 @@
+.remesas-page {
+  padding: 24px;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.page-header h2 {
+  margin: 0;
+}
+
+.page-header p {
+  margin-top: 6px;
+  color: #666;
+}
+
+.primary-button {
+  padding: 10px 18px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.card {
+  background: #fff;
+  border-radius: 10px;
+  padding: 16px;
+  box-shadow: 0 2px 10px rgba(0,0,0,.08);
+}
+
+.remesas-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.remesas-table th {
+  text-align: left;
+  padding: 12px;
+  border-bottom: 1px solid #ddd;
+}
+
+.remesas-table td {
+  padding: 12px;
+  border-bottom: 1px solid #eee;
+}
+
+.remesas-table tr:hover {
+  background: #f8f9fa;
+}
+
+.amount {
+  text-align: right;
+  font-weight: 600;
+}
+
+.badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+}
+
+.scheme {
+  background: #e8f0fe;
+}
+
+.status {
+  background: #e8f5e9;
+}
+
+.xml-button {
+  padding: 6px 12px;
+  cursor: pointer;
+  border-radius: 6px;
+}
+
+.pagination {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.pagination button {
+  padding: 8px 16px;
+}
+
+.alert {
+  padding: 12px;
+  border-radius: 6px;
+  margin-bottom: 16px;
+}
+
+.error {
+  background: #ffebee;
+}
+
+.info {
+  background: #e3f2fd;
+}
+
+.warning {
+  background: #fff8e1;
+}

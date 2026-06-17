@@ -1,0 +1,128 @@
+<div class="remesas-page">
+  <div class="page-header">
+    <div>
+      <h2>Remesas SEPA</h2>
+      <p>Listado de remesas generadas para la comunidad</p>
+    </div>
+    <button
+      class="primary-button"
+      (click)="cargarRemesas()">
+      Actualizar
+    </button>
+  </div>
+  <div class="generate-card">
+    <h3>Generar nueva remesa</h3>
+    <div class="generate-form">
+      <label>
+        Fecha cobro
+        <input
+          type="date"
+          [(ngModel)]="fechaCobro">
+      </label>
+      <label>
+        Fecha desde
+        <input
+          type="date"
+          [(ngModel)]="fechaDesde">
+      </label>
+      <label>
+        Fecha hasta
+        <input
+          type="date"
+          [(ngModel)]="fechaHasta">
+      </label>
+      <button
+        class="primary-button"
+        [disabled]="generando"
+        (click)="generarRemesa()">
+        {{ generando ? 'Generando...' : 'Generar remesa' }}
+      </button>
+    </div>
+    <div
+      *ngIf="mensaje"
+      class="alert info">
+      {{ mensaje }}
+    </div>
+  </div>
+  <div *ngIf="error" class="alert error">
+    {{ error }}
+  </div>
+  <div *ngIf="cargando" class="alert info">
+    Cargando remesas...
+  </div>
+  <div
+    *ngIf="!cargando && remesas.length === 0"
+    class="alert warning">
+    No existen remesas para esta comunidad.
+  </div>
+  <div
+    *ngIf="!cargando && remesas.length > 0"
+    class="card">
+    <table class="remesas-table">
+      <thead>
+      <tr>
+        <th>ID</th>
+        <th>Creación</th>
+        <th>Cobro</th>
+        <th>Recibos</th>
+        <th>Total</th>
+        <th>Domiciliado</th>
+        <th>No domiciliado</th>
+        <th>Esquema</th>
+        <th>Estado</th>
+        <th>XML</th>
+      </tr>
+      </thead>
+      <tbody>
+      <tr *ngFor="let r of remesasPaginadas">
+        <td>{{ r.id }}</td>
+        <td>{{ r.fechaCreacion }}</td>
+        <td>{{ r.fechaCobro || '-' }}</td>
+        <td>{{ r.numeroRecibos }}</td>
+        <td class="amount">
+          {{ r.totalImporte | number:'1.2-2' }} €
+        </td>
+        <td class="amount">
+          {{ r.totalDomiciliado | number:'1.2-2' }} €
+        </td>
+        <td class="amount">
+          {{ r.totalNoDomiciliado | number:'1.2-2' }} €
+        </td>
+        <td>
+            <span class="badge scheme">
+              {{ r.esquemaSepa }}
+            </span>
+        </td>
+        <td>
+            <span class="badge status">
+              {{ r.estado }}
+            </span>
+        </td>
+        <td>
+          <button
+            class="xml-button"
+            [disabled]="r.numeroRecibos === 0"
+            (click)="descargarXml(r)">
+            Descargar
+          </button>
+        </td>
+      </tr>
+      </tbody>
+    </table>
+    <div class="pagination">
+      <button
+        (click)="cambiarPagina(paginaActual - 1)"
+        [disabled]="paginaActual === 1">
+        Anterior
+      </button>
+      <span>
+        Página {{ paginaActual }} de {{ totalPaginas }}
+      </span>
+      <button
+        (click)="cambiarPagina(paginaActual + 1)"
+        [disabled]="paginaActual === totalPaginas">
+        Siguiente
+      </button>
+    </div>
+  </div>
+</div>
