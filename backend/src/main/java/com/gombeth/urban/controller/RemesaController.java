@@ -9,6 +9,13 @@ import com.gombeth.urban.repository.FicheroGeneradoRepository;
 import com.gombeth.urban.repository.RemesaLineaRepository;
 import com.gombeth.urban.repository.VecinoRepository;
 import org.springframework.web.bind.annotation.*;
+import com.gombeth.urban.entity.Comunidad;
+import com.gombeth.urban.repository.ComunidadRepository;
+import com.gombeth.urban.service.SepaCoreXmlService;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import java.nio.charset.StandardCharsets;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -24,17 +31,23 @@ public class RemesaController {
     private final FicheroGeneradoRepository ficheroGeneradoRepository;
     private final RemesaLineaRepository remesaLineaRepository;
     private final VecinoRepository vecinoRepository;
+    private final ComunidadRepository comunidadRepository;
+    private final SepaCoreXmlService sepaCoreXmlService;
 
     public RemesaController(
             ContabilidadReciboRepository reciboRepository,
             FicheroGeneradoRepository ficheroGeneradoRepository,
             RemesaLineaRepository remesaLineaRepository,
-            VecinoRepository vecinoRepository
+            VecinoRepository vecinoRepository,
+            ComunidadRepository comunidadRepository,
+            SepaCoreXmlService sepaCoreXmlService
     ) {
         this.reciboRepository = reciboRepository;
         this.ficheroGeneradoRepository = ficheroGeneradoRepository;
         this.remesaLineaRepository = remesaLineaRepository;
         this.vecinoRepository = vecinoRepository;
+        this.comunidadRepository = comunidadRepository;
+        this.sepaCoreXmlService = sepaCoreXmlService;
     }
 
     @PostMapping("/generar")
@@ -166,11 +179,63 @@ public class RemesaController {
         if (concepto == null || concepto.isBlank()) {
             return "Recibo comunidad";
         }
-
         if (concepto.length() <= 140) {
             return concepto;
         }
-
         return concepto.substring(0, 140);
+    }
+
+    @GetMapping("/{id}/xml")
+    public ResponseEntity<byte[]> generarXml(
+            @PathVariable Long id
+    ) {
+        FicheroGenerado remesa = ficheroGeneradoRepository
+                .findById(id)
+                .orElseThrow(() -> new RuntimeException("Remesa no encontrada"));
+
+        Comunidad comunidad = comunidadRepository
+                .findById(remesa.getComunidadId())
+                .orElseThrow(() -> new RuntimeException("Comunidad no encontrada"));
+
+        List<RemesaLinea> lineas = remesaLineaRepository
+                .findByRemesaIdOrderByIdAsc(id)
+                .stream()
+                .filter(linea -> Boolean.TRUE.equals(linea.getIncluidoSepa()))
+                .toList();
+
+        if (lineas.isEmpty()) {
+            throw new RuntimeException("La remesa no tiene líneas SEPA incluidas");
+        }
+
+        List<Vecino> vecinos = lineas.stream()
+                .map(RemesaLinea::getVecinoId)
+                .distinct()
+                .map(vecinoId -> vecinoRepository.findById(vecinoId)
+                        .orElseThrow(() -> new RuntimeException("Vecino no encontrado: " + vecinoId)))
+                .toList();
+
+        String xml = sepaCoreXmlService.generarXmlCore(
+                remesa,
+                comunidad,
+                lineas,
+                vecinos
+        );
+
+        remesa.setContenido(xml);
+        remesa.setNombreArchivo(
+                "remesa_core_" + remesa.getId() + ".xml"
+        );
+
+        ficheroGeneradoRepository.save(remesa);
+
+        byte[] bytes = xml.getBytes(StandardCharsets.UTF_8);
+
+        return ResponseEntity.ok()
+                .header(
+                        HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=\"" + remesa.getNombreArchivo() + "\""
+                )
+                .contentType(MediaType.APPLICATION_XML)
+                .body(bytes);
     }
 }
