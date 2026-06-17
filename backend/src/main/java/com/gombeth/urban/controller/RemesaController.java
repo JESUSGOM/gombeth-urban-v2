@@ -128,6 +128,19 @@ public class RemesaController {
             lineasGeneradas++;
         }
 
+        if (lineasGeneradas == 0) {
+
+            ficheroGeneradoRepository.delete(fichero);
+
+            return Map.of(
+                    "comunidadId", comunidadId,
+                    "fechaCobro", fechaCobroDate,
+                    "lineasGeneradas", 0,
+                    "recibosOmitidos", recibosOmitidos,
+                    "mensaje", "No se creó remesa porque todos los recibos pendientes ya estaban incluidos en otra remesa"
+            );
+        }
+
         fichero.setTotalImporte(total);
         fichero.setTotalDomiciliado(totalDomiciliado);
         fichero.setTotalNoDomiciliado(totalNoDomiciliado);
