@@ -12,4 +12,9 @@ public interface ContabilidadReciboRepository extends JpaRepository<Contabilidad
     List<ContabilidadRecibo> findByComunidadIdOrderByFechaEmisionDescIdDesc(
             Long comunidadId
     );
+
+    List<ContabilidadRecibo> findByComunidadIdAndEstadoOrderByFechaEmisionAscIdAsc(
+            Long comunidadId,
+            String estado
+    );
 }
