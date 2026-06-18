@@ -16,6 +16,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import java.nio.charset.StandardCharsets;
+import com.gombeth.urban.dto.RemesaResumenResponse;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -247,10 +248,28 @@ public class RemesaController {
     }
 
     @GetMapping
-    public List<FicheroGenerado> listarRemesas(
+    public List<RemesaResumenResponse> listarRemesas(
             @RequestParam Long comunidadId
     ) {
         return ficheroGeneradoRepository
-                .findByComunidadIdOrderByIdDesc(comunidadId);
+                .findByComunidadIdOrderByIdDesc(comunidadId)
+                .stream()
+                .map(r -> new RemesaResumenResponse(
+                        r.getId(),
+                        r.getComunidadId(),
+                        r.getIdentificadorFichero(),
+                        r.getFechaCreacion(),
+                        r.getTotalImporte(),
+                        r.getNumeroRecibos(),
+                        r.getNombreArchivo(),
+                        r.getEstado(),
+                        r.getTipoRemesa(),
+                        r.getFechaCobro(),
+                        r.getEsquemaSepa(),
+                        r.getTotalDomiciliado(),
+                        r.getTotalNoDomiciliado(),
+                        r.getObservaciones()
+                ))
+                .toList();
     }
 }
