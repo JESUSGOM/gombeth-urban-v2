@@ -35,6 +35,10 @@ export class RemesasList implements OnInit {
   generando = false;
   mensaje = '';
 
+  resultadoValidacion = '';
+
+  erroresValidacion: string[] = [];
+
   paginaActual = 1;
   registrosPorPagina = 10;
 
@@ -158,5 +162,39 @@ export class RemesasList implements OnInit {
       `http://localhost:8080/api/remesas/${remesa.id}/xml`,
       '_blank'
     );
+  }
+
+  validarRemesa(remesa: Remesa): void {
+
+    this.resultadoValidacion = '';
+    this.erroresValidacion = [];
+
+    this.remesaService
+      .validarRemesa(remesa.id)
+      .subscribe({
+        next: (response) => {
+
+          if (response.valida) {
+            this.resultadoValidacion =
+              'Remesa ' + remesa.id + ' validada correctamente.';
+          } else {
+            this.resultadoValidacion =
+              'Remesa ' + remesa.id + ' contiene errores.';
+
+            this.erroresValidacion = response.mensajes || [];
+          }
+
+          this.cdr.detectChanges();
+        },
+
+        error: (err) => {
+          console.error('Error validando remesa:', err);
+
+          this.resultadoValidacion =
+            'Error validando la remesa.';
+
+          this.cdr.detectChanges();
+        }
+      });
   }
 }

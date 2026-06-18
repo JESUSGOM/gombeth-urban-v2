@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
 import { Remesa } from '../models/remesa.model';
+import { ValidacionRemesa } from '../models/validacion-remesa.model';
 
 @Injectable({
   providedIn: 'root'
@@ -36,4 +37,13 @@ export class RemesaService {
     );
   }
 
+  validarRemesa(
+    remesaId: number
+  ) {
+
+    return this.http.get<ValidacionRemesa>(
+      `${this.apiUrl}/${remesaId}/validar`
+    );
+
+  }
 }
