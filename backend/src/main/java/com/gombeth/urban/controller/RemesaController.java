@@ -17,7 +17,9 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import java.nio.charset.StandardCharsets;
 import com.gombeth.urban.dto.RemesaResumenResponse;
+import com.gombeth.urban.dto.ValidacionRemesaResponse;
 
+import java.util.ArrayList;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -271,5 +273,74 @@ public class RemesaController {
                         r.getObservaciones()
                 ))
                 .toList();
+    }
+
+    @GetMapping("/{id}/validar")
+    public ValidacionRemesaResponse validarRemesa(
+            @PathVariable Long id
+    ) {
+        FicheroGenerado remesa = ficheroGeneradoRepository
+                .findById(id)
+                .orElseThrow(() -> new RuntimeException("Remesa no encontrada"));
+
+        Comunidad comunidad = comunidadRepository
+                .findById(remesa.getComunidadId())
+                .orElseThrow(() -> new RuntimeException("Comunidad no encontrada"));
+
+        List<RemesaLinea> lineas = remesaLineaRepository
+                .findByRemesaIdOrderByIdAsc(id)
+                .stream()
+                .filter(linea -> Boolean.TRUE.equals(linea.getIncluidoSepa()))
+                .toList();
+
+        List<String> mensajes = new ArrayList<>();
+
+        if (lineas.isEmpty()) {
+            mensajes.add("La remesa no tiene líneas SEPA incluidas.");
+        }
+
+        if (comunidad.getIban() == null || comunidad.getIban().isBlank()) {
+            mensajes.add("La comunidad no tiene IBAN informado.");
+        }
+
+        if (comunidad.getIdentificadorAcreedor() == null ||
+                comunidad.getIdentificadorAcreedor().isBlank()) {
+            mensajes.add("La comunidad no tiene identificador de acreedor SEPA informado.");
+        }
+
+        for (RemesaLinea linea : lineas) {
+            Vecino vecino = vecinoRepository.findById(linea.getVecinoId())
+                    .orElse(null);
+
+            if (vecino == null) {
+                mensajes.add("No existe el vecino de la línea " + linea.getId());
+                continue;
+            }
+
+            if (!vecino.isDomiciliado()) {
+                mensajes.add("El vecino " + vecino.getId() + " no está domiciliado.");
+            }
+
+            if (vecino.getIban() == null || vecino.getIban().isBlank()) {
+                mensajes.add("El vecino " + vecino.getId() + " no tiene IBAN.");
+            }
+
+            if (vecino.getReferenciaMandato() == null ||
+                    vecino.getReferenciaMandato().isBlank()) {
+                mensajes.add("El vecino " + vecino.getId() + " no tiene referencia de mandato.");
+            }
+
+            if (linea.getImporte() == null ||
+                    linea.getImporte().signum() <= 0) {
+                mensajes.add("La línea " + linea.getId() + " tiene importe inválido.");
+            }
+        }
+
+        return new ValidacionRemesaResponse(
+                id,
+                mensajes.isEmpty(),
+                mensajes.size(),
+                mensajes
+        );
     }
 }
