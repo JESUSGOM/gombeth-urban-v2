@@ -37,7 +37,9 @@ public class SecurityConfig {
                                 "/api/recibos",
                                 "/api/recibos/**",
                                 "/api/remesas",
-                                "/api/remesas/**"
+                                "/api/remesas/**",
+                                "/api/movimientos",
+                                "/api/movimientos/**"
                         ).permitAll()
                         .anyRequest().authenticated()
                 )

@@ -1,0 +1,469 @@
+<div class="movimientos-page">
+
+  <div class="page-header">
+    <div>
+      <h2>Tesorería - Movimientos bancarios</h2>
+      <p>Listado de movimientos importados desde Norma 43</p>
+
+      <p class="comunidad-activa">
+        Comunidad:
+        <strong>{{ nombreComunidadFiltro || 'Todas las comunidades' }}</strong>
+      </p>
+    </div>
+
+    <button class="primary-button" type="button" (click)="cargarMovimientos()">
+      Actualizar
+    </button>
+  </div>
+
+  <div class="filters-card">
+
+    <label>
+      Comunidad
+      <select [(ngModel)]="comunidadId" (change)="cargarMovimientos()">
+        <option *ngFor="let c of comunidades" [ngValue]="c.id">
+          {{ c.nombre }}
+        </option>
+      </select>
+    </label>
+
+    <label>
+      Fecha desde
+      <input
+        type="date"
+        [(ngModel)]="fechaDesde"
+        (change)="aplicarFiltros()">
+    </label>
+
+    <label>
+      Fecha hasta
+      <input
+        type="date"
+        [(ngModel)]="fechaHasta"
+        (change)="aplicarFiltros()">
+    </label>
+
+    <label>
+      Importe mínimo
+      <input
+        type="number"
+        step="0.01"
+        [(ngModel)]="importeMinimo"
+        (input)="aplicarFiltros()"
+        placeholder="0,00">
+    </label>
+
+    <label>
+      Importe máximo
+      <input
+        type="number"
+        step="0.01"
+        [(ngModel)]="importeMaximo"
+        (input)="aplicarFiltros()"
+        placeholder="9999,99">
+    </label>
+
+    <label>
+      Buscar
+      <input
+        type="text"
+        [(ngModel)]="filtroTexto"
+        (input)="aplicarFiltros()"
+        placeholder="Concepto, referencia, ID...">
+    </label>
+
+    <label>
+      Conciliado
+      <select [(ngModel)]="filtroConciliado" (change)="aplicarFiltros()">
+        <option value="TODOS">Todos</option>
+        <option value="SI">Sí</option>
+        <option value="NO">No</option>
+      </select>
+    </label>
+
+    <button type="button" class="secondary-button" (click)="limpiarFiltros()">
+      Limpiar
+    </button>
+
+  </div>
+
+  <div *ngIf="resumenTesoreria" class="dashboard-resumen">
+    <div class="dashboard-card">
+      <span>Recibos pendientes</span>
+      <strong>{{ resumenTesoreria.recibosPendientes }}</strong>
+    </div>
+
+    <div class="dashboard-card">
+      <span>Importe pendiente</span>
+      <strong>{{ resumenTesoreria.importePendiente | number:'1.2-2' }} €</strong>
+    </div>
+
+    <div class="dashboard-card">
+      <span>Movimientos banco</span>
+      <strong>{{ resumenTesoreria.movimientosBanco }}</strong>
+    </div>
+
+    <div class="dashboard-card warning-card">
+      <span>Sin conciliar</span>
+      <strong>{{ resumenTesoreria.movimientosSinConciliar }}</strong>
+    </div>
+  </div>
+
+  <div *ngIf="error" class="alert error">{{ error }}</div>
+
+  <div *ngIf="cargando" class="alert info">
+    Cargando movimientos bancarios...
+  </div>
+
+  <div
+    *ngIf="!cargando && movimientosFiltrados.length === 0"
+    class="alert warning">
+    No existen movimientos bancarios para los filtros indicados.
+  </div>
+
+  <div
+    *ngIf="mostrarMovimientos && !cargando && movimientosFiltrados.length > 0"
+    class="card">
+
+    <div class="summary">
+      <div class="summary-row">
+        <div>
+          <strong>{{ movimientosFiltrados.length }}</strong>
+          movimientos encontrados
+        </div>
+
+        <label class="page-size">
+          Mostrar
+          <select [(ngModel)]="registrosPorPagina" (change)="paginaActual = 1">
+            <option [ngValue]="5">5</option>
+            <option [ngValue]="10">10</option>
+          </select>
+          por página
+        </label>
+      </div>
+    </div>
+
+    <table class="movimientos-table tabla-movimientos">
+      <thead>
+      <tr>
+        <th class="mov-id sortable" (click)="ordenarPor('id')">
+          ID{{ iconoOrden('id') }}
+        </th>
+
+        <th class="mov-fecha sortable" (click)="ordenarPor('fechaOperacion')">
+          Fecha{{ iconoOrden('fechaOperacion') }}
+        </th>
+
+        <th class="mov-valor sortable" (click)="ordenarPor('fechaValor')">
+          Valor{{ iconoOrden('fechaValor') }}
+        </th>
+
+        <th class="mov-concepto sortable" (click)="ordenarPor('concepto')">
+          Concepto{{ iconoOrden('concepto') }}
+        </th>
+
+        <th class="mov-importe sortable" (click)="ordenarPor('importe')">
+          Importe{{ iconoOrden('importe') }}
+        </th>
+
+        <th class="mov-estado sortable" (click)="ordenarPor('conciliado')">
+          Conciliado{{ iconoOrden('conciliado') }}
+        </th>
+
+        <th class="mov-estado sortable" (click)="ordenarPor('procesado')">
+          Procesado{{ iconoOrden('procesado') }}
+        </th>
+
+        <th class="mov-acciones">
+          Acciones
+        </th>
+      </tr>
+      </thead>
+
+      <tbody>
+      <tr *ngFor="let m of movimientosPaginados">
+        <td class="mov-id">{{ m.id }}</td>
+
+        <td class="mov-fecha">
+          {{ m.fechaOperacion ? (m.fechaOperacion | date:'dd/MM/yyyy') : '-' }}
+        </td>
+
+        <td class="mov-valor">
+          {{ m.fechaValor ? (m.fechaValor | date:'dd/MM/yyyy') : '-' }}
+        </td>
+
+        <td class="mov-concepto concepto">
+          <button
+            type="button"
+            class="concepto-link"
+            title="Ver concepto completo"
+            (click)="abrirDetalleConcepto(m)">
+            {{ m.concepto }}
+          </button>
+        </td>
+
+        <td
+          class="mov-importe amount"
+          [class.positive]="m.signo === '2'"
+          [class.negative]="m.signo !== '2'">
+          {{ getImporteConSigno(m) | number:'1.2-2' }} €
+        </td>
+
+        <td class="mov-estado">
+          <span class="badge" [class.ok]="m.conciliado" [class.pending]="!m.conciliado">
+            {{ m.conciliado ? 'Sí' : 'No' }}
+          </span>
+        </td>
+
+        <td class="mov-estado">
+          <span class="badge" [class.ok]="m.procesado" [class.pending]="!m.procesado">
+            {{ m.procesado ? 'Sí' : 'No' }}
+          </span>
+        </td>
+
+        <td class="mov-acciones">
+          <button
+            type="button"
+            class="primary-button table-button"
+            (click)="verRecibos(m)">
+            Recibos
+          </button>
+        </td>
+      </tr>
+      </tbody>
+    </table>
+
+    <div class="pagination">
+      <button type="button" (click)="cambiarPagina(paginaActual - 1)" [disabled]="paginaActual === 1">
+        Anterior
+      </button>
+
+      <span>Página {{ paginaActual }} de {{ totalPaginas }}</span>
+
+      <button type="button" (click)="cambiarPagina(paginaActual + 1)" [disabled]="paginaActual === totalPaginas">
+        Siguiente
+      </button>
+    </div>
+
+  </div>
+
+  <div *ngIf="movimientoSeleccionado" class="card recibos-card">
+
+    <div class="page-header recibos-header">
+      <div>
+        <h3>
+          Recibos pendientes del movimiento #{{ movimientoSeleccionado.id }}
+        </h3>
+
+        <div *ngIf="contextoMovimiento" class="movimiento-contexto">
+          <p>
+            Comunidad:
+            <strong>{{ contextoMovimiento.nombreComunidad }}</strong>
+          </p>
+
+          <p>
+            Movimiento:
+            <strong>{{ getImporteConSigno(movimientoSeleccionado) | number:'1.2-2' }} €</strong>
+          </p>
+
+          <p>
+            Fecha:
+            <strong>{{ contextoMovimiento.fechaOperacion | date:'dd/MM/yyyy' }}</strong>
+          </p>
+        </div>
+      </div>
+
+      <button class="volver-button" type="button" (click)="volverMovimientos()">
+        ← Volver a movimientos
+      </button>
+    </div>
+
+    <div class="summary">
+      <div class="summary-row">
+        <div>
+          <strong>{{ recibosPendientes.length }}</strong>
+          recibos pendientes
+        </div>
+
+        <label class="page-size">
+          Mostrar
+          <select [(ngModel)]="recibosPorPagina" (change)="paginaRecibos = 1">
+            <option [ngValue]="5">5</option>
+            <option [ngValue]="10">10</option>
+          </select>
+          recibos
+        </label>
+      </div>
+    </div>
+
+    <table class="movimientos-table recibos-table">
+      <thead>
+      <tr>
+        <th class="rec-check"></th>
+        <th class="rec-id">ID</th>
+        <th class="rec-vecino">Vecino</th>
+        <th class="rec-periodo">Periodo</th>
+        <th class="rec-concepto">Concepto</th>
+        <th class="rec-importe">Importe</th>
+        <th class="rec-estado">Estado</th>
+        <th class="rec-sugerido">Sugerido</th>
+      </tr>
+      </thead>
+
+      <tbody>
+      <tr *ngFor="let r of recibosPendientesPaginados">
+        <td class="rec-check">
+          <input
+            type="checkbox"
+            [checked]="estaSeleccionado(r)"
+            (change)="seleccionarRecibo(r, $event)">
+        </td>
+
+        <td class="rec-id">{{ r.id }}</td>
+
+        <td class="rec-vecino vecino">
+          {{ r.nombreVecino }}
+        </td>
+
+        <td class="rec-periodo">
+          {{ r.periodo }}
+        </td>
+
+        <td class="rec-concepto concepto-recibo">
+          {{ r.concepto }}
+        </td>
+
+        <td class="rec-importe amount">
+          {{ r.importe | number:'1.2-2' }} €
+        </td>
+
+        <td class="rec-estado">
+          {{ r.estado }}
+        </td>
+
+        <td class="rec-sugerido">
+
+        <span
+          *ngIf="esSugerido(r)"
+          class="badge-sugerido">
+
+          ✓ Sugerido
+
+        </span>
+
+        </td>
+      </tr>
+      </tbody>
+    </table>
+
+    <div class="pagination">
+      <button type="button" (click)="cambiarPaginaRecibos(paginaRecibos - 1)" [disabled]="paginaRecibos === 1">
+        Anterior
+      </button>
+
+      <span>Página {{ paginaRecibos }} de {{ totalPaginasRecibos }}</span>
+
+      <button type="button" (click)="cambiarPaginaRecibos(paginaRecibos + 1)" [disabled]="paginaRecibos === totalPaginasRecibos">
+        Siguiente
+      </button>
+    </div>
+
+    <div class="summary total-box">
+      <h3>
+        Total seleccionado:
+        {{ totalSeleccionado | number:'1.2-2' }} €
+
+        <p>
+          Diferencia:
+          <strong>{{ diferenciaConciliacion | number:'1.2-2' }} €</strong>
+        </p>
+
+        <p *ngIf="conciliacionCuadrada" class="ok-text">
+          ✓ La conciliación cuadra
+        </p>
+
+        <p *ngIf="!conciliacionCuadrada" class="warning-text">
+          ⚠ El total seleccionado no coincide con el movimiento
+        </p>
+
+        <button
+          type="button"
+          class="primary-button"
+          [disabled]="recibosSeleccionados.length === 0 || !conciliacionCuadrada"
+          (click)="conciliarSeleccionados()">
+          Conciliar seleccionados
+        </button>
+      </h3>
+    </div>
+
+  </div>
+
+  <div
+    *ngIf="movimientoDetalleConcepto"
+    class="modal-backdrop"
+    (click)="cerrarDetalleConcepto()">
+
+    <div
+      class="modal-concepto"
+      (click)="$event.stopPropagation()">
+
+      <div class="modal-header">
+        <h3>Detalle del movimiento bancario</h3>
+
+        <button
+          type="button"
+          class="modal-close"
+          (click)="cerrarDetalleConcepto()">
+          ×
+        </button>
+      </div>
+
+      <div class="modal-body">
+
+        <p>
+          <strong>ID:</strong>
+          {{ movimientoDetalleConcepto.id }}
+        </p>
+
+        <p>
+          <strong>Fecha operación:</strong>
+          {{ movimientoDetalleConcepto.fechaOperacion ? (movimientoDetalleConcepto.fechaOperacion | date:'dd/MM/yyyy') : '-' }}
+        </p>
+
+        <p>
+          <strong>Fecha valor:</strong>
+          {{ movimientoDetalleConcepto.fechaValor ? (movimientoDetalleConcepto.fechaValor | date:'dd/MM/yyyy') : '-' }}
+        </p>
+
+        <p>
+          <strong>Importe:</strong>
+          {{ getImporteConSigno(movimientoDetalleConcepto) | number:'1.2-2' }} €
+        </p>
+
+        <p>
+          <strong>Referencia bancaria:</strong>
+          {{ movimientoDetalleConcepto.referenciaBancaria || '-' }}
+        </p>
+
+        <div class="concepto-completo-box">
+          <strong>Concepto completo:</strong>
+
+          <pre><strong>{{ movimientoDetalleConcepto.conceptoCompleto || movimientoDetalleConcepto.concepto }}</strong></pre>
+        </div>
+
+      </div>
+
+      <div class="modal-footer">
+        <button
+          type="button"
+          class="secondary-button"
+          (click)="cerrarDetalleConcepto()">
+          Cerrar
+        </button>
+      </div>
+
+    </div>
+
+  </div>
+
+</div>

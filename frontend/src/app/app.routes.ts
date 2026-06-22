@@ -11,6 +11,7 @@ import { VecinoEdit } from './features/vecinos/pages/vecino-edit/vecino-edit';
 import { PresupuestosList } from './features/presupuestos/pages/presupuestos-list/presupuestos-list';
 import { RecibosList } from './features/recibos/pages/recibos-list/recibos-list';
 import { RemesasList } from './features/remesas/pages/remesas-list/remesas-list';
+import { MovimientosList } from './features/tesoreria/pages/movimientos-list/movimientos-list';
 
 import { authGuard } from './core/guards/auth.guard';
 
@@ -72,6 +73,10 @@ export const routes: Routes = [
         path: 'remesas/comunidad/:id',
         component: RemesasList
       },
+      {
+        path: 'tesoreria/movimientos',
+        component: MovimientosList
+      }
     ]
   },
 

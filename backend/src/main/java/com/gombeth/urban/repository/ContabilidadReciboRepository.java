@@ -25,4 +25,18 @@ public interface ContabilidadReciboRepository extends JpaRepository<Contabilidad
             LocalDate fechaDesde,
             LocalDate fechaHasta
     );
+
+    List<ContabilidadRecibo> findByComunidadIdAndEstado(
+            Long comunidadId,
+            String estado
+    );
+
+    List<ContabilidadRecibo> findByComunidadIdAndEstadoOrderByImporte(
+            Long comunidadId,
+            String estado
+    );
+
+    List<ContabilidadRecibo> findByIdIn(
+            List<Long> ids
+    );
 }

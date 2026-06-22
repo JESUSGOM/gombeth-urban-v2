@@ -39,6 +39,8 @@ export class RemesasList implements OnInit {
 
   erroresValidacion: string[] = [];
 
+  remesasValidadas = new Set<number>();
+
   paginaActual = 1;
   registrosPorPagina = 10;
 
@@ -175,6 +177,9 @@ export class RemesasList implements OnInit {
         next: (response) => {
 
           if (response.valida) {
+
+            this.remesasValidadas.add(remesa.id);
+
             this.resultadoValidacion =
               'Remesa ' + remesa.id + ' validada correctamente.';
           } else {

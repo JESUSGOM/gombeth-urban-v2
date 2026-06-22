@@ -151,8 +151,13 @@
           <button
             class="xml-button"
             type="button"
+            [disabled]="remesasValidadas.has(r.id)"
             (click)="validarRemesa(r)">
-            Validar
+
+            {{ remesasValidadas.has(r.id)
+            ? 'Validada'
+            : 'Validar' }}
+
           </button>
         </td>
 
@@ -160,7 +165,10 @@
           <button
             class="xml-button"
             type="button"
-            [disabled]="r.numeroRecibos === 0"
+            [disabled]="
+      r.numeroRecibos === 0 ||
+      !remesasValidadas.has(r.id)
+  "
             (click)="descargarXml(r)">
             Descargar
           </button>
