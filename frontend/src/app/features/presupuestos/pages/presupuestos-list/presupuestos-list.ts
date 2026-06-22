@@ -31,8 +31,11 @@ export class PresupuestosList implements OnInit {
   private comunidadService = inject(ComunidadService);
   private cdr = inject(ChangeDetectorRef);
 
-  comunidadId = 18;
+  comunidadId: number | null = null;
+
   comunidad?: Comunidad;
+
+  comunidades: Comunidad[] = [];
 
   anio = 2026;
 
@@ -54,9 +57,9 @@ export class PresupuestosList implements OnInit {
   guardandoMetodo = false;
 
   ngOnInit(): void {
-    this.cargarComunidad();
-    this.cargarConfiguracionReparto();
-    this.cargarPresupuestos();
+
+    this.cargarComunidadesUsuario();
+
   }
 
   cargarComunidad(): void {
@@ -282,6 +285,53 @@ export class PresupuestosList implements OnInit {
       });
   }
 
+  cargarComunidadesUsuario(): void {
+
+    const usuarioId = this.getUsuarioId();
+
+    this.comunidadService
+      .getComunidades(
+        0,
+        500,
+        usuarioId
+      )
+      .subscribe({
+
+        next: (response) => {
+
+          this.comunidades =
+            response.content || [];
+
+          if (this.comunidades.length > 0) {
+
+            this.comunidadId =
+              this.comunidades[0].id!;
+
+            this.cargarComunidad();
+            this.cargarConfiguracionReparto();
+            this.cargarPresupuestos();
+
+          }
+
+          this.cdr.detectChanges();
+
+        },
+
+        error: (err) => {
+
+          console.error(
+            'Error cargando comunidades',
+            err
+          );
+
+        }
+
+      });
+
+
+
+  }
+
   aprobarRevision(id: number): void {
     if (!confirm('¿Desea aprobar esta revisión presupuestaria?')) {
       return;
@@ -339,5 +389,23 @@ export class PresupuestosList implements OnInit {
           this.cdr.detectChanges();
         }
       });
+  }
+
+  getUsuarioId(): number {
+
+    const usuarioStorage =
+      localStorage.getItem('usuario');
+
+    if (!usuarioStorage) {
+      return 0;
+    }
+
+    const usuario =
+      JSON.parse(usuarioStorage);
+
+    return Number(
+      usuario.usuarioId || 0
+    );
+
   }
 }

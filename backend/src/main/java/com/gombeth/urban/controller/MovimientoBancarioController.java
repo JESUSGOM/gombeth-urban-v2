@@ -64,7 +64,7 @@ public class MovimientoBancarioController {
                         comunidadId
                 );
     }
-    
+
     @GetMapping("/{id}/candidatos")
     public List<CandidatoConciliacionResponse> candidatos(
             @PathVariable Long id,
