@@ -31,13 +31,14 @@ export class PresupuestosList implements OnInit {
   private comunidadService = inject(ComunidadService);
   private cdr = inject(ChangeDetectorRef);
 
-  comunidadId: number | null = null;
-
+  comunidadId = 0;
   comunidad?: Comunidad;
-
   comunidades: Comunidad[] = [];
 
   anio = 2026;
+  mesRecibos = new Date().getMonth() + 1;
+  generandoRecibos = false;
+
 
   metodoReparto = 'COEFICIENTE';
   configuracionReparto?: ConfiguracionReparto;
@@ -57,12 +58,59 @@ export class PresupuestosList implements OnInit {
   guardandoMetodo = false;
 
   ngOnInit(): void {
-
     this.cargarComunidadesUsuario();
+  }
 
+  cargarComunidadesUsuario(): void {
+    const usuarioId = this.getUsuarioId();
+    console.log('USUARIO ID PRESUPUESTOS:', usuarioId);
+
+    this.comunidadService
+      .getComunidades(0, 500, usuarioId)
+      .subscribe({
+        next: (response) => {
+          const datos: any = response;
+          this.comunidades = Array.isArray(datos) ? datos : (datos.content || []);
+
+          if (this.comunidades.length > 0) {
+            const primeraComunidad = this.comunidades[0];
+
+            this.comunidadId = Number(primeraComunidad.id || 0);
+
+            if (this.comunidadId > 0) {
+              this.cargarTodo();
+            } else {
+              this.error = 'La comunidad seleccionada no tiene identificador válido.';
+            }
+          } else {
+            this.error = 'No hay comunidades disponibles para este usuario.';
+          }
+
+          this.cdr.detectChanges();
+        },
+        error: (err) => {
+          console.error('Error cargando comunidades:', err);
+          this.error = 'No se pudieron cargar las comunidades del usuario.';
+          this.cdr.detectChanges();
+        }
+      });
+  }
+
+  cargarTodo(): void {
+    if (this.comunidadId <= 0) {
+      return;
+    }
+
+    this.cargarComunidad();
+    this.cargarConfiguracionReparto();
+    this.cargarPresupuestos();
   }
 
   cargarComunidad(): void {
+    if (this.comunidadId <= 0) {
+      return;
+    }
+
     this.comunidadService
       .getComunidad(this.comunidadId)
       .subscribe({
@@ -77,6 +125,10 @@ export class PresupuestosList implements OnInit {
   }
 
   cargarConfiguracionReparto(): void {
+    if (this.comunidadId <= 0) {
+      return;
+    }
+
     this.comunidadService
       .getConfiguracionReparto(this.comunidadId)
       .subscribe({
@@ -94,15 +146,16 @@ export class PresupuestosList implements OnInit {
   }
 
   guardarMetodoReparto(): void {
+    if (this.comunidadId <= 0) {
+      return;
+    }
+
     this.guardandoMetodo = true;
     this.error = '';
     this.mensaje = '';
 
     this.comunidadService
-      .guardarConfiguracionReparto(
-        this.comunidadId,
-        this.metodoReparto
-      )
+      .guardarConfiguracionReparto(this.comunidadId, this.metodoReparto)
       .subscribe({
         next: (data) => {
           this.configuracionReparto = data;
@@ -123,6 +176,10 @@ export class PresupuestosList implements OnInit {
   }
 
   cargarPresupuestos(): void {
+    if (this.comunidadId <= 0) {
+      return;
+    }
+
     this.cargando = true;
     this.error = '';
     this.mensaje = '';
@@ -154,6 +211,10 @@ export class PresupuestosList implements OnInit {
   }
 
   cargarRevisiones(): void {
+    if (this.comunidadId <= 0) {
+      return;
+    }
+
     this.presupuestoService
       .getRevisiones(this.comunidadId, this.anio)
       .subscribe({
@@ -168,6 +229,10 @@ export class PresupuestosList implements OnInit {
   }
 
   cargarReparto(): void {
+    if (this.comunidadId <= 0) {
+      return;
+    }
+
     this.presupuestoService
       .getRepartoComunidad(this.comunidadId, this.anio)
       .subscribe({
@@ -188,6 +253,10 @@ export class PresupuestosList implements OnInit {
   }
 
   cargarCuotasBorrador(): void {
+    if (this.comunidadId <= 0) {
+      return;
+    }
+
     this.presupuestoService
       .getCuotasBorrador(this.comunidadId, this.anio)
       .subscribe({
@@ -207,6 +276,10 @@ export class PresupuestosList implements OnInit {
   }
 
   cargarResumenCoeficientes(): void {
+    if (this.comunidadId <= 0) {
+      return;
+    }
+
     this.comunidadService
       .getResumenCoeficientes(this.comunidadId)
       .subscribe({
@@ -224,6 +297,10 @@ export class PresupuestosList implements OnInit {
   }
 
   generarBorradorCuotas(): void {
+    if (this.comunidadId <= 0) {
+      return;
+    }
+
     this.generandoCuotas = true;
     this.error = '';
     this.mensaje = '';
@@ -255,23 +332,28 @@ export class PresupuestosList implements OnInit {
   }
 
   aprobarCuotas(): void {
+    if (this.comunidadId <= 0) {
+      return;
+    }
+
     this.error = '';
     this.mensaje = '';
 
     this.presupuestoService
-      .aprobarCuotas(
-        this.comunidadId,
-        this.anio
-      )
+      .aprobarCuotas(this.comunidadId, this.anio)
       .subscribe({
         next: (data) => {
+
           this.mensaje =
             data?.mensaje ||
             'Cuotas aprobadas correctamente.';
 
           this.cargarCuotasBorrador();
           this.cargarRevisiones();
+
+          this.cdr.detectChanges();
         },
+
         error: (err) => {
           console.error('Error aprobando cuotas:', err);
 
@@ -283,53 +365,6 @@ export class PresupuestosList implements OnInit {
           this.cdr.detectChanges();
         }
       });
-  }
-
-  cargarComunidadesUsuario(): void {
-
-    const usuarioId = this.getUsuarioId();
-
-    this.comunidadService
-      .getComunidades(
-        0,
-        500,
-        usuarioId
-      )
-      .subscribe({
-
-        next: (response) => {
-
-          this.comunidades =
-            response.content || [];
-
-          if (this.comunidades.length > 0) {
-
-            this.comunidadId =
-              this.comunidades[0].id!;
-
-            this.cargarComunidad();
-            this.cargarConfiguracionReparto();
-            this.cargarPresupuestos();
-
-          }
-
-          this.cdr.detectChanges();
-
-        },
-
-        error: (err) => {
-
-          console.error(
-            'Error cargando comunidades',
-            err
-          );
-
-        }
-
-      });
-
-
-
   }
 
   aprobarRevision(id: number): void {
@@ -392,20 +427,62 @@ export class PresupuestosList implements OnInit {
   }
 
   getUsuarioId(): number {
-
-    const usuarioStorage =
-      localStorage.getItem('usuario');
+    const usuarioStorage = localStorage.getItem('usuario');
 
     if (!usuarioStorage) {
       return 0;
     }
 
-    const usuario =
-      JSON.parse(usuarioStorage);
+    const usuario = JSON.parse(usuarioStorage);
 
     return Number(
-      usuario.usuarioId || 0
+      usuario.usuarioId ||
+      usuario.id ||
+      usuario.userId ||
+      0
     );
+  }
 
+  generarRecibos(): void {
+    if (this.comunidadId <= 0) {
+      return;
+    }
+
+    if (!confirm('¿Desea generar los recibos desde las cuotas aprobadas?')) {
+      return;
+    }
+
+    this.generandoRecibos = true;
+    this.error = '';
+    this.mensaje = '';
+
+    this.presupuestoService
+      .generarRecibos(
+        this.comunidadId,
+        this.anio,
+        this.mesRecibos
+      )
+      .subscribe({
+        next: (data) => {
+          this.mensaje =
+            data?.mensaje ||
+            'Recibos generados correctamente.';
+
+          this.generandoRecibos = false;
+          this.cargarCuotasBorrador();
+          this.cdr.detectChanges();
+        },
+        error: (err) => {
+          console.error('Error generando recibos:', err);
+
+          this.error =
+            err?.error?.message ||
+            err?.error ||
+            'No se pudieron generar los recibos.';
+
+          this.generandoRecibos = false;
+          this.cdr.detectChanges();
+        }
+      });
   }
 }

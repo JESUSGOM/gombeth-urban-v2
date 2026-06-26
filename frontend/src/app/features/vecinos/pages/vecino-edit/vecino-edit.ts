@@ -130,6 +130,13 @@ export class VecinoEdit implements OnInit {
         this.mensaje = 'Propietario guardado correctamente.';
         this.guardando = false;
         this.cdr.detectChanges();
+
+        setTimeout(() => {
+          this.router.navigate([
+            '/vecinos/comunidad',
+            data.comunidadId
+          ]);
+        }, 800);
       },
       error: (err) => {
         console.error('Error guardando propietario:', err);

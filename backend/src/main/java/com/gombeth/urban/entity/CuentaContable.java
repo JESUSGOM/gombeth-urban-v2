@@ -2,6 +2,7 @@ package com.gombeth.urban.entity;
 
 import jakarta.persistence.*;
 import java.util.Objects;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 /**
  * Entidad que representa una Cuenta Contable dentro del sistema.
@@ -25,6 +26,7 @@ public class CuentaContable {
     @Column(name = "tipo", length = 20)
     private TipoCuenta tipo;
 
+    @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "comunidad_id", nullable = false)
     private Comunidad comunidad;

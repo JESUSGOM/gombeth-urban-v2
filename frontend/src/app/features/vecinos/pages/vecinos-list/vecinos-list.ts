@@ -6,6 +6,7 @@ import { Vecino } from '../../../../core/models/vecino.model';
 import { VecinoService } from '../../../../core/services/vecino';
 import { Comunidad } from '../../../../core/models/comunidad.model';
 import { ComunidadService } from '../../../../core/services/comunidad';
+import { CoeficientesResumen } from '../../../../core/models/coeficientes-resumen.model';
 
 @Component({
   selector: 'app-vecinos-list',
@@ -28,6 +29,8 @@ export class VecinosList implements OnInit {
   cargando = true;
   error = '';
 
+  resumenCoeficientes?: CoeficientesResumen;
+
   paginaActual = 1;
   tamanioPagina = 10;
   totalPaginas = 0;
@@ -41,6 +44,7 @@ export class VecinosList implements OnInit {
     );
 
     this.cargarComunidad();
+    this.cargarResumenCoeficientes();
     this.cargarVecinos();
   }
 
@@ -54,6 +58,20 @@ export class VecinosList implements OnInit {
         },
         error: (err) => {
           console.error('Error cargando comunidad:', err);
+        }
+      });
+  }
+
+  cargarResumenCoeficientes(): void {
+    this.comunidadService
+      .getResumenCoeficientes(this.comunidadId)
+      .subscribe({
+        next: (data) => {
+          this.resumenCoeficientes = data;
+          this.cdr.detectChanges();
+        },
+        error: (err) => {
+          console.error('Error cargando resumen de coeficientes:', err);
         }
       });
   }
@@ -125,7 +143,6 @@ export class VecinosList implements OnInit {
   }
 
   eliminarVecino(id: number | undefined): void {
-
     if (!id) {
       return;
     }
@@ -142,21 +159,18 @@ export class VecinosList implements OnInit {
       .eliminarVecino(id)
       .subscribe({
         next: () => {
+          this.cargarResumenCoeficientes();
           this.cargarVecinos();
         },
         error: (err) => {
           console.error(err);
-
-          this.error =
-            'No se pudo dar de baja el propietario.';
-
+          this.error = 'No se pudo dar de baja el propietario.';
           this.cdr.detectChanges();
         }
       });
   }
 
   verMandato(id: number | undefined): void {
-
     if (!id) {
       return;
     }

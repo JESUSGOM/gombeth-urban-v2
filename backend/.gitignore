@@ -1,6 +1,8 @@
 HELP.md
+
 target/
 .mvn/wrapper/maven-wrapper.jar
+
 !**/src/main/**/target/
 !**/src/test/**/target/
 
@@ -14,7 +16,7 @@ target/
 .sts4-cache
 
 ### IntelliJ IDEA ###
-.idea
+.idea/
 *.iws
 *.iml
 *.ipr
@@ -31,3 +33,32 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### Frontend ###
+frontend/node_modules/
+frontend/dist/
+frontend/.angular/
+
+### Backend ###
+backend/target/
+
+### Archivos locales de Spring ###
+backend/src/main/resources/application-local.properties
+backend/src/main/resources/application-secrets.properties
+
+### Variables de entorno ###
+.env
+*.env
+
+### Logs ###
+*.log
+
+### Archivos temporales ###
+*.tmp
+*.bak
+*.swp
+
+### Comprimidos ###
+*.zip
+*.rar
+*.7z

@@ -1,0 +1,51 @@
+.conceptos-page {
+  padding: 24px;
+}
+
+.page-header {
+  margin-bottom: 16px;
+}
+
+.table-card {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 .125rem .25rem rgba(0,0,0,.075);
+  overflow: hidden;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th {
+  background: #111827;
+  color: white;
+  padding: 10px;
+  text-align: left;
+}
+
+td {
+  padding: 10px;
+  border-bottom: 1px solid #eee;
+}
+
+.center {
+  text-align: center;
+}
+
+.ok {
+  color: #198754;
+  font-weight: 700;
+}
+
+.ko {
+  color: #dc2626;
+  font-weight: 700;
+}
+
+.info-card {
+  padding: 14px;
+  background: #f3f4f6;
+  border-radius: 8px;
+}

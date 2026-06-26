@@ -7,6 +7,8 @@ export interface Recibo {
   comunidadId: number;
   movimientoBancarioId: number | null;
   vecinoId: number;
+  nombreVecino: string;
+  vivienda:string;
   cuotaPresupuestoId: number | null;
   pagadoAcumulado: number;
   concepto: string | null;

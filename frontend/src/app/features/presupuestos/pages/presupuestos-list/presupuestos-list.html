@@ -11,10 +11,18 @@
 
       <div class="toolbar-item comunidad-item">
         <label>Comunidad</label>
-        <input
-          type="text"
-          [value]="comunidad?.nombre || ''"
-          readonly>
+
+        <select
+          [(ngModel)]="comunidadId"
+          (change)="cargarTodo()">
+
+          <option
+            *ngFor="let c of comunidades"
+            [ngValue]="c.id">
+            {{ c.nombre }}
+          </option>
+
+        </select>
       </div>
 
       <div class="toolbar-item year-item">
@@ -267,6 +275,19 @@
           {{ generandoCuotas ? 'Generando...' : 'Generar borrador de cuotas' }}
         </button>
 
+        <input
+          type="number"
+          min="1"
+          max="12"
+          [(ngModel)]="mesRecibos"
+          style="width: 80px; margin-left: 10px;">
+
+        <button
+          class="generate-button"
+          (click)="generarRecibos()"
+          [disabled]="generandoRecibos">
+          {{ generandoRecibos ? 'Generando recibos...' : 'Generar recibos' }}
+        </button>
       </div>
     </div>
 

@@ -12,77 +12,55 @@ import { PresupuestosList } from './features/presupuestos/pages/presupuestos-lis
 import { RecibosList } from './features/recibos/pages/recibos-list/recibos-list';
 import { RemesasList } from './features/remesas/pages/remesas-list/remesas-list';
 import { MovimientosList } from './features/tesoreria/pages/movimientos-list/movimientos-list';
+import { ConceptosList } from './features/conceptos/pages/conceptos-list/conceptos-list';
+import { ConceptosEdit } from './features/conceptos/pages/conceptos-edit/conceptos-edit';
 
 import { authGuard } from './core/guards/auth.guard';
 
 export const routes: Routes = [
 
-  {
-    path: '',
-    redirectTo: 'dashboard',
-    pathMatch: 'full'
-  },
+  { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
 
-  {
-    path: 'login',
-    component: Login
-  },
+  { path: 'login', component: Login },
 
   {
     path: '',
     component: MainLayout,
     canActivate: [authGuard],
     children: [
+
+      { path: 'dashboard', component: Dashboard },
+
+      { path: 'comunidades', component: ComunidadesList },
+      { path: 'comunidades/editar/:id', component: ComunidadEdit },
+
+      { path: 'vecinos', component: VecinosList },
+      { path: 'vecinos/comunidad/:id', component: VecinosList },
+      { path: 'vecinos/editar/:id', component: VecinoEdit },
+      { path: 'vecinos/nuevo/comunidad/:comunidadId', component: VecinoEdit },
+
+      { path: 'presupuestos', component: PresupuestosList },
+
+      { path: 'recibos/comunidad/:id', component: RecibosList },
+
+      { path: 'remesas/comunidad/:id', component: RemesasList },
+
+      { path: 'tesoreria/movimientos', component: MovimientosList },
+
+      // 🔥 CONCEPTOS (CORRECTO)
+      { path: 'conceptos/comunidad/:id', component: ConceptosList },
+      { path: 'conceptos', component: ConceptosList },
       {
-        path: 'dashboard',
-        component: Dashboard
+        path: 'conceptos/comunidad/:id/nuevo',
+        component: ConceptosEdit
       },
       {
-        path: 'comunidades',
-        component: ComunidadesList
-      },
-      {
-        path: 'comunidades/editar/:id',
-        component: ComunidadEdit
-      },
-      {
-        path: 'vecinos',
-        component: VecinosList
-      },
-      {
-        path: 'vecinos/comunidad/:id',
-        component: VecinosList
-      },
-      {
-        path: 'vecinos/editar/:id',
-        component: VecinoEdit
-      },
-      {
-        path: 'vecinos/nuevo/comunidad/:comunidadId',
-        component: VecinoEdit
-      },
-      {
-        path: 'presupuestos',
-        component: PresupuestosList
-      },
-      {
-        path: 'recibos/comunidad/:id',
-        component: RecibosList
-      },
-      {
-        path: 'remesas/comunidad/:id',
-        component: RemesasList
-      },
-      {
-        path: 'tesoreria/movimientos',
-        component: MovimientosList
+        path: 'conceptos/comunidad/:id/editar/:conceptoId',
+        component: ConceptosEdit
       }
+
     ]
   },
 
-  {
-    path: '**',
-    redirectTo: 'dashboard'
-  }
-
+  { path: '**', redirectTo: 'dashboard' }
 ];

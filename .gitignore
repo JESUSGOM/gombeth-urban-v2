@@ -1,193 +1,64 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+HELP.md
 
-<title>Gombeth Software Solutions</title>
+target/
+.mvn/wrapper/maven-wrapper.jar
 
-<style>
+!**/src/main/**/target/
+!**/src/test/**/target/
 
-*{
-    margin:0;
-    padding:0;
-    box-sizing:border-box;
-}
+### STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
 
-body{
-    font-family:Arial, Helvetica, sans-serif;
-    background:#f5f7fa;
-    color:#333;
-}
+### IntelliJ IDEA ###
+.idea/
+*.iws
+*.iml
+*.ipr
 
-.hero{
-    background:linear-gradient(135deg,#0f172a,#1e3a8a);
-    color:white;
-    text-align:center;
-    padding:80px 20px;
-}
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+build/
+!**/src/main/**/build/
+!**/src/test/**/build/
 
-.hero img{
-    width:450px;
-    max-width:90%;
-    margin-bottom:30px;
-}
+### VS Code ###
+.vscode/
 
-.hero h1{
-    font-size:48px;
-    margin-bottom:15px;
-}
+### Frontend ###
+frontend/node_modules/
+frontend/dist/
+frontend/.angular/
 
-.hero p{
-    font-size:22px;
-    margin-bottom:25px;
-}
+### Backend ###
+backend/target/
 
-.btn{
-    display:inline-block;
-    background:#3b82f6;
-    color:white;
-    padding:14px 28px;
-    border-radius:8px;
-    text-decoration:none;
-    font-weight:bold;
-}
+### Spring local secrets ###
+backend/src/main/resources/application-local.properties
+backend/src/main/resources/application-secrets.properties
 
-.container{
-    width:90%;
-    max-width:1400px;
-    margin:auto;
-    padding:60px 20px;
-}
+### Environment files ###
+.env
+*.env
 
-.card{
-    background:white;
-    border-radius:12px;
-    padding:30px;
-    margin-bottom:25px;
-    box-shadow:0 5px 15px rgba(0,0,0,0.08);
-}
+### Logs ###
+*.log
 
-h2{
-    color:#1e3a8a;
-    margin-bottom:20px;
-}
+### Temporary files ###
+*.tmp
+*.bak
+*.swp
 
-ul{
-    padding-left:20px;
-}
-
-li{
-    margin-bottom:10px;
-}
-
-footer{
-    background:#0f172a;
-    color:white;
-    text-align:center;
-    padding:25px;
-}
-
-</style>
-
-</head>
-
-<body>
-
-<section class="hero">
-
-<img src="Logo%20Minimalista.png" alt="Gombeth Software">
-
-<h1>Gombeth Software Solutions</h1>
-
-<p>
-Especialistas en Java, Spring Boot, Angular y soluciones empresariales a medida.
-</p>
-
-<a class="btn" href="mailto:jfgb@jfgb.es">
-Solicitar información
-</a>
-
-</section>
-
-<div class="container">
-
-<div class="card">
-
-<h2>Quiénes somos</h2>
-
-<p>
-Desarrollamos aplicaciones empresariales y soluciones de software a medida
-utilizando tecnologías modernas como Java, Spring Boot, Angular, PHP,
-MySQL y MariaDB.
-</p>
-
-</div>
-
-<div class="card">
-
-<h2>Servicios</h2>
-
-<ul>
-<li>Aplicaciones Web Empresariales</li>
-<li>Java y Spring Boot</li>
-<li>Arquitecturas de Microservicios</li>
-<li>Angular</li>
-<li>Automatización de procesos</li>
-<li>Integración de sistemas</li>
-<li>Mantenimiento evolutivo de aplicaciones</li>
-</ul>
-
-</div>
-
-<div class="card">
-
-<h2>Producto Destacado</h2>
-
-<h3>Gombeth Urban</h3>
-
-<p>
-Plataforma de gestión para Administradores de Fincas:
-comunidades, propietarios, remesas SEPA,
-contabilidad, informes PDF y gestión documental.
-</p>
-
-</div>
-
-<div class="card">
-
-<h2>Contacto</h2>
-
-<p>
-<strong>LinkedIn:</strong>
-<a href="TU_URL_DE_LINKEDIN">
-Gombeth Software Solutions
-</a>
-</p>
-
-<p><strong>Email:</strong> jfgb@jfgb.es</p>
-
-<p>
-<strong>GitHub:</strong>
-<a href="https://github.com/JESUSGOM">
-github.com/JESUSGOM
-</a>
-</p>
-
-</div>
-
-</div>
-
-<footer>
-
-© 2026 Gombeth Software Solutions
-
-</footer>
-
-</body>
-</html>
-© 2026 Gombeth Software's
-</footer>
-
-</body>
-</html>
+### Compressed files ###
+*.zip
+*.rar
+*.7z

@@ -36,6 +36,21 @@ export class RemesaService {
       {}
     );
   }
+  generarRemesaSeleccion(
+    comunidadId: number,
+    fechaCobro: string,
+    reciboIds: number[]
+  ): Observable<any> {
+
+    return this.http.post<any>(
+      `${this.apiUrl}/generar-seleccion`,
+      {
+        comunidadId,
+        fechaCobro,
+        reciboIds
+      }
+    );
+  }
 
   validarRemesa(
     remesaId: number
@@ -43,6 +58,15 @@ export class RemesaService {
 
     return this.http.get<ValidacionRemesa>(
       `${this.apiUrl}/${remesaId}/validar`
+    );
+
+  }
+
+  descargarC19(remesaId: number): void {
+
+    window.open(
+      `${this.apiUrl}/${remesaId}/c19`,
+      '_blank'
     );
 
   }

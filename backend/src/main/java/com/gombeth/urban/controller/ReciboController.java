@@ -1,9 +1,12 @@
 package com.gombeth.urban.controller;
 
+import com.gombeth.urban.dto.ReciboResponse;
 import com.gombeth.urban.entity.ContabilidadRecibo;
 import com.gombeth.urban.entity.CuotaPresupuesto;
+import com.gombeth.urban.entity.Vecino;
 import com.gombeth.urban.repository.ContabilidadReciboRepository;
 import com.gombeth.urban.repository.CuotaPresupuestoRepository;
+import com.gombeth.urban.repository.VecinoRepository;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
@@ -17,13 +20,16 @@ public class ReciboController {
 
     private final CuotaPresupuestoRepository cuotaPresupuestoRepository;
     private final ContabilidadReciboRepository contabilidadReciboRepository;
+    private final VecinoRepository vecinoRepository;
 
     public ReciboController(
             CuotaPresupuestoRepository cuotaPresupuestoRepository,
-            ContabilidadReciboRepository contabilidadReciboRepository
+            ContabilidadReciboRepository contabilidadReciboRepository,
+            VecinoRepository vecinoRepository
     ) {
         this.cuotaPresupuestoRepository = cuotaPresupuestoRepository;
         this.contabilidadReciboRepository = contabilidadReciboRepository;
+        this.vecinoRepository = vecinoRepository;
     }
 
     @PostMapping("/generar-desde-cuotas")
@@ -58,21 +64,10 @@ public class ReciboController {
             ContabilidadRecibo recibo =
                     new ContabilidadRecibo();
 
-            recibo.setComunidadId(
-                    cuota.getComunidadId()
-            );
-
-            recibo.setVecinoId(
-                    cuota.getVecinoId()
-            );
-
-            recibo.setCuotaPresupuestoId(
-                    cuota.getId()
-            );
-
-            recibo.setFechaEmision(
-                    LocalDate.now()
-            );
+            recibo.setComunidadId(cuota.getComunidadId());
+            recibo.setVecinoId(cuota.getVecinoId());
+            recibo.setCuotaPresupuestoId(cuota.getId());
+            recibo.setFechaEmision(LocalDate.now());
 
             recibo.setImporte(
                     cuota.getImporteMensual() == null
@@ -80,13 +75,8 @@ public class ReciboController {
                             : cuota.getImporteMensual()
             );
 
-            recibo.setPagadoAcumulado(
-                    BigDecimal.ZERO
-            );
-
-            recibo.setEstado(
-                    "PENDIENTE"
-            );
+            recibo.setPagadoAcumulado(BigDecimal.ZERO);
+            recibo.setEstado("PENDIENTE");
 
             recibo.setTipoRemesa(
                     cuota.getRevisionId() == null
@@ -94,9 +84,7 @@ public class ReciboController {
                             : "REVISION"
             );
 
-            recibo.setConcepto(
-                    construirConcepto(cuota)
-            );
+            recibo.setConcepto(construirConcepto(cuota));
 
             recibo.setEtiquetaExtra(
                     "V" + cuota.getVersion()
@@ -106,9 +94,7 @@ public class ReciboController {
                             + cuota.getMesFin()
             );
 
-            contabilidadReciboRepository.save(
-                    recibo
-            );
+            contabilidadReciboRepository.save(recibo);
 
             generados++;
         }
@@ -133,12 +119,47 @@ public class ReciboController {
     }
 
     @GetMapping
-    public List<ContabilidadRecibo> listarRecibos(
+    public List<ReciboResponse> listarRecibos(
             @RequestParam Long comunidadId
     ) {
         return contabilidadReciboRepository
                 .findByComunidadIdOrderByFechaEmisionDescIdDesc(
                         comunidadId
-                );
+                )
+                .stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
+    private ReciboResponse toResponse(
+            ContabilidadRecibo recibo
+    ) {
+        Vecino vecino =
+                vecinoRepository
+                        .findById(recibo.getVecinoId())
+                        .orElse(null);
+
+        String nombreVecino =
+                vecino != null
+                        ? vecino.getNombre()
+                        : "";
+
+        String vivienda =
+                vecino != null
+                        ? vecino.getVivienda()
+                        : "";
+
+        return new ReciboResponse(
+                recibo.getId(),
+                recibo.getFechaEmision(),
+                recibo.getVecinoId(),
+                nombreVecino,
+                vivienda,
+                recibo.getConcepto(),
+                recibo.getImporte(),
+                recibo.getEstado(),
+                recibo.getTipoRemesa(),
+                recibo.getEtiquetaExtra()
+        );
     }
 }

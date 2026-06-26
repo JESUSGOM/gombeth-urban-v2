@@ -5,5 +5,6 @@ public enum TipoCuenta {
     PASIVO,
     PATRIMONIO_NETO,
     INGRESO,
-    GASTO
+    GASTO,
+    VECINO
 }

@@ -1,98 +1,199 @@
 <div class="edit-page">
+
   <div class="page-header">
     <div>
       <h2>Editar Comunidad</h2>
       <p>Datos generales de la comunidad</p>
     </div>
   </div>
+
+  @if (mensajeExito) {
+    <div class="gombeth-alert success">
+      <img src="/images/logo.png" alt="Gombeth Urban">
+      <div>
+        <strong>Gombeth Urban dice</strong>
+        <p>{{ mensajeExito }}</p>
+      </div>
+    </div>
+  }
+
+  @if (mensajeError) {
+    <div class="gombeth-alert error">
+      <img src="/images/logo.png" alt="Gombeth Urban">
+      <div>
+        <strong>Gombeth Urban dice</strong>
+        <p>{{ mensajeError }}</p>
+      </div>
+    </div>
+  }
+
   @if (comunidad) {
+
     <div class="form-card">
+
       <div class="form-grid">
+
         <div class="form-group">
           <label>ID</label>
-          <input type="text" [value]="comunidad.id" readonly>
+          <input
+            type="text"
+            [value]="comunidad.id"
+            readonly>
         </div>
+
         <div class="form-group full">
           <label>Nombre</label>
-          <input type="text" [(ngModel)]="comunidad.nombre">
+          <input
+            type="text"
+            [(ngModel)]="comunidad.nombre">
         </div>
 
         <div class="form-group">
           <label>CIF/NIF</label>
-          <input type="text" [(ngModel)]="comunidad.nifCif">
+          <input
+            type="text"
+            [(ngModel)]="comunidad.nifCif">
         </div>
 
         <div class="form-group">
           <label>Identificador SEPA</label>
-          <input type="text" [(ngModel)]="comunidad.identificadorAcreedor">
+          <input
+            type="text"
+            [(ngModel)]="comunidad.identificadorAcreedor">
         </div>
 
         <div class="form-group full">
           <label>Dirección</label>
-          <input type="text" [(ngModel)]="comunidad.direccion">
+          <input
+            type="text"
+            [(ngModel)]="comunidad.direccion">
         </div>
 
         <div class="form-group">
           <label>Código Postal</label>
-          <input type="text" [(ngModel)]="comunidad.codigoPostal">
+          <input
+            type="text"
+            [(ngModel)]="comunidad.codigoPostal">
         </div>
 
         <div class="form-group">
           <label>Población</label>
-          <input type="text" [(ngModel)]="comunidad.poblacion">
+          <input
+            type="text"
+            [(ngModel)]="comunidad.poblacion">
         </div>
 
         <div class="form-group">
           <label>Provincia</label>
-          <input type="text" [(ngModel)]="comunidad.provincia">
+          <input
+            type="text"
+            [(ngModel)]="comunidad.provincia">
         </div>
 
         <div class="form-group">
           <label>País</label>
-          <input type="text" [(ngModel)]="comunidad.paiscod">
+          <input
+            type="text"
+            [(ngModel)]="comunidad.paiscod">
         </div>
 
         <div class="form-group full">
           <label>IBAN</label>
-          <input type="text" [(ngModel)]="comunidad.iban">
+          <input
+            type="text"
+            [(ngModel)]="comunidad.iban">
         </div>
 
         <div class="form-group">
           <label>BIC</label>
-          <input type="text" [(ngModel)]="comunidad.bic">
+          <input
+            type="text"
+            [(ngModel)]="comunidad.bic">
         </div>
 
         <div class="form-group">
           <label>Sufijo</label>
-          <input type="text" [(ngModel)]="comunidad.sufijo">
+          <input
+            type="text"
+            [(ngModel)]="comunidad.sufijo">
         </div>
-      </div>
-      @if (mensaje) {
-        <div class="success-card">
-          {{ mensaje }}
-        </div>
-      }
 
-      @if (error) {
-        <div class="error-card">
-          {{ error }}
+      </div>
+
+      <!-- CONFIGURACIÓN DE REPARTO -->
+
+      <div class="reparto-card">
+
+        <h3>Configuración de reparto</h3>
+
+        <p>
+          Método que utilizará Gombeth Urban para calcular
+          cuotas, presupuestos, recibos y remesas.
+        </p>
+
+        <div class="radio-group">
+
+          <label class="radio-option">
+
+            <input
+              type="radio"
+              name="metodoReparto"
+              value="COEFICIENTE"
+              [(ngModel)]="metodoReparto">
+
+            <span>
+              Reparto por coeficiente
+            </span>
+
+          </label>
+
+          <label class="radio-option">
+
+            <input
+              type="radio"
+              name="metodoReparto"
+              value="PARTES_IGUALES"
+              [(ngModel)]="metodoReparto">
+
+            <span>
+              Reparto por partes iguales (1/N)
+            </span>
+
+          </label>
+
         </div>
-      }
+
+      </div>
+
       <div class="form-actions">
-        <button class="secondary-button" (click)="volver()">
+
+        <button
+          type="button"
+          class="secondary-button"
+          (click)="volver()">
           Volver
         </button>
+
         <button
+          type="button"
           class="primary-button"
           (click)="guardar()"
           [disabled]="guardando">
+
           {{ guardando ? 'Guardando...' : 'Guardar cambios' }}
+
         </button>
+
       </div>
+
     </div>
+
   } @else {
+
     <div class="info-card">
       Cargando comunidad...
     </div>
+
   }
+
 </div>

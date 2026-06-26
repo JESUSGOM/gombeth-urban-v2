@@ -4,6 +4,9 @@
     <div>
       <h2>Recibos</h2>
       <p>Listado de recibos generados para la comunidad</p>
+      <div class="community-name">
+        {{ nombreComunidad }}
+      </div>
     </div>
 
     <button
@@ -35,29 +38,112 @@
     *ngIf="!cargando && recibos.length > 0"
     class="card">
 
-    <table class="recibos-table">
+    <div class="filters">
 
+      <select [(ngModel)]="estadoFiltro">
+        <option value="">
+          Todos los estados
+        </option>
+
+        <option value="PENDIENTE">
+          Pendiente
+        </option>
+
+        <option value="COBRADO">
+          Cobrado
+        </option>
+
+        <option value="DEVUELTO">
+          Devuelto
+        </option>
+      </select>
+
+      <input
+        type="date"
+        [(ngModel)]="fechaDesde">
+
+      <input
+        type="date"
+        [(ngModel)]="fechaHasta">
+
+      <input
+        type="number"
+        placeholder="Importe mín."
+        [(ngModel)]="importeMinimo">
+
+      <input
+        type="number"
+        placeholder="Importe máx."
+        [(ngModel)]="importeMaximo">
+
+    </div>
+
+    <div class="selection-summary">
+
+      <strong>
+        Seleccionados:
+        {{ recibosSeleccionados.size }}
+      </strong>
+
+      &nbsp;&nbsp;
+
+      <strong>
+        Total:
+        {{ totalSeleccionado | number:'1.2-2' }} €
+      </strong>
+
+      &nbsp;&nbsp;
+
+      <button
+        class="primary-button"
+        [disabled]="recibosSeleccionados.size === 0"
+        (click)="generarRemesa()">
+
+        Generar Remesa
+
+      </button>
+
+    </div>
+
+    <table class="recibos-table">
       <thead>
-      <tr>
-        <th>ID</th>
-        <th>Fecha</th>
-        <th>Vecino</th>
-        <th>Concepto</th>
-        <th>Importe</th>
-        <th>Estado</th>
-        <th>Tipo</th>
-        <th>Versión</th>
-      </tr>
+        <tr>
+          <th style="width:50px">
+            <input
+              type="checkbox"
+              (change)="seleccionarTodos($event)">
+          </th>
+
+          <th (click)="ordenar('id')">ID</th>
+          <th (click)="ordenar('fechaEmision')">Fecha</th>
+          <th (click)="ordenar('nombreVecino')">Propietario</th>
+          <th (click)="ordenar('concepto')">Concepto</th>
+          <th (click)="ordenar('importe')">Importe</th>
+          <th (click)="ordenar('estado')">Estado</th>
+          <th (click)="ordenar('tipoRemesa')">Tipo</th>
+          <th (click)="ordenar('etiquetaExtra')">Versión</th>
+        </tr>
       </thead>
 
       <tbody>
       <tr *ngFor="let r of recibosPaginados">
 
+        <td>
+          <input
+            type="checkbox"
+            [checked]="estaSeleccionado(r.id)"
+            (change)="toggleRecibo(r.id)">
+        </td>
+
         <td>{{ r.id }}</td>
 
-        <td>{{ r.fechaEmision }}</td>
+        <td class="fecha">
+          {{ r.fechaEmision | date:'dd/MM/yyyy' }}
+        </td>
 
-        <td>{{ r.vecinoId }}</td>
+        <td class="propietario">
+          <strong>{{ r.vivienda }}</strong> - {{ r.nombreVecino }}
+        </td>
 
         <td class="concepto">
           {{ r.concepto }}

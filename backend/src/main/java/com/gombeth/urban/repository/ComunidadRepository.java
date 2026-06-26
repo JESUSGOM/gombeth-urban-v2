@@ -16,4 +16,8 @@ public interface ComunidadRepository extends JpaRepository<Comunidad, Long> {
     List<Comunidad> findByUsuarioIdOrderByNombreAsc(Long usuarioId);
 
     List<Comunidad> findByAdministradorIdOrderByNombreAsc(Long administradorId);
+
+    boolean existsByIdAndUsuarioId(Long id, Long usuarioId);
+
+    boolean existsByIdAndAdministradorId(Long id, Long administradorId);
 }

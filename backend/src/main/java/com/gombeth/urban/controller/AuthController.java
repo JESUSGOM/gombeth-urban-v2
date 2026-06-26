@@ -62,9 +62,4 @@ public class AuthController {
                 "Login correcto"
         );
     }
-
-    @GetMapping("/bcrypt/{password}")
-    public String bcrypt(@PathVariable String password) {
-        return new BCryptPasswordEncoder().encode(password);
-    }
 }

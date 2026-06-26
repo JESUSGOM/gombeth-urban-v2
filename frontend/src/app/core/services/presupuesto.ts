@@ -99,4 +99,15 @@ export class PresupuestoService {
     );
 
   }
+
+  generarRecibos(
+    comunidadId: number,
+    anio: number,
+    mes: number
+  ): Observable<any> {
+    return this.http.post<any>(
+      `${this.apiUrl}/comunidad/${comunidadId}/generar-recibos?anio=${anio}&mes=${mes}`,
+      {}
+    );
+  }
 }

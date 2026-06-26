@@ -1,0 +1,42 @@
+<div class="edit-page">
+
+  <h2>Concepto de Cobro</h2>
+
+  <div class="form">
+
+    <label>Descripción</label>
+    <input type="text" [(ngModel)]="concepto.descripcion">
+
+    <label>Importe</label>
+    <input type="number" [(ngModel)]="concepto.importe">
+
+    <label>Periodicidad</label>
+    <select [(ngModel)]="concepto.periodicidad">
+      <option>MENSUAL</option>
+      <option>TRIMESTRAL</option>
+      <option>ANUAL</option>
+      <option>UNICO</option>
+    </select>
+
+    <label>Cuenta contable</label>
+    <select [(ngModel)]="concepto.cuentaContableId">
+      <option *ngFor="let c of cuentas" [value]="c.id">
+        {{ c.codigo }} - {{ c.nombre }}
+      </option>
+    </select>
+
+    <label>
+      <input type="checkbox" [(ngModel)]="concepto.activo">
+      Activo
+    </label>
+
+  </div>
+
+  <div class="buttons">
+
+    <button (click)="volver()">Volver</button>
+    <button (click)="guardar()">Guardar</button>
+
+  </div>
+
+</div>

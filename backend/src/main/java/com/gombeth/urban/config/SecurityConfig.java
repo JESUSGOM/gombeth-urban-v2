@@ -2,13 +2,10 @@ package com.gombeth.urban.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.web.cors.CorsConfiguration;
-import org.springframework.web.cors.CorsConfigurationSource;
-import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
-
-import java.util.List;
 
 @Configuration
 public class SecurityConfig {
@@ -16,31 +13,46 @@ public class SecurityConfig {
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         return http
-                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
                                 "/api/health",
-                                "/api/auth/**",
+                                "/api/auth/login",
+
                                 "/api/comunidades",
                                 "/api/comunidades/**",
+
                                 "/api/dashboard",
                                 "/api/dashboard/**",
+
                                 "/api/vecinos",
                                 "/api/vecinos/**",
+
                                 "/api/documentos",
                                 "/api/documentos/**",
-                                "/api/prpiedades",
+
+                                "/api/propiedades",
                                 "/api/propiedades/**",
+
                                 "/api/presupuestos",
                                 "/api/presupuestos/**",
+
+                                "/api/conceptos-cobro",
+                                "/api/conceptos-cobro/**",
+
+                                "/api/cuentas-contables",
+                                "/api/cuentas-contables/**",
+
                                 "/api/recibos",
                                 "/api/recibos/**",
+
                                 "/api/remesas",
                                 "/api/remesas/**",
+
                                 "/api/movimientos",
                                 "/api/movimientos/**"
-                        ).permitAll()
+                        )
+                        .permitAll()
                         .anyRequest().authenticated()
                 )
                 .formLogin(form -> form.disable())
@@ -49,17 +61,7 @@ public class SecurityConfig {
     }
 
     @Bean
-    CorsConfigurationSource corsConfigurationSource() {
-        CorsConfiguration config = new CorsConfiguration();
-
-        config.setAllowedOrigins(List.of("http://localhost:4200"));
-        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        config.setAllowedHeaders(List.of("*"));
-        config.setAllowCredentials(true);
-
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/api/**", config);
-
-        return source;
+    PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
     }
 }

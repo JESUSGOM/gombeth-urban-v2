@@ -12,12 +12,20 @@
 .page-header h2 {
   margin: 0;
   font-size: 24px;
+  font-weight: 700;
 }
 
 .page-header p {
   margin: 4px 0 0;
   color: #64748b;
   font-size: 13px;
+}
+
+.community-name {
+  margin-top: 6px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #0f172a;
 }
 
 .primary-button {
@@ -28,6 +36,11 @@
   padding: 9px 16px;
   font-weight: 700;
   cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.primary-button:hover {
+  background: #1d4ed8;
 }
 
 .card {
@@ -39,14 +52,13 @@
 
 .recibos-table {
   width: 100%;
-  border-collapse: collapse;
   table-layout: fixed;
-  font-size: 12px;
+  border-collapse: collapse;
 }
 
 .recibos-table th,
 .recibos-table td {
-  padding: 9px 8px;
+  padding: 8px 8px;
   border-bottom: 1px solid #e5e7eb;
   vertical-align: middle;
 }
@@ -55,6 +67,68 @@
   background: #f1f5f9;
   text-align: left;
   font-weight: 800;
+  white-space: nowrap;
+  color: #0f172a;
+}
+
+/* ID */
+.recibos-table th:nth-child(1),
+.recibos-table td:nth-child(1) {
+  width: 60px;
+  text-align: center;
+}
+
+/* FECHA */
+.recibos-table th:nth-child(2),
+.recibos-table td:nth-child(2) {
+  width: 95px;
+  text-align: center;
+}
+
+/* PROPIETARIO */
+.recibos-table th:nth-child(3),
+.recibos-table td:nth-child(3) {
+  width: 260px;
+}
+
+/* CONCEPTO */
+.recibos-table th:nth-child(4),
+.recibos-table td:nth-child(4) {
+  width: auto;
+}
+
+/* IMPORTE */
+.recibos-table th:nth-child(5),
+.recibos-table td:nth-child(5) {
+  width: 110px;
+  text-align: center;
+}
+
+/* ESTADO */
+.recibos-table th:nth-child(6),
+.recibos-table td:nth-child(6) {
+  width: 95px;
+  text-align: center;
+}
+
+/* TIPO */
+.recibos-table th:nth-child(7),
+.recibos-table td:nth-child(7) {
+  width: 95px;
+  text-align: center;
+}
+
+/* VERSION */
+.recibos-table th:nth-child(8),
+.recibos-table td:nth-child(8) {
+  width: 100px;
+  text-align: center;
+}
+
+.propietario {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .concepto {
@@ -64,11 +138,19 @@
 }
 
 .amount {
-  text-align: right;
+  text-align: center;
   font-weight: 700;
+  color: #0f172a;
+}
+
+.estado,
+.tipo,
+.version {
+  text-align: center;
 }
 
 .badge {
+  display: inline-block;
   padding: 4px 8px;
   border-radius: 999px;
   font-size: 11px;
@@ -107,6 +189,10 @@
   font-weight: 700;
 }
 
+.pagination button:hover:not(:disabled) {
+  background: #cbd5e1;
+}
+
 .pagination button:disabled {
   opacity: 0.45;
   cursor: not-allowed;
@@ -132,4 +218,21 @@
 .alert.warning {
   background: #fef3c7;
   color: #92400e;
+}
+
+/* Hover filas */
+.recibos-table tbody tr:hover {
+  background: #f8fafc;
+}
+
+/* Responsive */
+@media (max-width: 1400px) {
+  .recibos-table {
+    font-size: 12px;
+  }
+
+  .recibos-table th,
+  .recibos-table td {
+    padding: 6px;
+  }
 }

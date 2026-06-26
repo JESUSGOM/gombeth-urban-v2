@@ -16,6 +16,9 @@ import com.gombeth.urban.dto.RevisionCuotasRequest;
 import com.gombeth.urban.entity.PresupuestoRevision;
 import com.gombeth.urban.repository.PresupuestoRevisionRepository;
 import com.gombeth.urban.dto.PresupuestoRevisionResponse;
+import com.gombeth.urban.entity.ContabilidadRecibo;
+import com.gombeth.urban.repository.ContabilidadReciboRepository;
+import java.time.LocalDate;
 
 import java.time.LocalDateTime;
 import java.math.RoundingMode;
@@ -31,19 +34,22 @@ public class PresupuestoController {
     private final CuotaPresupuestoRepository cuotaPresupuestoRepository;
     private final ComunidadConfiguracionRepartoRepository configuracionRepartoRepository;
     private final PresupuestoRevisionRepository presupuestoRevisionRepository;
+    private final ContabilidadReciboRepository contabilidadReciboRepository;
 
     public PresupuestoController(
             PresupuestoRepository presupuestoRepository,
             VecinoRepository vecinoRepository,
             CuotaPresupuestoRepository cuotaPresupuestoRepository,
             ComunidadConfiguracionRepartoRepository configuracionRepartoRepository,
-            PresupuestoRevisionRepository presupuestoRevisionRepository
+            PresupuestoRevisionRepository presupuestoRevisionRepository,
+            ContabilidadReciboRepository contabilidadReciboRepository
     ) {
         this.presupuestoRepository = presupuestoRepository;
         this.vecinoRepository = vecinoRepository;
         this.cuotaPresupuestoRepository = cuotaPresupuestoRepository;
         this.configuracionRepartoRepository = configuracionRepartoRepository;
         this.presupuestoRevisionRepository = presupuestoRevisionRepository;
+        this.contabilidadReciboRepository = contabilidadReciboRepository;
     }
 
     @GetMapping("/comunidad/{comunidadId}")
@@ -540,5 +546,74 @@ public class PresupuestoController {
 
         cuotaPresupuestoRepository.deleteByRevisionId(revisionId);
         presupuestoRevisionRepository.deleteById(revisionId);
+    }
+
+    @PostMapping("/comunidad/{comunidadId}/generar-recibos")
+    public GeneracionCuotasResponse generarRecibosDesdeCuotas(
+            @PathVariable Long comunidadId,
+            @RequestParam Integer anio,
+            @RequestParam Integer mes
+    ) {
+        List<CuotaPresupuesto> cuotas =
+                cuotaPresupuestoRepository
+                        .findByComunidadIdAndAnioAndEstadoOrderByIdAsc(
+                                comunidadId,
+                                anio,
+                                "APROBADA"
+                        );
+
+        int generados = 0;
+
+        LocalDate fechaEmision =
+                LocalDate.of(anio, mes, 1);
+
+        for (CuotaPresupuesto cuota : cuotas) {
+
+            if (
+                    contabilidadReciboRepository
+                            .existsByCuotaPresupuestoId(
+                                    cuota.getId()
+                            )
+            ) {
+                continue;
+            }
+
+            ContabilidadRecibo recibo =
+                    new ContabilidadRecibo();
+
+            recibo.setComunidadId(comunidadId);
+            recibo.setVecinoId(cuota.getVecinoId());
+            recibo.setCuotaPresupuestoId(cuota.getId());
+
+            recibo.setFechaEmision(fechaEmision);
+
+            recibo.setImporte(
+                    cuota.getImporteMensual()
+            );
+
+            recibo.setEstado("PENDIENTE");
+
+            recibo.setConcepto(
+                    cuota.getDescripcion()
+                            + " - "
+                            + mes
+                            + "/"
+                            + anio
+            );
+
+            recibo.setTipoRemesa("ORDINARIA");
+            recibo.setPagadoAcumulado(BigDecimal.ZERO);
+
+            contabilidadReciboRepository.save(recibo);
+
+            generados++;
+        }
+
+        return new GeneracionCuotasResponse(
+                comunidadId,
+                anio,
+                generados,
+                "Recibos generados correctamente"
+        );
     }
 }

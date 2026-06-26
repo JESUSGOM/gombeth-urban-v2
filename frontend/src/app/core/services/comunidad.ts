@@ -32,15 +32,56 @@ export class ComunidadService {
     return this.http.get<PageResponse<Comunidad>>(url);
   }
 
-  getComunidad(id: number): Observable<Comunidad> {
-    return this.http.get<Comunidad>(
-      `${this.apiUrl}/${id}`
-    );
+  getComunidad(
+    id: number,
+    usuarioId?: number,
+    administradorId?: number
+  ): Observable<Comunidad> {
+
+    let url = `${this.apiUrl}/${id}`;
+
+    const params: string[] = [];
+
+    if (usuarioId) {
+      params.push(`usuarioId=${usuarioId}`);
+    }
+
+    if (administradorId) {
+      params.push(`administradorId=${administradorId}`);
+    }
+
+    if (params.length > 0) {
+      url += `?${params.join('&')}`;
+    }
+
+    return this.http.get<Comunidad>(url);
   }
 
-  actualizarComunidad(id: number, comunidad: Comunidad): Observable<Comunidad> {
+  actualizarComunidad(
+    id: number,
+    comunidad: Comunidad,
+    usuarioId?: number,
+    administradorId?: number
+  ): Observable<Comunidad> {
+
+    let url = `${this.apiUrl}/${id}`;
+
+    const params: string[] = [];
+
+    if (usuarioId) {
+      params.push(`usuarioId=${usuarioId}`);
+    }
+
+    if (administradorId) {
+      params.push(`administradorId=${administradorId}`);
+    }
+
+    if (params.length > 0) {
+      url += `?${params.join('&')}`;
+    }
+
     return this.http.put<Comunidad>(
-      `${this.apiUrl}/${id}`,
+      url,
       comunidad
     );
   }

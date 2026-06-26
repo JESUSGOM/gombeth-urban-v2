@@ -1,0 +1,41 @@
+<div class="conceptos-page">
+
+  <h2>📋 Conceptos de Cobro</h2>
+
+  <p>Comunidad ID: {{ comunidadId }}</p>
+
+  <table>
+
+    <thead>
+    <tr>
+      <th>Descripción</th>
+      <th>Importe</th>
+      <th>Periodicidad</th>
+      <th>Cuenta Código</th>
+      <th>Cuenta Nombre</th>
+      <th>Estado</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    <tr *ngFor="let c of conceptos">
+
+      <td>{{ c.descripcion }}</td>
+      <td>{{ c.importe }}</td>
+      <td>{{ c.periodicidad }}</td>
+
+      <td>{{ c.cuentaContableCodigo }}</td>
+      <td>{{ c.cuentaContableNombre }}</td>
+
+      <td>
+          <span [class]="c.activo ? 'ok' : 'ko'">
+            {{ c.activo ? 'Activo' : 'Baja' }}
+          </span>
+      </td>
+
+    </tr>
+    </tbody>
+
+  </table>
+
+</div>

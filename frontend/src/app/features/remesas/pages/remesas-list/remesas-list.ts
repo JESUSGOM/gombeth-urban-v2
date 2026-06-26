@@ -6,11 +6,12 @@ import {
 } from '@angular/core';
 
 import { CommonModule } from '@angular/common';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
+import { FormsModule } from '@angular/forms';
 
 import { Remesa } from '../../../../core/models/remesa.model';
 import { RemesaService } from '../../../../core/services/remesa.service';
-import { FormsModule } from '@angular/forms';
+import { ComunidadService } from '../../../../core/services/comunidad';
 
 @Component({
   selector: 'app-remesas-list',
@@ -21,10 +22,13 @@ import { FormsModule } from '@angular/forms';
 export class RemesasList implements OnInit {
 
   private remesaService = inject(RemesaService);
+  private comunidadService = inject(ComunidadService);
   private route = inject(ActivatedRoute);
+  private router = inject(Router);
   private cdr = inject(ChangeDetectorRef);
 
-  comunidadId!: number;
+  comunidadId = 0;
+  nombreComunidad = '';
 
   remesas: Remesa[] = [];
 
@@ -36,9 +40,7 @@ export class RemesasList implements OnInit {
   mensaje = '';
 
   resultadoValidacion = '';
-
   erroresValidacion: string[] = [];
-
   remesasValidadas = new Set<number>();
 
   paginaActual = 1;
@@ -58,13 +60,38 @@ export class RemesasList implements OnInit {
 
     this.fechaHasta =
       hoy.toISOString().substring(0, 10);
+
     this.route.params.subscribe(params => {
-      this.comunidadId = Number(params['id']);
-      this.cargarRemesas();
+      this.comunidadId = Number(params['id'] || 0);
+
+      if (this.comunidadId > 0) {
+        this.cargarNombreComunidad();
+        this.cargarRemesas();
+      }
     });
   }
 
+  cargarNombreComunidad(): void {
+    this.comunidadService
+      .getComunidad(this.comunidadId)
+      .subscribe({
+        next: (comunidad) => {
+          this.nombreComunidad = comunidad.nombre;
+          this.cdr.detectChanges();
+        },
+        error: (err) => {
+          console.error('Error cargando comunidad:', err);
+          this.nombreComunidad = '';
+          this.cdr.detectChanges();
+        }
+      });
+  }
+
   cargarRemesas(): void {
+    if (this.comunidadId <= 0) {
+      return;
+    }
+
     this.cargando = true;
     this.error = '';
 
@@ -90,19 +117,25 @@ export class RemesasList implements OnInit {
   }
 
   generarRemesa(): void {
-
-    if (!this.fechaCobro ||
+    if (
+      !this.fechaCobro ||
       !this.fechaDesde ||
-      !this.fechaHasta) {
-
+      !this.fechaHasta
+    ) {
       this.mensaje =
         'Debe indicar todas las fechas.';
+      return;
+    }
 
+    if (this.comunidadId <= 0) {
+      this.mensaje =
+        'No hay comunidad seleccionada.';
       return;
     }
 
     this.generando = true;
     this.mensaje = '';
+    this.error = '';
 
     this.remesaService
       .generarRemesa(
@@ -112,41 +145,46 @@ export class RemesasList implements OnInit {
         this.fechaHasta
       )
       .subscribe({
-
         next: (response) => {
-
           this.generando = false;
-
           this.mensaje =
-            response.mensaje;
+            response?.mensaje ||
+            'Remesa generada correctamente.';
 
           this.cargarRemesas();
         },
-
         error: (err) => {
-
-          console.error(err);
+          console.error('Error generando remesa:', err);
 
           this.generando = false;
-
-          this.mensaje =
+          this.error =
+            err?.error?.message ||
+            err?.error ||
             'Error generando remesa.';
+
+          this.cdr.detectChanges();
         }
-
       });
-
   }
 
   get totalPaginas(): number {
-    return Math.ceil(this.remesas.length / this.registrosPorPagina);
+    return Math.max(
+      1,
+      Math.ceil(
+        this.remesas.length /
+        this.registrosPorPagina
+      )
+    );
   }
 
   get remesasPaginadas(): Remesa[] {
     const inicio =
-      (this.paginaActual - 1) * this.registrosPorPagina;
+      (this.paginaActual - 1) *
+      this.registrosPorPagina;
 
     const fin =
-      inicio + this.registrosPorPagina;
+      inicio +
+      this.registrosPorPagina;
 
     return this.remesas.slice(inicio, fin);
   }
@@ -166,8 +204,14 @@ export class RemesasList implements OnInit {
     );
   }
 
-  validarRemesa(remesa: Remesa): void {
+  descargarC19(remesa: Remesa): void {
+    alert(
+      'Generación C19 pendiente para remesa '
+      + remesa.id
+    );
+  }
 
+  validarRemesa(remesa: Remesa): void {
     this.resultadoValidacion = '';
     this.erroresValidacion = [];
 
@@ -175,9 +219,7 @@ export class RemesasList implements OnInit {
       .validarRemesa(remesa.id)
       .subscribe({
         next: (response) => {
-
           if (response.valida) {
-
             this.remesasValidadas.add(remesa.id);
 
             this.resultadoValidacion =
@@ -186,12 +228,12 @@ export class RemesasList implements OnInit {
             this.resultadoValidacion =
               'Remesa ' + remesa.id + ' contiene errores.';
 
-            this.erroresValidacion = response.mensajes || [];
+            this.erroresValidacion =
+              response.mensajes || [];
           }
 
           this.cdr.detectChanges();
         },
-
         error: (err) => {
           console.error('Error validando remesa:', err);
 
@@ -201,5 +243,12 @@ export class RemesasList implements OnInit {
           this.cdr.detectChanges();
         }
       });
+  }
+
+  verDetalleRemesa(id: number): void {
+    this.router.navigate([
+      '/remesas',
+      id
+    ]);
   }
 }
