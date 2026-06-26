@@ -50,7 +50,9 @@ public class SecurityConfig {
                                 "/api/remesas/**",
 
                                 "/api/movimientos",
-                                "/api/movimientos/**"
+                                "/api/movimientos/**",
+                                "/api/norma43/",
+                                "/api/norma43/**"
                         )
                         .permitAll()
                         .anyRequest().authenticated()
