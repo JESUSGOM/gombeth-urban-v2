@@ -14,6 +14,7 @@ import { RemesasList } from './features/remesas/pages/remesas-list/remesas-list'
 import { MovimientosList } from './features/tesoreria/pages/movimientos-list/movimientos-list';
 import { ConceptosList } from './features/conceptos/pages/conceptos-list/conceptos-list';
 import { ConceptosEdit } from './features/conceptos/pages/conceptos-edit/conceptos-edit';
+import { DiarioList } from './features/tesoreria/pages/diario-list/diario-list';
 
 import { authGuard } from './core/guards/auth.guard';
 
@@ -46,7 +47,7 @@ export const routes: Routes = [
       { path: 'remesas/comunidad/:id', component: RemesasList },
 
       { path: 'tesoreria/movimientos', component: MovimientosList },
-
+      { path: 'tesoreria/diario', component: DiarioList },
       // 🔥 CONCEPTOS (CORRECTO)
       { path: 'conceptos/comunidad/:id', component: ConceptosList },
       { path: 'conceptos', component: ConceptosList },

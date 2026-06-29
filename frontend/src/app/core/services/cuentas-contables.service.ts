@@ -1,16 +1,33 @@
-import { Injectable, inject } from '@angular/core';
+import { inject, Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
-@Injectable({ providedIn: 'root' })
+export interface CuentaContable {
+  id: number;
+  codigo: string;
+  nombre: string;
+  tipo: string;
+}
+
+@Injectable({
+  providedIn: 'root'
+})
 export class CuentasContablesService {
-
   private http = inject(HttpClient);
-  private baseUrl = 'http://localhost:8080/api/cuentas-contables';
+  private readonly api =
+    'http://localhost:8080/api/cuentas-contables';
 
-  getByComunidad(comunidadId: number): Observable<any[]> {
-    return this.http.get<any[]>(
-      `${this.baseUrl}/comunidad/${comunidadId}`
+  listarPorComunidad(
+    comunidadId: number
+  ): Observable<CuentaContable[]> {
+    return this.http.get<CuentaContable[]>(
+      `${this.api}/comunidad/${comunidadId}`
     );
+  }
+
+  getByComunidad(
+    comunidadId: number
+  ): Observable<CuentaContable[]> {
+    return this.listarPorComunidad(comunidadId);
   }
 }
