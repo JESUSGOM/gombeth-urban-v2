@@ -47,7 +47,11 @@ public class SecurityConfig {
                                 "/api/gastos",
                                 "/api/gastos/**",
                                 "/api/cuentas-contables",
-                                "/api/cuentas-contables/**"
+                                "/api/cuentas-contables/**",
+                                "/api/diario",
+                                "api/diario/**",
+                                "/api/mayor",
+                                "/api/mayor/**"
                         )
                         .permitAll()
                         .anyRequest().authenticated()

@@ -21,4 +21,9 @@ public interface ContabilidadMovimientoRepository
             Long comunidadId,
             String numeroAsiento
     );
+
+    List<ContabilidadMovimiento> findByComunidadIdAndCuentaIdOrderByFechaAscIdAsc(
+            Long comunidadId,
+            Long cuentaId
+    );
 }
