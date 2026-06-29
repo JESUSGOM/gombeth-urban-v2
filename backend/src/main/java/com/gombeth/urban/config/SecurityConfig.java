@@ -18,43 +18,36 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/api/health",
                                 "/api/auth/login",
-
                                 "/api/comunidades",
                                 "/api/comunidades/**",
-
                                 "/api/dashboard",
                                 "/api/dashboard/**",
-
                                 "/api/vecinos",
                                 "/api/vecinos/**",
-
                                 "/api/documentos",
                                 "/api/documentos/**",
-
                                 "/api/propiedades",
                                 "/api/propiedades/**",
-
                                 "/api/presupuestos",
                                 "/api/presupuestos/**",
-
                                 "/api/conceptos-cobro",
                                 "/api/conceptos-cobro/**",
-
                                 "/api/cuentas-contables",
                                 "/api/cuentas-contables/**",
-
                                 "/api/recibos",
                                 "/api/recibos/**",
-
                                 "/api/remesas",
                                 "/api/remesas/**",
-
                                 "/api/movimientos",
                                 "/api/movimientos/**",
                                 "/api/norma43/",
                                 "/api/norma43/**",
                                 "/api/contabilidad",
-                                "/api/contabilidad/**"
+                                "/api/contabilidad/**",
+                                "/api/gastos",
+                                "/api/gastos/**",
+                                "/api/cuentas-contables",
+                                "/api/cuentas-contables/**"
                         )
                         .permitAll()
                         .anyRequest().authenticated()

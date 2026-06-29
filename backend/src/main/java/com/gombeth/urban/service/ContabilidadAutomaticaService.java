@@ -11,6 +11,8 @@ import com.gombeth.urban.repository.CuentaContableRepository;
 import com.gombeth.urban.repository.MovimientoBancarioRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.gombeth.urban.entity.ContabilidadGasto;
+import com.gombeth.urban.repository.ContabilidadGastoRepository;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -25,19 +27,22 @@ public class ContabilidadAutomaticaService {
     private final ContabilidadReciboRepository reciboRepository;
     private final MovimientoBancarioRepository movimientoBancarioRepository;
     private final ContabilidadAsientoService asientoService;
+    private final ContabilidadGastoRepository gastoRepository;
 
     public ContabilidadAutomaticaService(
             ContabilidadMovimientoRepository movimientoRepository,
             CuentaContableRepository cuentaRepository,
             ContabilidadReciboRepository reciboRepository,
             MovimientoBancarioRepository movimientoBancarioRepository,
-            ContabilidadAsientoService asientoService
+            ContabilidadAsientoService asientoService,
+            ContabilidadGastoRepository gastoRepository
     ) {
         this.movimientoRepository = movimientoRepository;
         this.cuentaRepository = cuentaRepository;
         this.reciboRepository = reciboRepository;
         this.movimientoBancarioRepository = movimientoBancarioRepository;
         this.asientoService = asientoService;
+        this.gastoRepository = gastoRepository;
     }
 
     @Transactional
@@ -152,6 +157,77 @@ public class ContabilidadAutomaticaService {
         }
 
         return generados;
+    }
+
+    @Transactional
+    public void contabilizarGasto(Long gastoId) {
+
+        ContabilidadGasto gasto = gastoRepository.findById(gastoId)
+                .orElseThrow(() ->
+                        new IllegalStateException("No existe el gasto " + gastoId)
+                );
+
+        if (gasto.getNumeroAsiento() != null && !gasto.getNumeroAsiento().isBlank()) {
+            return;
+        }
+
+        if (gasto.getComunidadId() == null) {
+            throw new IllegalStateException("El gasto no tiene comunidad asociada.");
+        }
+
+        if (gasto.getCuentaGastoId() == null) {
+            throw new IllegalStateException("El gasto no tiene cuenta de gasto asociada.");
+        }
+
+        if (gasto.getImporteTotal() == null || gasto.getImporteTotal().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalStateException("El gasto no tiene importe válido.");
+        }
+
+        CuentaContable cuentaProveedor = buscarCuentaPorPrefijo(
+                gasto.getComunidadId(),
+                "410",
+                "No existe cuenta de proveedor 410 para la comunidad "
+        );
+
+        LocalDate fecha = gasto.getFechaFactura() != null
+                ? gasto.getFechaFactura()
+                : LocalDate.now();
+
+        ContabilidadAsiento asiento = asientoService.crearAsientoAutomatico(
+                gasto.getComunidadId(),
+                fecha,
+                "Factura proveedor " + gasto.getProveedor(),
+                "GASTO_CONTABILIZADO",
+                gasto.getId(),
+                null
+        );
+
+        String numeroAsientoControl = "GASTO-" + gasto.getId();
+
+        ContabilidadMovimiento debeGasto = new ContabilidadMovimiento();
+        debeGasto.setComunidadId(gasto.getComunidadId());
+        debeGasto.setFecha(fecha);
+        debeGasto.setNumeroAsiento(numeroAsientoControl);
+        debeGasto.setConcepto("Factura " + gasto.getNumeroFactura() + " - " + gasto.getProveedor());
+        debeGasto.setCuentaId(gasto.getCuentaGastoId());
+        debeGasto.setDebe(gasto.getImporteTotal());
+        debeGasto.setHaber(BigDecimal.ZERO);
+
+        ContabilidadMovimiento haberProveedor = new ContabilidadMovimiento();
+        haberProveedor.setComunidadId(gasto.getComunidadId());
+        haberProveedor.setFecha(fecha);
+        haberProveedor.setNumeroAsiento(numeroAsientoControl);
+        haberProveedor.setConcepto("Factura " + gasto.getNumeroFactura() + " - " + gasto.getProveedor());
+        haberProveedor.setCuentaId(cuentaProveedor.getId());
+        haberProveedor.setDebe(BigDecimal.ZERO);
+        haberProveedor.setHaber(gasto.getImporteTotal());
+
+        movimientoRepository.save(debeGasto);
+        movimientoRepository.save(haberProveedor);
+
+        gasto.setNumeroAsiento("GASTO-" + gasto.getId() + "-ASIENTO-" + asiento.getNumeroAsiento());
+
+        gastoRepository.save(gasto);
     }
 
     private CuentaContable buscarCuentaPorPrefijo(
