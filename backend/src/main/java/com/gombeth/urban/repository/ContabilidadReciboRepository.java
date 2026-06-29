@@ -39,4 +39,9 @@ public interface ContabilidadReciboRepository extends JpaRepository<Contabilidad
     List<ContabilidadRecibo> findByIdIn(
             List<Long> ids
     );
+
+    List<ContabilidadRecibo> findByComunidadIdAndEstadoAndMovimientoBancarioIdIsNotNull(
+            Long comunidadId,
+            String estado
+    );
 }

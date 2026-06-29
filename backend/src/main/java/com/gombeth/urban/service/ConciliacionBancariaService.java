@@ -14,13 +14,16 @@ public class ConciliacionBancariaService {
 
     private final MovimientoBancarioRepository movimientoBancarioRepository;
     private final ContabilidadReciboRepository reciboRepository;
+    private final ContabilidadAutomaticaService contabilidadAutomaticaService;
 
     public ConciliacionBancariaService(
             MovimientoBancarioRepository movimientoBancarioRepository,
-            ContabilidadReciboRepository reciboRepository
+            ContabilidadReciboRepository reciboRepository,
+            ContabilidadAutomaticaService contabilidadAutomaticaService
     ) {
         this.movimientoBancarioRepository = movimientoBancarioRepository;
         this.reciboRepository = reciboRepository;
+        this.contabilidadAutomaticaService = contabilidadAutomaticaService;
     }
 
     public int conciliarAutomaticamenteComunidad(Long comunidadId) {
@@ -87,6 +90,11 @@ public class ConciliacionBancariaService {
         recibo.setPagadoAcumulado(recibo.getImporte());
 
         reciboRepository.save(recibo);
+
+        contabilidadAutomaticaService.registrarCobroRecibo(
+                recibo,
+                movimiento
+        );
 
         movimiento.setConciliado(true);
         movimiento.setProcesado(true);
