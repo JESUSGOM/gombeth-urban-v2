@@ -1,0 +1,86 @@
+<app-comunidad-activa-bar></app-comunidad-activa-bar>
+
+<div class="contenedor">
+
+  <h2>📘 Libro Mayor</h2>
+
+  <div *ngIf="cargando" class="mensaje">
+    📘 Calculando Libro Mayor...
+  </div>
+
+  <div *ngIf="error" class="error">
+    {{ error }}
+  </div>
+
+  <!-- RESUMEN -->
+  <div class="resumen" *ngIf="data">
+
+    <div>
+      <span>Total Debe</span>
+      <strong>{{ data.totalDebe | number:'1.2-2' }}</strong>
+    </div>
+
+    <div>
+      <span>Total Haber</span>
+      <strong>{{ data.totalHaber | number:'1.2-2' }}</strong>
+
+    </div>
+
+    <div>
+      <span>Saldo Final</span>
+      <strong>{{ data.saldoFinal | number:'1.2-2' }}</strong>
+    </div>
+
+  </div>
+
+  <!-- TABLA -->
+  <table
+    *ngIf="data && data.lineas.length > 0"
+    class="tabla">
+
+    <thead>
+    <tr>
+      <th>Fecha</th>
+      <th>Concepto</th>
+      <th>Asiento</th>
+      <th class="numero">Debe</th>
+      <th class="numero">Haber</th>
+      <th class="numero">Saldo</th>
+    </tr>
+    </thead>
+
+    <tbody>
+
+    <tr *ngFor="let l of data.lineas">
+
+      <td>{{ l.fecha }}</td>
+      <td>{{ l.concepto }}</td>
+      <td>{{ l.numeroAsiento }}</td>
+
+      <td class="numero debe">
+        {{ l.debe | number:'1.2-2' }}
+      </td>
+
+      <td class="numero haber">
+        {{ l.haber | number:'1.2-2' }}
+      </td>
+
+      <td class="numero saldo">
+        {{ l.saldo | number:'1.2-2' }}
+      </td>
+
+    </tr>
+
+    </tbody>
+
+  </table>
+
+  <div
+    *ngIf="data && (!data.lineas || data.lineas.length === 0)"
+    class="sin-datos">
+
+    No existen movimientos para la comunidad seleccionada.
+
+  </div>
+
+</div>

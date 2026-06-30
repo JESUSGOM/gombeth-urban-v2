@@ -5,25 +5,12 @@
   <div class="barra-superior">
 
     <div>
-
       <label>Ejercicio</label>
 
       <input
         type="number"
         [(ngModel)]="ejercicio"
         (change)="cargarDiario()">
-
-    </div>
-
-    <div>
-
-      <label>Buscar</label>
-
-      <input
-        type="text"
-        [(ngModel)]="filtroTexto"
-        placeholder="Concepto u origen">
-
     </div>
 
   </div>
@@ -32,7 +19,7 @@
     *ngIf="cargando"
     class="mensaje">
 
-    Cargando diario...
+    Cargando diario contable...
 
   </div>
 
@@ -45,220 +32,36 @@
   </div>
 
   <table
-    *ngIf="!cargando"
+    *ngIf="!cargando && diarios.length > 0"
     class="tabla">
 
     <thead>
-
     <tr>
-
       <th>Nº</th>
-
       <th>Fecha</th>
-
       <th>Concepto</th>
-
       <th>Origen</th>
-
       <th>Estado</th>
-
-      <th></th>
-
     </tr>
-
     </thead>
 
     <tbody>
-
-    <tr
-      *ngFor="let d of diariosFiltrados">
-
-      <td>
-
-        {{ d.numeroAsiento }}
-
-      </td>
-
-      <td>
-
-        {{ d.fecha }}
-
-      </td>
-
-      <td>
-
-        {{ d.concepto }}
-
-      </td>
-
-      <td>
-
-        {{ d.origen }}
-
-      </td>
-
-      <td>
-
-        {{ d.estado }}
-
-      </td>
-
-      <td>
-
-        <button
-          (click)="verAsiento(d.id)">
-
-          Ver
-
-        </button>
-
-      </td>
-
+    <tr *ngFor="let d of diarios">
+      <td>{{ d.numeroAsiento }}</td>
+      <td>{{ d.fecha }}</td>
+      <td>{{ d.concepto }}</td>
+      <td>{{ d.origen }}</td>
+      <td>{{ d.estado }}</td>
     </tr>
-
     </tbody>
 
   </table>
 
-  <div class="paginacion">
+  <div
+    *ngIf="!cargando && diarios.length === 0"
+    class="sin-datos">
 
-    <button
-      (click)="cambiarPagina(paginaActual-1)">
-
-      ◀
-
-    </button>
-
-    Página {{ paginaActual }}
-    de {{ totalPaginas }}
-
-    <button
-      (click)="cambiarPagina(paginaActual+1)">
-
-      ▶
-
-    </button>
-
-  </div>
-
-</div>
-
-<div
-  class="modal"
-  *ngIf="asientoSeleccionado">
-
-  <div class="ventana">
-
-    <h3>
-
-      Asiento Nº
-      {{ asientoSeleccionado.asiento.numeroAsiento }}
-
-    </h3>
-
-    <p>
-
-      {{ asientoSeleccionado.asiento.fecha }}
-
-    </p>
-
-    <p>
-
-      {{ asientoSeleccionado.asiento.concepto }}
-
-    </p>
-
-    <table class="tabla">
-
-      <thead>
-
-      <tr>
-
-        <th>Cuenta</th>
-
-        <th>Concepto</th>
-
-        <th>Debe</th>
-
-        <th>Haber</th>
-
-      </tr>
-
-      </thead>
-
-      <tbody>
-
-      <tr
-        *ngFor="
-          let m of
-          asientoSeleccionado.movimientos">
-
-        <td>
-          <strong>{{ m.codigoCuenta }}</strong><br>
-          <span>{{ m.nombreCuenta }}</span>
-        </td>
-
-        <td>
-          {{ m.concepto }}
-        </td>
-
-        <td>
-          {{ m.debe | number:'1.2-2' }}
-        </td>
-
-        <td>
-
-          {{ m.haber | number:'1.2-2' }}
-
-        </td>
-
-      </tr>
-
-      </tbody>
-
-    </table>
-
-    <hr>
-
-    <p>
-
-      <strong>
-
-        Debe:
-
-      </strong>
-
-      {{ asientoSeleccionado.totalDebe
-      | number:'1.2-2' }}
-
-    </p>
-
-    <p>
-
-      <strong>
-
-        Haber:
-
-      </strong>
-
-      {{ asientoSeleccionado.totalHaber
-      | number:'1.2-2' }}
-
-    </p>
-
-    <p
-      *ngIf="asientoSeleccionado.cuadrado">
-
-      ✅ Asiento cuadrado
-
-    </p>
-
-    <button
-      (click)="cerrarDetalle()">
-
-      Cerrar
-
-    </button>
+    No hay asientos para la comunidad seleccionada.
 
   </div>
 

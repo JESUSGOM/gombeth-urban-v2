@@ -1,0 +1,17 @@
+<div class="comunidad-activa">
+
+  <span class="icono">🏢</span>
+
+  <span class="label">
+    Comunidad:
+  </span>
+
+  <select [(ngModel)]="comunidadId" (ngModelChange)="seleccionarComunidad()">
+    <option [ngValue]="null">-- Seleccione --</option>
+
+    <option *ngFor="let c of comunidades" [ngValue]="c.id">
+      {{ c.nombre }}
+    </option>
+  </select>
+
+</div>

@@ -12,17 +12,26 @@ import { PresupuestosList } from './features/presupuestos/pages/presupuestos-lis
 import { RecibosList } from './features/recibos/pages/recibos-list/recibos-list';
 import { RemesasList } from './features/remesas/pages/remesas-list/remesas-list';
 import { MovimientosList } from './features/tesoreria/pages/movimientos-list/movimientos-list';
+
 import { ConceptosList } from './features/conceptos/pages/conceptos-list/conceptos-list';
 import { ConceptosEdit } from './features/conceptos/pages/conceptos-edit/conceptos-edit';
-import { DiarioList } from './features/tesoreria/pages/diario-list/diario-list';
+
+import { DiarioListComponent } from './features/tesoreria/pages/diario-list/diario-list';
 
 import { authGuard } from './core/guards/auth.guard';
 
 export const routes: Routes = [
 
-  { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
+  {
+    path: '',
+    redirectTo: 'dashboard',
+    pathMatch: 'full'
+  },
 
-  { path: 'login', component: Login },
+  {
+    path: 'login',
+    component: Login
+  },
 
   {
     path: '',
@@ -30,38 +39,102 @@ export const routes: Routes = [
     canActivate: [authGuard],
     children: [
 
-      { path: 'dashboard', component: Dashboard },
+      {
+        path: 'dashboard',
+        component: Dashboard
+      },
 
-      { path: 'comunidades', component: ComunidadesList },
-      { path: 'comunidades/editar/:id', component: ComunidadEdit },
+      {
+        path: 'comunidades',
+        component: ComunidadesList
+      },
+      {
+        path: 'comunidades/editar/:id',
+        component: ComunidadEdit
+      },
 
-      { path: 'vecinos', component: VecinosList },
-      { path: 'vecinos/comunidad/:id', component: VecinosList },
-      { path: 'vecinos/editar/:id', component: VecinoEdit },
-      { path: 'vecinos/nuevo/comunidad/:comunidadId', component: VecinoEdit },
+      {
+        path: 'vecinos',
+        component: VecinosList
+      },
+      {
+        path: 'vecinos/comunidad/:id',
+        component: VecinosList
+      },
+      {
+        path: 'vecinos/editar/:id',
+        component: VecinoEdit
+      },
+      {
+        path: 'vecinos/nuevo/comunidad/:comunidadId',
+        component: VecinoEdit
+      },
 
-      { path: 'presupuestos', component: PresupuestosList },
+      {
+        path: 'presupuestos',
+        component: PresupuestosList
+      },
 
-      { path: 'recibos/comunidad/:id', component: RecibosList },
+      {
+        path: 'recibos/comunidad/:id',
+        component: RecibosList
+      },
 
-      { path: 'remesas/comunidad/:id', component: RemesasList },
+      {
+        path: 'remesas/comunidad/:id',
+        component: RemesasList
+      },
 
-      { path: 'tesoreria/movimientos', component: MovimientosList },
-      { path: 'tesoreria/diario', component: DiarioList },
-      // 🔥 CONCEPTOS (CORRECTO)
-      { path: 'conceptos/comunidad/:id', component: ConceptosList },
-      { path: 'conceptos', component: ConceptosList },
+      {
+        path: 'tesoreria/movimientos',
+        component: MovimientosList
+      },
+
+      {
+        path: 'tesoreria/diario',
+        component: DiarioListComponent
+      },
+
+      {
+        path: 'conceptos',
+        component: ConceptosList
+      },
+
+      {
+        path: 'conceptos/comunidad/:id',
+        component: ConceptosList
+      },
+
       {
         path: 'conceptos/comunidad/:id/nuevo',
         component: ConceptosEdit
       },
+
       {
         path: 'conceptos/comunidad/:id/editar/:conceptoId',
         component: ConceptosEdit
+      },
+
+      {
+        path: 'tesoreria/mayor',
+        loadComponent: () =>
+          import('./features/tesoreria/pages/mayor/libro-mayor')
+            .then(m => m.LibroMayorComponent)
+      },
+
+      {
+        path: 'tesoreria/balance',
+        loadComponent: () =>
+          import('./features/tesoreria/pages/balance/balance')
+            .then(m => m.BalanceComponent)
       }
 
     ]
   },
 
-  { path: '**', redirectTo: 'dashboard' }
+  {
+    path: '**',
+    redirectTo: 'dashboard'
+  }
+
 ];
