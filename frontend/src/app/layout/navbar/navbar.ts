@@ -1,8 +1,15 @@
 import { Component, OnInit } from '@angular/core';
+import { CommonModule } from '@angular/common';
+
+import { ComunidadActivaBar } from '../../shared/comunidad-activa-bar/comunidad-activa-bar';
 
 @Component({
   selector: 'app-navbar',
-  imports: [],
+  standalone: true,
+  imports: [
+    CommonModule,
+    ComunidadActivaBar
+  ],
   templateUrl: './navbar.html',
   styleUrl: './navbar.scss',
 })
@@ -10,12 +17,9 @@ export class Navbar implements OnInit {
 
   username = 'Usuario';
   administradorNombre = 'Administrador';
-  iniciales = 'US';
 
   ngOnInit(): void {
-    const usuario = JSON.parse(
-      localStorage.getItem('usuario') || 'null'
-    );
+    const usuario = JSON.parse(localStorage.getItem('usuario') || 'null');
 
     if (usuario) {
       this.username = usuario.username || 'Usuario';
@@ -23,10 +27,6 @@ export class Navbar implements OnInit {
       this.administradorNombre =
         usuario.administradorNombre ||
         `Administrador ID ${usuario.administradorId}`;
-
-      this.iniciales = this.username
-        .substring(0, 2)
-        .toUpperCase();
     }
   }
 }

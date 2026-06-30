@@ -6,7 +6,7 @@
     Comunidad:
   </span>
 
-  <select [(ngModel)]="comunidadId" (ngModelChange)="seleccionarComunidad()">
+  <select [(ngModel)]="comunidadId" (ngModelChange)="seleccionar()">
     <option [ngValue]="null">-- Seleccione --</option>
 
     <option *ngFor="let c of comunidades" [ngValue]="c.id">
