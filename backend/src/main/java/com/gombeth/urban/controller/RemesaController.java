@@ -20,6 +20,7 @@ import com.gombeth.urban.service.*;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import com.gombeth.urban.service.storage.*;
 import com.gombeth.urban.dto.remesa.RemesaDetalleResponse;
@@ -52,6 +53,7 @@ public class RemesaController {
     private final DocumentStorageService documentStorageService;
     private final ProcesoRemesaService procesoRemesaService;
     private final RemesaLineaConceptoRepository remesaLineaConceptoRepository;
+    private final AccesoComunidadService accesoComunidadService;
 
     public RemesaController(
             ContabilidadReciboRepository reciboRepository,
@@ -65,7 +67,8 @@ public class RemesaController {
             SepaRemesaValidationService sepaRemesaValidationService,
             DocumentStorageService documentStorageService,
             ProcesoRemesaService procesoRemesaService,
-            RemesaLineaConceptoRepository remesaLineaConceptoRepository
+            RemesaLineaConceptoRepository remesaLineaConceptoRepository,
+            AccesoComunidadService accesoComunidadService
     ) {
         this.reciboRepository = reciboRepository;
         this.ficheroGeneradoRepository = ficheroGeneradoRepository;
@@ -79,6 +82,7 @@ public class RemesaController {
         this.documentStorageService = documentStorageService;
         this.procesoRemesaService = procesoRemesaService;
         this.remesaLineaConceptoRepository = remesaLineaConceptoRepository;
+        this.accesoComunidadService = accesoComunidadService;
     }
 
     @PostMapping("/generar")
@@ -86,8 +90,11 @@ public class RemesaController {
             @RequestParam Long comunidadId,
             @RequestParam String fechaCobro,
             @RequestParam String fechaDesde,
-            @RequestParam String fechaHasta
+            @RequestParam String fechaHasta,
+            Authentication authentication
     ) {
+        accesoComunidadService.validarAcceso(authentication, comunidadId);
+
         LocalDate fechaCobroDate = LocalDate.parse(fechaCobro);
         LocalDate fechaDesdeDate = LocalDate.parse(fechaDesde);
         LocalDate fechaHastaDate = LocalDate.parse(fechaHasta);
@@ -186,8 +193,14 @@ public class RemesaController {
 
     @PostMapping("/generar-seleccion")
     public Map<String, Object> generarRemesaSeleccion(
-            @RequestBody GenerarRemesaSeleccionRequest request
+            @RequestBody GenerarRemesaSeleccionRequest request,
+            Authentication authentication
     ) {
+        accesoComunidadService.validarAcceso(
+                authentication,
+                request.comunidadId()
+        );
+
         List<ContabilidadRecibo> recibosSeleccionados =
                 reciboRepository.findByIdIn(
                         request.reciboIds()
@@ -286,11 +299,13 @@ public class RemesaController {
 
     @GetMapping("/{id}/xml")
     public ResponseEntity<byte[]> generarXml(
-            @PathVariable Long id
+            @PathVariable Long id,
+            Authentication authentication
     ) {
-        FicheroGenerado remesa = ficheroGeneradoRepository
-                .findById(id)
-                .orElseThrow(() -> new RuntimeException("Remesa no encontrada"));
+        FicheroGenerado remesa = obtenerRemesaAutorizada(
+                id,
+                authentication
+        );
 
         Comunidad comunidad = comunidadRepository
                 .findById(remesa.getComunidadId())
@@ -370,8 +385,14 @@ public class RemesaController {
 
     @GetMapping
     public List<RemesaResumenResponse> listarRemesas(
-            @RequestParam Long comunidadId
+            @RequestParam Long comunidadId,
+            Authentication authentication
     ) {
+        accesoComunidadService.validarAcceso(
+                authentication,
+                comunidadId
+        );
+
         return ficheroGeneradoRepository
                 .findByComunidadIdOrderByIdDesc(comunidadId)
                 .stream()
@@ -396,11 +417,13 @@ public class RemesaController {
 
     @GetMapping("/{id}/validar")
     public ValidacionRemesaResponse validarRemesa(
-            @PathVariable Long id
+            @PathVariable Long id,
+            Authentication authentication
     ) {
-        FicheroGenerado remesa = ficheroGeneradoRepository
-                .findById(id)
-                .orElseThrow(() -> new RuntimeException("Remesa no encontrada"));
+        FicheroGenerado remesa = obtenerRemesaAutorizada(
+                id,
+                authentication
+        );
 
         Comunidad comunidad = comunidadRepository
                 .findById(remesa.getComunidadId())
@@ -434,11 +457,15 @@ public class RemesaController {
     }
 
     @GetMapping("/{id}/c19")
-    public ResponseEntity<byte[]> descargarC19(@PathVariable Long id) {
+    public ResponseEntity<byte[]> descargarC19(
+            @PathVariable Long id,
+            Authentication authentication
+    ) {
 
-        FicheroGenerado remesa =
-                ficheroGeneradoRepository.findById(id)
-                        .orElseThrow();
+        FicheroGenerado remesa = obtenerRemesaAutorizada(
+                id,
+                authentication
+        );
 
         Comunidad comunidad =
                 comunidadRepository.findById(remesa.getComunidadId())
@@ -527,8 +554,13 @@ public class RemesaController {
 
     @PostMapping("/proceso")
     public ProcesoRemesaResponse procesoCompleto(
-            @RequestBody ProcesoRemesaRequest request
+            @RequestBody ProcesoRemesaRequest request,
+            Authentication authentication
     ) {
+        accesoComunidadService.validarAcceso(
+                authentication,
+                request.getComunidadId()
+        );
 
         return procesoRemesaService.ejecutar(request);
 
@@ -536,11 +568,13 @@ public class RemesaController {
 
     @GetMapping("/{id}/detalle")
     public RemesaDetalleResponse detalleRemesa(
-            @PathVariable Long id
+            @PathVariable Long id,
+            Authentication authentication
     ) {
-        FicheroGenerado remesa = ficheroGeneradoRepository
-                .findById(id)
-                .orElseThrow(() -> new RuntimeException("Remesa no encontrada"));
+        FicheroGenerado remesa = obtenerRemesaAutorizada(
+                id,
+                authentication
+        );
 
         Comunidad comunidad = comunidadRepository
                 .findById(remesa.getComunidadId())
@@ -601,4 +635,25 @@ public class RemesaController {
                 lineasDetalle
         );
     }
+
+    private FicheroGenerado obtenerRemesaAutorizada(
+            Long remesaId,
+            Authentication authentication
+    ) {
+        FicheroGenerado remesa = ficheroGeneradoRepository
+                .findById(remesaId)
+                .orElseThrow(() ->
+                        new RuntimeException(
+                                "Remesa no encontrada: " + remesaId
+                        )
+                );
+
+        accesoComunidadService.validarAcceso(
+                authentication,
+                remesa.getComunidadId()
+        );
+
+        return remesa;
+    }
+
 }
