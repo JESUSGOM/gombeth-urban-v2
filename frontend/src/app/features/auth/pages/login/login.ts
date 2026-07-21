@@ -1,55 +1,123 @@
-import { Component, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-import { HttpClient } from '@angular/common/http';
-import { Router } from '@angular/router';
+import {
+  CommonModule
+} from '@angular/common';
+
+import {
+  Component,
+  inject
+} from '@angular/core';
+
+import {
+  FormsModule
+} from '@angular/forms';
+
+import {
+  ActivatedRoute,
+  Router
+} from '@angular/router';
+
+import {
+  finalize
+} from 'rxjs';
+
+import {
+  AuthService
+} from '../../../../core/services/auth.service';
 
 @Component({
   selector: 'app-login',
-  imports: [CommonModule, FormsModule],
+  standalone: true,
+  imports: [
+    CommonModule,
+    FormsModule
+  ],
   templateUrl: './login.html',
-  styleUrl: './login.scss',
+  styleUrl: './login.scss'
 })
 export class Login {
 
-  private http = inject(HttpClient);
-  private router = inject(Router);
+  private readonly authService =
+    inject(AuthService);
+
+  private readonly router =
+    inject(Router);
+
+  private readonly route =
+    inject(ActivatedRoute);
 
   username = '';
+
   password = '';
+
   error = '';
+
   cargando = false;
 
   login(): void {
+
     this.error = '';
+
+    const username =
+      this.username.trim();
+
+    if (
+      !username ||
+      !this.password
+    ) {
+      this.error =
+        'Debe indicar usuario y contraseña.';
+
+      return;
+    }
+
     this.cargando = true;
 
-    this.http.post<any>('http://localhost:8080/api/auth/login', {
-      username: this.username,
-      password: this.password
-    }).subscribe({
-      next: (resp) => {
-        this.cargando = false;
+    this.authService
+      .login(
+        username,
+        this.password
+      )
+      .pipe(
 
-        if (!resp.ok) {
-          this.error = resp.mensaje || 'Login incorrecto';
-          return;
+        finalize(() => {
+          this.cargando = false;
+        })
+      )
+      .subscribe({
+
+        next: response => {
+
+          if (!response.ok) {
+
+            this.error =
+              response.mensaje ||
+              'Login incorrecto.';
+
+            return;
+          }
+
+          const returnUrl =
+            this.route.snapshot
+              .queryParamMap
+              .get('returnUrl') ||
+            '/dashboard';
+
+          void this.router.navigateByUrl(
+            returnUrl
+          );
+        },
+
+        error: error => {
+
+          console.error(
+            'Error de login:',
+            error
+          );
+
+          this.error =
+            error?.error?.mensaje ||
+            'Usuario o contraseña incorrectos.';
         }
-
-        localStorage.setItem('usuario', JSON.stringify({
-          usuarioId: resp.usuarioId,
-          username: resp.username,
-          administradorId: resp.administradorId,
-          administradorNombre: resp.administradorNombre
-        }));
-
-        this.router.navigate(['/dashboard']);
-      },
-      error: (err) => {
-        console.error('Error login:', err);
-        this.cargando = false;
-        this.error = 'No se pudo conectar con el servidor.';
-      }
-    });
+      });
   }
 }

@@ -5,28 +5,42 @@ import {
 } from '@angular/core';
 
 import { provideRouter } from '@angular/router';
-import { provideHttpClient } from '@angular/common/http';
+
+import {
+  provideHttpClient,
+  withInterceptors,
+  withXsrfConfiguration
+} from '@angular/common/http';
 
 import { routes } from './app.routes';
 
+import {
+  sessionInterceptor
+} from './core/interceptors/session.interceptor';
+
 export const appConfig: ApplicationConfig = {
+
   providers: [
+
     provideBrowserGlobalErrorListeners(),
 
-    /*
-     * Activa la detección automática tradicional de Angular.
-     *
-     * Las respuestas HTTP, promesas, temporizadores y eventos
-     * actualizarán automáticamente las pantallas sin necesidad
-     * de cambiar el combo, hacer clic o forzar manualmente
-     * ChangeDetectorRef en cada componente.
-     */
     provideZoneChangeDetection({
       eventCoalescing: false,
       runCoalescing: false
     }),
 
     provideRouter(routes),
-    provideHttpClient()
+
+    provideHttpClient(
+
+      withXsrfConfiguration({
+        cookieName: 'XSRF-TOKEN',
+        headerName: 'X-XSRF-TOKEN'
+      }),
+
+      withInterceptors([
+        sessionInterceptor
+      ])
+    )
   ]
 };

@@ -1,17 +1,56 @@
-import { inject } from '@angular/core';
-import { CanActivateFn, Router } from '@angular/router';
+import {
+  inject
+} from '@angular/core';
 
-import { AuthService } from '../services/auth.service';
+import {
+  CanActivateFn,
+  Router
+} from '@angular/router';
 
-export const authGuard: CanActivateFn = () => {
+import {
+  map
+} from 'rxjs';
 
-  const authService = inject(AuthService);
-  const router = inject(Router);
+import {
+  AuthService
+} from '../services/auth.service';
 
-  if (authService.estaLogueado()) {
-    return true;
-  }
+export const authGuard: CanActivateFn = (
+  _route,
+  state
+) => {
 
-  router.navigate(['/login']);
-  return false;
+  const authService =
+    inject(AuthService);
+
+  const router =
+    inject(Router);
+
+  /*
+   * La autorización ya no depende de que exista
+   * un objeto en localStorage.
+   *
+   * Se pregunta al servidor si JSESSIONID
+   * corresponde a una sesión válida.
+   */
+  return authService
+    .comprobarSesion()
+    .pipe(
+
+      map(sesionValida => {
+
+        if (sesionValida) {
+          return true;
+        }
+
+        return router.createUrlTree(
+          ['/login'],
+          {
+            queryParams: {
+              returnUrl: state.url
+            }
+          }
+        );
+      })
+    );
 };

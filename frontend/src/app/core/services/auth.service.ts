@@ -1,11 +1,51 @@
-import { Injectable, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { Router } from '@angular/router';
+import {
+  Injectable,
+  inject
+} from '@angular/core';
+
+import {
+  HttpClient
+} from '@angular/common/http';
+
+import {
+  Router
+} from '@angular/router';
+
+import {
+  BehaviorSubject,
+  Observable,
+  catchError,
+  finalize,
+  map,
+  of,
+  switchMap,
+  tap
+} from 'rxjs';
 
 export interface UsuarioLogin {
+
   usuarioId: number;
+
   username: string;
-  administradorId: number;
+
+  administradorId: number | null;
+
+  administradorNombre: string | null;
+}
+
+export interface LoginResponse {
+
+  ok: boolean;
+
+  usuarioId: number | null;
+
+  username: string | null;
+
+  administradorId: number | null;
+
+  administradorNombre: string | null;
+
+  mensaje: string;
 }
 
 @Injectable({
@@ -13,42 +53,206 @@ export interface UsuarioLogin {
 })
 export class AuthService {
 
-  private http = inject(HttpClient);
-  private router = inject(Router);
+  private readonly http = inject(HttpClient);
 
-  private apiUrl = 'http://localhost:8080/api/auth/login';
+  private readonly router = inject(Router);
 
-  login(username: string, password: string) {
-    return this.http.post<any>(this.apiUrl, {
-      username,
-      password
-    });
+  private readonly apiUrl =
+    'http://localhost:8080/api/auth';
+
+  /*
+   * localStorage se mantiene temporalmente porque otras
+   * pantallas todavía leen el usuario desde allí.
+   *
+   * No se utiliza como prueba real de autenticación.
+   */
+  private readonly usuarioSubject =
+    new BehaviorSubject<UsuarioLogin | null>(
+      this.leerUsuarioLocal()
+    );
+
+  readonly usuario$ =
+    this.usuarioSubject.asObservable();
+
+  login(
+    username: string,
+    password: string
+  ): Observable<LoginResponse> {
+
+    /*
+     * Primero se solicita la cookie XSRF-TOKEN.
+     * Después se realiza el POST de autenticación.
+     */
+    return this.inicializarCsrf().pipe(
+
+      switchMap(() =>
+        this.http.post<LoginResponse>(
+          `${this.apiUrl}/login`,
+          {
+            username,
+            password
+          }
+        )
+      ),
+
+      tap(response => {
+
+        if (response.ok) {
+          this.guardarUsuario(response);
+        }
+      })
+    );
   }
 
-  guardarUsuario(resp: any): void {
-    localStorage.setItem('usuario', JSON.stringify({
-      usuarioId: resp.usuarioId,
-      username: resp.username,
-      administradorId: resp.administradorId
-    }));
+  comprobarSesion(): Observable<boolean> {
+
+    return this.http
+      .get<LoginResponse>(
+        `${this.apiUrl}/me`
+      )
+      .pipe(
+
+        tap(response => {
+
+          if (response.ok) {
+            this.guardarUsuario(response);
+          }
+        }),
+
+        map(response => response.ok),
+
+        catchError(() => {
+
+          this.limpiarContextoLocal();
+
+          return of(false);
+        })
+      );
+  }
+
+  logout(): Observable<void> {
+
+    return this.http
+      .post<void>(
+        `${this.apiUrl}/logout`,
+        {}
+      )
+      .pipe(
+
+        /*
+         * Aunque el servidor no responda, se elimina
+         * el contexto local para no dejar la interfaz
+         * aparentemente conectada.
+         */
+        catchError(() =>
+          of(void 0)
+        ),
+
+        finalize(() => {
+
+          this.limpiarContextoLocal();
+
+          void this.router.navigate([
+            '/login'
+          ]);
+        })
+      );
   }
 
   getUsuario(): UsuarioLogin | null {
-    const raw = localStorage.getItem('usuario');
 
-    if (!raw) {
+    return this.usuarioSubject.value;
+  }
+
+  estaLogueadoLocalmente(): boolean {
+
+    return this.usuarioSubject.value !== null;
+  }
+
+  private inicializarCsrf():
+    Observable<unknown> {
+
+    return this.http.get(
+      `${this.apiUrl}/csrf`
+    );
+  }
+
+  private guardarUsuario(
+    response: LoginResponse
+  ): void {
+
+    if (
+      response.usuarioId === null ||
+      response.username === null
+    ) {
+      return;
+    }
+
+    const usuario: UsuarioLogin = {
+
+      usuarioId: response.usuarioId,
+
+      username: response.username,
+
+      administradorId:
+      response.administradorId,
+
+      administradorNombre:
+      response.administradorNombre
+    };
+
+    localStorage.setItem(
+      'usuario',
+      JSON.stringify(usuario)
+    );
+
+    this.usuarioSubject.next(usuario);
+  }
+
+  private leerUsuarioLocal():
+    UsuarioLogin | null {
+
+    const contenido =
+      localStorage.getItem('usuario');
+
+    if (!contenido) {
       return null;
     }
 
-    return JSON.parse(raw);
+    try {
+
+      return JSON.parse(
+        contenido
+      ) as UsuarioLogin;
+
+    } catch {
+
+      localStorage.removeItem('usuario');
+
+      return null;
+    }
   }
 
-  estaLogueado(): boolean {
-    return this.getUsuario() !== null;
-  }
+  private limpiarContextoLocal(): void {
 
-  logout(): void {
     localStorage.removeItem('usuario');
-    this.router.navigate(['/login']);
+
+    localStorage.removeItem(
+      'comunidadActiva'
+    );
+
+    Object.keys(localStorage)
+      .filter(clave =>
+        clave.startsWith(
+          'comunidades_usuario_'
+        )
+      )
+      .forEach(clave =>
+        localStorage.removeItem(clave)
+      );
+
+    sessionStorage.clear();
+
+    this.usuarioSubject.next(null);
   }
 }
