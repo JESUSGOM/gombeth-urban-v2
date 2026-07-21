@@ -4,42 +4,175 @@ import com.gombeth.urban.dto.ReciboResponse;
 import com.gombeth.urban.entity.ContabilidadRecibo;
 import com.gombeth.urban.entity.CuotaPresupuesto;
 import com.gombeth.urban.entity.Vecino;
-import com.gombeth.urban.repository.*;
+import com.gombeth.urban.repository.ContabilidadReciboRepository;
+import com.gombeth.urban.repository.CuotaPresupuestoRepository;
+import com.gombeth.urban.repository.VecinoRepository;
+import com.gombeth.urban.service.AccesoComunidadService;
 import com.gombeth.urban.service.ContabilidadAutomaticaService;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.*;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/recibos")
 public class ReciboController {
 
-    private final CuotaPresupuestoRepository cuotaPresupuestoRepository;
-    private final ContabilidadReciboRepository contabilidadReciboRepository;
+    private final CuotaPresupuestoRepository
+            cuotaPresupuestoRepository;
+
+    private final ContabilidadReciboRepository
+            contabilidadReciboRepository;
+
     private final VecinoRepository vecinoRepository;
-    private final ContabilidadAutomaticaService contabilidadAutomaticaService;
+
+    private final ContabilidadAutomaticaService
+            contabilidadAutomaticaService;
+
+    private final AccesoComunidadService
+            accesoComunidadService;
 
     public ReciboController(
             CuotaPresupuestoRepository cuotaPresupuestoRepository,
             ContabilidadReciboRepository contabilidadReciboRepository,
             VecinoRepository vecinoRepository,
-            ContabilidadAutomaticaService contabilidadAutomaticaService
+            ContabilidadAutomaticaService contabilidadAutomaticaService,
+            AccesoComunidadService accesoComunidadService
     ) {
-        this.cuotaPresupuestoRepository = cuotaPresupuestoRepository;
-        this.contabilidadReciboRepository = contabilidadReciboRepository;
-        this.vecinoRepository = vecinoRepository;
-        this.contabilidadAutomaticaService = contabilidadAutomaticaService;
+        this.cuotaPresupuestoRepository =
+                cuotaPresupuestoRepository;
+
+        this.contabilidadReciboRepository =
+                contabilidadReciboRepository;
+
+        this.vecinoRepository =
+                vecinoRepository;
+
+        this.contabilidadAutomaticaService =
+                contabilidadAutomaticaService;
+
+        this.accesoComunidadService =
+                accesoComunidadService;
     }
 
+    /**
+     * Genera recibos únicamente para una comunidad
+     * accesible por el usuario autenticado.
+     */
     @PostMapping("/generar-desde-cuotas")
     public Map<String, Object> generarDesdeCuotas(
             @RequestParam Long comunidadId,
-            @RequestParam Integer anio
+            @RequestParam Integer anio,
+            Authentication authentication
     ) {
+        accesoComunidadService.validarAcceso(
+                authentication,
+                comunidadId
+        );
 
+        return generarDesdeCuotasInterno(
+                comunidadId,
+                anio
+        );
+    }
+
+    /**
+     * Lista exclusivamente recibos pertenecientes a una
+     * comunidad autorizada.
+     */
+    @GetMapping
+    public List<ReciboResponse> listarRecibos(
+            @RequestParam Long comunidadId,
+            Authentication authentication
+    ) {
+        accesoComunidadService.validarAcceso(
+                authentication,
+                comunidadId
+        );
+
+        List<ContabilidadRecibo> recibos =
+                contabilidadReciboRepository
+                        .findByComunidadIdOrderByFechaEmisionDescIdDesc(
+                                comunidadId
+                        );
+
+        Set<Long> vecinoIds =
+                recibos.stream()
+                        .map(
+                                ContabilidadRecibo::getVecinoId
+                        )
+                        .filter(Objects::nonNull)
+                        .collect(Collectors.toSet());
+
+        Map<Long, Vecino> vecinosPorId =
+                vecinoRepository
+                        .findAllById(vecinoIds)
+                        .stream()
+                        .collect(
+                                Collectors.toMap(
+                                        Vecino::getId,
+                                        vecino -> vecino
+                                )
+                        );
+
+        return recibos.stream()
+                .map(recibo ->
+                        toResponse(
+                                recibo,
+                                vecinosPorId.get(
+                                        recibo.getVecinoId()
+                                )
+                        )
+                )
+                .toList();
+    }
+
+    /**
+     * Borra los recibos pendientes del periodo y los genera
+     * nuevamente, siempre dentro de una comunidad autorizada.
+     */
+    @PostMapping("/limpiar-y-generar")
+    public Map<String, Object> limpiarYGenerar(
+            @RequestParam Long comunidadId,
+            @RequestParam Integer mes,
+            @RequestParam Integer anio,
+            Authentication authentication
+    ) {
+        accesoComunidadService.validarAcceso(
+                authentication,
+                comunidadId
+        );
+
+        contabilidadReciboRepository.deletePendientesMes(
+                comunidadId,
+                mes,
+                anio
+        );
+
+        return generarDesdeCuotasInterno(
+                comunidadId,
+                anio
+        );
+    }
+
+    /**
+     * Método interno. Solo debe ejecutarse después de validar
+     * el acceso a la comunidad.
+     */
+    private Map<String, Object> generarDesdeCuotasInterno(
+            Long comunidadId,
+            Integer anio
+    ) {
         List<CuotaPresupuesto> cuotas =
                 cuotaPresupuestoRepository
                         .findByComunidadIdAndAnioAndEstadoOrderByIdAsc(
@@ -53,19 +186,34 @@ public class ReciboController {
 
         for (CuotaPresupuesto cuota : cuotas) {
 
-            if (contabilidadReciboRepository
-                    .existsByCuotaPresupuestoId(cuota.getId())) {
-
+            if (
+                    contabilidadReciboRepository
+                            .existsByCuotaPresupuestoId(
+                                    cuota.getId()
+                            )
+            ) {
                 omitidos++;
                 continue;
             }
 
-            ContabilidadRecibo recibo = new ContabilidadRecibo();
+            ContabilidadRecibo recibo =
+                    new ContabilidadRecibo();
 
-            recibo.setComunidadId(cuota.getComunidadId());
-            recibo.setVecinoId(cuota.getVecinoId());
-            recibo.setCuotaPresupuestoId(cuota.getId());
-            recibo.setFechaEmision(LocalDate.now());
+            recibo.setComunidadId(
+                    cuota.getComunidadId()
+            );
+
+            recibo.setVecinoId(
+                    cuota.getVecinoId()
+            );
+
+            recibo.setCuotaPresupuestoId(
+                    cuota.getId()
+            );
+
+            recibo.setFechaEmision(
+                    LocalDate.now()
+            );
 
             recibo.setImporte(
                     cuota.getImporteMensual() != null
@@ -73,8 +221,13 @@ public class ReciboController {
                             : BigDecimal.ZERO
             );
 
-            recibo.setPagadoAcumulado(BigDecimal.ZERO);
-            recibo.setEstado("PENDIENTE");
+            recibo.setPagadoAcumulado(
+                    BigDecimal.ZERO
+            );
+
+            recibo.setEstado(
+                    "PENDIENTE"
+            );
 
             recibo.setTipoRemesa(
                     cuota.getRevisionId() == null
@@ -82,26 +235,42 @@ public class ReciboController {
                             : "REVISION"
             );
 
-            recibo.setConcepto(construirConcepto(cuota));
-
-            recibo.setEtiquetaExtra(
-                    "V" + cuota.getVersion()
-                            + " " + cuota.getMesInicio()
-                            + "-" + cuota.getMesFin()
+            recibo.setConcepto(
+                    construirConcepto(cuota)
             );
 
-            contabilidadReciboRepository.save(recibo);
-            contabilidadAutomaticaService.registrarDevengoRecibo(recibo);
+            recibo.setEtiquetaExtra(
+                    "V"
+                            + cuota.getVersion()
+                            + " "
+                            + cuota.getMesInicio()
+                            + "-"
+                            + cuota.getMesFin()
+            );
+
+            contabilidadReciboRepository.save(
+                    recibo
+            );
+
+            contabilidadAutomaticaService
+                    .registrarDevengoRecibo(
+                            recibo
+                    );
 
             generados++;
         }
 
         return Map.of(
-                "comunidadId", comunidadId,
-                "anio", anio,
-                "recibosGenerados", generados,
-                "recibosOmitidos", omitidos,
-                "mensaje", "Proceso de generación de recibos finalizado"
+                "comunidadId",
+                comunidadId,
+                "anio",
+                anio,
+                "recibosGenerados",
+                generados,
+                "recibosOmitidos",
+                omitidos,
+                "mensaje",
+                "Proceso de generación de recibos finalizado"
         );
     }
 
@@ -113,39 +282,6 @@ public class ReciboController {
                 + cuota.getAnio()
                 + " - V"
                 + cuota.getVersion();
-    }
-
-    @GetMapping
-    public List<ReciboResponse> listarRecibos(
-            @RequestParam Long comunidadId
-    ) {
-        List<ContabilidadRecibo> recibos =
-                contabilidadReciboRepository
-                        .findByComunidadIdOrderByFechaEmisionDescIdDesc(
-                                comunidadId
-                        );
-
-        Set<Long> vecinoIds =
-                recibos.stream()
-                        .map(ContabilidadRecibo::getVecinoId)
-                        .filter(Objects::nonNull)
-                        .collect(Collectors.toSet());
-
-        Map<Long, Vecino> vecinosPorId =
-                vecinoRepository
-                        .findAllById(vecinoIds)
-                        .stream()
-                        .collect(Collectors.toMap(
-                                Vecino::getId,
-                                v -> v
-                        ));
-
-        return recibos.stream()
-                .map(recibo -> toResponse(
-                        recibo,
-                        vecinosPorId.get(recibo.getVecinoId())
-                ))
-                .toList();
     }
 
     private ReciboResponse toResponse(
@@ -174,20 +310,5 @@ public class ReciboController {
                 recibo.getTipoRemesa(),
                 recibo.getEtiquetaExtra()
         );
-    }
-
-    @PostMapping("/limpiar-y-generar")
-    public Map<String, Object> limpiarYGenerar(
-            @RequestParam Long comunidadId,
-            @RequestParam Integer mes,
-            @RequestParam Integer anio
-    ) {
-        contabilidadReciboRepository.deletePendientesMes(
-                comunidadId,
-                mes,
-                anio
-        );
-
-        return generarDesdeCuotas(comunidadId, anio);
     }
 }
