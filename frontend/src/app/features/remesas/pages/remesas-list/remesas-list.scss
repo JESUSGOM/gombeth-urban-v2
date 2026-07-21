@@ -106,3 +106,126 @@
 .warning {
   background: #fff8e1;
 }
+
+/*----------------------------------------------------
+  Tarjeta generación de remesas
+-----------------------------------------------------*/
+
+.generacion-remesa {
+
+  background: #ffffff;
+
+  border: 2px solid #dbe5f1;
+
+  border-radius: 12px;
+
+  padding: 22px;
+
+  margin-bottom: 20px;
+
+  box-shadow: 0 2px 8px rgba(0,0,0,.08);
+}
+
+.generacion-remesa h2{
+
+  margin:0 0 18px 0;
+
+  font-size:24px;
+
+  font-weight:700;
+
+  color:#1f4e79;
+
+}
+
+.fila-generacion{
+
+  display:flex;
+
+  align-items:flex-end;
+
+  gap:20px;
+
+  flex-wrap:nowrap;
+
+}
+
+.campo-generacion{
+
+  display:flex;
+
+  flex-direction:column;
+
+}
+
+.campo-generacion label{
+
+  font-weight:600;
+
+  font-size:14px;
+
+  margin-bottom:6px;
+
+  color:#555;
+
+}
+
+.campo-generacion input,
+
+.campo-generacion select{
+
+  width:130px;
+
+  height:40px;
+
+  border:1px solid #ced4da;
+
+  border-radius:6px;
+
+  padding:0 10px;
+
+  font-size:14px;
+
+}
+
+.boton-generacion{
+
+  display:flex;
+
+  align-items:flex-end;
+
+}
+
+.btn-generar-remesa{
+
+  height:40px;
+
+  padding:0 30px;
+
+  border:none;
+
+  border-radius:8px;
+
+  background:#0d6efd;
+
+  color:white;
+
+  font-size:15px;
+
+  font-weight:700;
+
+  cursor:pointer;
+
+  white-space:nowrap;
+
+  transition:.20s;
+
+}
+
+.btn-generar-remesa:hover{
+
+  background:#0b5ed7;
+
+  transform:translateY(-1px);
+
+}

@@ -1,7 +1,7 @@
 package com.gombeth.urban.controller;
 
+import com.gombeth.urban.dto.ConceptoCobroDTO;
 import com.gombeth.urban.entity.ConceptoCobro;
-import com.gombeth.urban.repository.ConceptoCobroRepository;
 import com.gombeth.urban.service.ConceptoCobroService;
 import org.springframework.web.bind.annotation.*;
 
@@ -13,46 +13,42 @@ import java.util.List;
 public class ConceptoCobroController {
 
     private final ConceptoCobroService service;
-    private final ConceptoCobroRepository repository;
 
-    public ConceptoCobroController(ConceptoCobroService service,
-                                   ConceptoCobroRepository repository) {
+    public ConceptoCobroController(
+            ConceptoCobroService service) {
+
         this.service = service;
-        this.repository = repository;
     }
 
-    // =========================
-    // LISTAR POR COMUNIDAD
-    // =========================
     @GetMapping("/comunidad/{id}")
-    public List<?> findByComunidad(@PathVariable Long id) {
+    public List<ConceptoCobroDTO> findByComunidad(
+            @PathVariable Long id) {
+
         return service.findByComunidad(id);
     }
 
-    // =========================
-    // GET POR ID
-    // =========================
     @GetMapping("/{id}")
-    public ConceptoCobro getById(@PathVariable Long id) {
-        return repository.findById(id).orElse(null);
+    public ConceptoCobroDTO getById(
+            @PathVariable Long id) {
+
+        return service.findById(id);
     }
 
-    // =========================
-    // CREAR
-    // =========================
     @PostMapping
-    public ConceptoCobro create(@RequestBody ConceptoCobro c) {
-        return service.save(c);
+    public ConceptoCobroDTO create(
+            @RequestBody ConceptoCobro concepto) {
+
+        return service.create(concepto);
     }
 
-    // =========================
-    // ACTUALIZAR
-    // =========================
     @PutMapping("/{id}")
-    public ConceptoCobro update(@PathVariable Long id,
-                                @RequestBody ConceptoCobro c) {
+    public ConceptoCobroDTO update(
+            @PathVariable Long id,
+            @RequestBody ConceptoCobro concepto) {
 
-        c.setId(id);
-        return service.save(c);
+        return service.update(
+                id,
+                concepto
+        );
     }
 }

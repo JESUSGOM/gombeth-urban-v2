@@ -1,7 +1,14 @@
 package com.gombeth.urban.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.gombeth.urban.util.AesEncryptor;
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 
 @Entity
 @Table(name = "comunidades")
@@ -51,6 +58,12 @@ public class Comunidad {
     @Convert(converter = AesEncryptor.class)
     @Column(name = "identificador_acreedor", length = 255)
     private String identificadorAcreedor;
+
+    @Column(name = "tipo_reparto", length = 20)
+    private String tipoReparto = "PARTES_IGUALES";
+
+    @Column(name = "token_qr", length = 100, unique = true)
+    private String tokenQr;
 
     public Comunidad() {
     }
@@ -165,5 +178,22 @@ public class Comunidad {
 
     public void setAdministradorId(Long administradorId) {
         this.administradorId = administradorId;
+    }
+
+    public String getTipoReparto() {
+        return tipoReparto;
+    }
+
+    void setTipoReparto(String tipoReparto) {
+        this.tipoReparto = tipoReparto;
+    }
+
+    @JsonIgnore
+    public String getTokenQr() {
+        return tokenQr;
+    }
+
+    public void setTokenQr(String tokenQr) {
+        this.tokenQr = tokenQr;
     }
 }

@@ -18,6 +18,7 @@ import { PresupuestoRevision } from '../../../../core/models/presupuesto-revisio
 
 import { PresupuestoService } from '../../../../core/services/presupuesto';
 import { ComunidadService } from '../../../../core/services/comunidad';
+import { ComunidadStateService } from '../../../../core/state/comunidad-state.service';
 
 @Component({
   selector: 'app-presupuestos-list',
@@ -29,18 +30,17 @@ export class PresupuestosList implements OnInit {
 
   private presupuestoService = inject(PresupuestoService);
   private comunidadService = inject(ComunidadService);
+  private comunidadState = inject(ComunidadStateService);
   private cdr = inject(ChangeDetectorRef);
 
   comunidadId = 0;
   comunidad?: Comunidad;
-  comunidades: Comunidad[] = [];
 
   anio = 2026;
   mesRecibos = new Date().getMonth() + 1;
   generandoRecibos = false;
 
-
-  metodoReparto = 'COEFICIENTE';
+  metodoReparto = 'IGUALITARIO';
   configuracionReparto?: ConfiguracionReparto;
 
   presupuestos: Presupuesto[] = [];
@@ -58,42 +58,36 @@ export class PresupuestosList implements OnInit {
   guardandoMetodo = false;
 
   ngOnInit(): void {
-    this.cargarComunidadesUsuario();
+    this.comunidadState.init();
+
+    this.comunidadState.comunidad$
+      .subscribe(comunidad => {
+
+        if (!comunidad || !comunidad.id) {
+          return;
+        }
+
+        if (this.comunidadId === comunidad.id) {
+          return;
+        }
+
+        this.comunidadId = comunidad.id;
+        this.limpiarPantalla();
+        this.cargarTodo();
+      });
   }
 
-  cargarComunidadesUsuario(): void {
-    const usuarioId = this.getUsuarioId();
-    console.log('USUARIO ID PRESUPUESTOS:', usuarioId);
-
-    this.comunidadService
-      .getComunidades(0, 500, usuarioId)
-      .subscribe({
-        next: (response) => {
-          const datos: any = response;
-          this.comunidades = Array.isArray(datos) ? datos : (datos.content || []);
-
-          if (this.comunidades.length > 0) {
-            const primeraComunidad = this.comunidades[0];
-
-            this.comunidadId = Number(primeraComunidad.id || 0);
-
-            if (this.comunidadId > 0) {
-              this.cargarTodo();
-            } else {
-              this.error = 'La comunidad seleccionada no tiene identificador válido.';
-            }
-          } else {
-            this.error = 'No hay comunidades disponibles para este usuario.';
-          }
-
-          this.cdr.detectChanges();
-        },
-        error: (err) => {
-          console.error('Error cargando comunidades:', err);
-          this.error = 'No se pudieron cargar las comunidades del usuario.';
-          this.cdr.detectChanges();
-        }
-      });
+  private limpiarPantalla(): void {
+    this.comunidad = undefined;
+    this.presupuestos = [];
+    this.reparto = [];
+    this.cuotasBorrador = [];
+    this.revisiones = [];
+    this.resumenCoeficientes = undefined;
+    this.total = 0;
+    this.error = '';
+    this.mensaje = '';
+    this.cargando = false;
   }
 
   cargarTodo(): void {
@@ -107,48 +101,47 @@ export class PresupuestosList implements OnInit {
   }
 
   cargarComunidad(): void {
-    if (this.comunidadId <= 0) {
-      return;
-    }
 
     this.comunidadService
       .getComunidad(this.comunidadId)
       .subscribe({
+
         next: (data) => {
+
           this.comunidad = data;
+
+          switch (data.tipoReparto) {
+
+            case 'COEFICIENTE':
+              this.metodoReparto = 'COEFICIENTE';
+              break;
+
+            case 'PARTES_IGUALES':
+              this.metodoReparto = 'PARTES_IGUALES';
+              break;
+
+            default:
+              this.metodoReparto = 'PARTES_IGUALES';
+              break;
+          }
+
           this.cdr.detectChanges();
         },
+
         error: (err) => {
           console.error('Error cargando comunidad:', err);
         }
+
       });
+
   }
 
   cargarConfiguracionReparto(): void {
-    if (this.comunidadId <= 0) {
-      return;
-    }
-
-    this.comunidadService
-      .getConfiguracionReparto(this.comunidadId)
-      .subscribe({
-        next: (data) => {
-          this.configuracionReparto = data;
-          this.metodoReparto = data.metodoReparto || 'COEFICIENTE';
-          this.cdr.detectChanges();
-        },
-        error: (err) => {
-          console.error('Error cargando configuración de reparto:', err);
-          this.metodoReparto = 'COEFICIENTE';
-          this.cdr.detectChanges();
-        }
-      });
+    // El método de reparto se toma desde comunidades.tipo_reparto
   }
 
   guardarMetodoReparto(): void {
-    if (this.comunidadId <= 0) {
-      return;
-    }
+    if (this.comunidadId <= 0) return;
 
     this.guardandoMetodo = true;
     this.error = '';
@@ -176,9 +169,7 @@ export class PresupuestosList implements OnInit {
   }
 
   cargarPresupuestos(): void {
-    if (this.comunidadId <= 0) {
-      return;
-    }
+    if (this.comunidadId <= 0) return;
 
     this.cargando = true;
     this.error = '';
@@ -189,7 +180,6 @@ export class PresupuestosList implements OnInit {
       .subscribe({
         next: (data) => {
           this.presupuestos = data;
-
           this.total = data.reduce(
             (suma, p) => suma + Number(p.importe || 0),
             0
@@ -211,10 +201,6 @@ export class PresupuestosList implements OnInit {
   }
 
   cargarRevisiones(): void {
-    if (this.comunidadId <= 0) {
-      return;
-    }
-
     this.presupuestoService
       .getRevisiones(this.comunidadId, this.anio)
       .subscribe({
@@ -229,10 +215,6 @@ export class PresupuestosList implements OnInit {
   }
 
   cargarReparto(): void {
-    if (this.comunidadId <= 0) {
-      return;
-    }
-
     this.presupuestoService
       .getRepartoComunidad(this.comunidadId, this.anio)
       .subscribe({
@@ -253,10 +235,6 @@ export class PresupuestosList implements OnInit {
   }
 
   cargarCuotasBorrador(): void {
-    if (this.comunidadId <= 0) {
-      return;
-    }
-
     this.presupuestoService
       .getCuotasBorrador(this.comunidadId, this.anio)
       .subscribe({
@@ -276,10 +254,6 @@ export class PresupuestosList implements OnInit {
   }
 
   cargarResumenCoeficientes(): void {
-    if (this.comunidadId <= 0) {
-      return;
-    }
-
     this.comunidadService
       .getResumenCoeficientes(this.comunidadId)
       .subscribe({
@@ -297,9 +271,7 @@ export class PresupuestosList implements OnInit {
   }
 
   generarBorradorCuotas(): void {
-    if (this.comunidadId <= 0) {
-      return;
-    }
+    if (this.comunidadId <= 0) return;
 
     this.generandoCuotas = true;
     this.error = '';
@@ -319,7 +291,6 @@ export class PresupuestosList implements OnInit {
         },
         error: (err) => {
           console.error('Error generando borrador de cuotas:', err);
-
           this.error =
             err?.error?.message ||
             err?.error ||
@@ -332,9 +303,7 @@ export class PresupuestosList implements OnInit {
   }
 
   aprobarCuotas(): void {
-    if (this.comunidadId <= 0) {
-      return;
-    }
+    if (this.comunidadId <= 0) return;
 
     this.error = '';
     this.mensaje = '';
@@ -343,20 +312,16 @@ export class PresupuestosList implements OnInit {
       .aprobarCuotas(this.comunidadId, this.anio)
       .subscribe({
         next: (data) => {
-
           this.mensaje =
             data?.mensaje ||
             'Cuotas aprobadas correctamente.';
 
           this.cargarCuotasBorrador();
           this.cargarRevisiones();
-
           this.cdr.detectChanges();
         },
-
         error: (err) => {
           console.error('Error aprobando cuotas:', err);
-
           this.error =
             err?.error?.message ||
             err?.error ||
@@ -368,9 +333,7 @@ export class PresupuestosList implements OnInit {
   }
 
   aprobarRevision(id: number): void {
-    if (!confirm('¿Desea aprobar esta revisión presupuestaria?')) {
-      return;
-    }
+    if (!confirm('¿Desea aprobar esta revisión presupuestaria?')) return;
 
     this.error = '';
     this.mensaje = '';
@@ -387,7 +350,6 @@ export class PresupuestosList implements OnInit {
         },
         error: (err) => {
           console.error('Error aprobando revisión:', err);
-
           this.error =
             err?.error?.message ||
             err?.error ||
@@ -399,9 +361,7 @@ export class PresupuestosList implements OnInit {
   }
 
   eliminarRevision(id: number): void {
-    if (!confirm('¿Desea eliminar esta revisión presupuestaria?')) {
-      return;
-    }
+    if (!confirm('¿Desea eliminar esta revisión presupuestaria?')) return;
 
     this.error = '';
     this.mensaje = '';
@@ -415,7 +375,6 @@ export class PresupuestosList implements OnInit {
         },
         error: (err) => {
           console.error('Error eliminando revisión:', err);
-
           this.error =
             err?.error?.message ||
             err?.error ||
@@ -426,27 +385,8 @@ export class PresupuestosList implements OnInit {
       });
   }
 
-  getUsuarioId(): number {
-    const usuarioStorage = localStorage.getItem('usuario');
-
-    if (!usuarioStorage) {
-      return 0;
-    }
-
-    const usuario = JSON.parse(usuarioStorage);
-
-    return Number(
-      usuario.usuarioId ||
-      usuario.id ||
-      usuario.userId ||
-      0
-    );
-  }
-
   generarRecibos(): void {
-    if (this.comunidadId <= 0) {
-      return;
-    }
+    if (this.comunidadId <= 0) return;
 
     if (!confirm('¿Desea generar los recibos desde las cuotas aprobadas?')) {
       return;
@@ -474,7 +414,6 @@ export class PresupuestosList implements OnInit {
         },
         error: (err) => {
           console.error('Error generando recibos:', err);
-
           this.error =
             err?.error?.message ||
             err?.error ||

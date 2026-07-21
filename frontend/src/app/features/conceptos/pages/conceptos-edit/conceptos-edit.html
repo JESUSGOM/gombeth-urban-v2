@@ -1,41 +1,227 @@
 <div class="edit-page">
 
-  <h2>Concepto de Cobro</h2>
+  <div class="page-header">
 
-  <div class="form">
+    <div>
+      <h2>📋 {{ tituloPantalla }}</h2>
 
-    <label>Descripción</label>
-    <input type="text" [(ngModel)]="concepto.descripcion">
+      <p>
+        Comunidad ID:
+        <strong>{{ comunidadId }}</strong>
+      </p>
+    </div>
 
-    <label>Importe</label>
-    <input type="number" [(ngModel)]="concepto.importe">
-
-    <label>Periodicidad</label>
-    <select [(ngModel)]="concepto.periodicidad">
-      <option>MENSUAL</option>
-      <option>TRIMESTRAL</option>
-      <option>ANUAL</option>
-      <option>UNICO</option>
-    </select>
-
-    <label>Cuenta contable</label>
-    <select [(ngModel)]="concepto.cuentaContableId">
-      <option *ngFor="let c of cuentas" [value]="c.id">
-        {{ c.codigo }} - {{ c.nombre }}
-      </option>
-    </select>
-
-    <label>
-      <input type="checkbox" [(ngModel)]="concepto.activo">
-      Activo
-    </label>
+    <button
+      type="button"
+      class="btn-volver-superior"
+      (click)="volver()">
+      ← Volver al listado
+    </button>
 
   </div>
 
-  <div class="buttons">
+  <div
+    *ngIf="cargando"
+    class="info-card">
+    Cargando concepto...
+  </div>
 
-    <button (click)="volver()">Volver</button>
-    <button (click)="guardar()">Guardar</button>
+  <div
+    *ngIf="error"
+    class="error-card">
+    {{ error }}
+  </div>
+
+  <div
+    *ngIf="mensaje"
+    class="success-card">
+    {{ mensaje }}
+  </div>
+
+  <div
+    *ngIf="!cargando"
+    class="form-card">
+
+    <div
+      *ngIf="modoCuenta"
+      class="modo-cuenta-aviso">
+
+      Selecciona la cuenta contable correspondiente
+      al concepto:
+
+      <strong>
+        {{ concepto.descripcion }}
+      </strong>
+
+    </div>
+
+    <div class="form-grid">
+
+      <div class="form-field campo-ancho">
+
+        <label for="descripcion">
+          Descripción
+          <span class="required">*</span>
+        </label>
+
+        <input
+          id="descripcion"
+          type="text"
+          maxlength="255"
+          [(ngModel)]="concepto.descripcion"
+          [disabled]="guardando">
+
+      </div>
+
+      <div class="form-field">
+
+        <label for="importe">
+          Importe
+          <span class="required">*</span>
+        </label>
+
+        <input
+          id="importe"
+          type="number"
+          min="0"
+          step="0.01"
+          [(ngModel)]="concepto.importe"
+          [disabled]="guardando">
+
+      </div>
+
+      <div class="form-field">
+
+        <label for="periodicidad">
+          Periodicidad
+          <span class="required">*</span>
+        </label>
+
+        <select
+          id="periodicidad"
+          [(ngModel)]="concepto.periodicidad"
+          [disabled]="guardando">
+
+          <option value="MENSUAL">
+            Mensual
+          </option>
+
+          <option value="BIMESTRAL">
+            Bimestral
+          </option>
+
+          <option value="TRIMESTRAL">
+            Trimestral
+          </option>
+
+          <option value="SEMESTRAL">
+            Semestral
+          </option>
+
+          <option value="ANUAL">
+            Anual
+          </option>
+
+          <option value="UNICO">
+            Único
+          </option>
+
+        </select>
+
+      </div>
+
+      <div
+        class="form-field campo-ancho"
+        [class.campo-destacado]="modoCuenta">
+
+        <label for="cuentaContable">
+          Cuenta contable
+        </label>
+
+        <select
+          #cuentaSelect
+          id="cuentaContable"
+          [(ngModel)]="concepto.cuentaContableId"
+          [disabled]="cargandoCuentas || guardando">
+
+          <option [ngValue]="null">
+            -- Sin cuenta contable --
+          </option>
+
+          <option
+            *ngFor="let cuenta of cuentas"
+            [ngValue]="cuenta.id">
+
+            {{ cuenta.codigo }} - {{ cuenta.nombre }}
+
+          </option>
+
+        </select>
+
+        <small *ngIf="cargandoCuentas">
+          Cargando cuentas contables...
+        </small>
+
+        <small
+          *ngIf="!cargandoCuentas && cuentas.length === 0"
+          class="warning-text">
+
+          La comunidad no tiene cuentas contables disponibles.
+
+        </small>
+
+        <small
+          *ngIf="!cargandoCuentas && cuentas.length > 0">
+
+          Se muestran únicamente las cuentas contables
+          pertenecientes a esta comunidad.
+
+        </small>
+
+      </div>
+
+      <div class="form-field campo-checkbox">
+
+        <label class="checkbox-label">
+
+          <input
+            type="checkbox"
+            [(ngModel)]="concepto.activo"
+            [disabled]="guardando">
+
+          <span>
+            Concepto activo
+          </span>
+
+        </label>
+
+      </div>
+
+    </div>
+
+    <div class="buttons">
+
+      <button
+        type="button"
+        class="btn-cancelar"
+        [disabled]="guardando"
+        (click)="volver()">
+        Cancelar
+      </button>
+
+      <button
+        type="button"
+        class="btn-guardar"
+        [disabled]="guardando || cargandoCuentas"
+        (click)="guardar()">
+
+        {{ guardando
+        ? 'Guardando...'
+        : 'Guardar concepto' }}
+
+      </button>
+
+    </div>
 
   </div>
 

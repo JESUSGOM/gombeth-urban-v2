@@ -1,41 +1,257 @@
 <div class="conceptos-page">
 
-  <h2>📋 Conceptos de Cobro</h2>
+  <div class="page-header">
 
-  <p>Comunidad ID: {{ comunidadId }}</p>
+    <div>
+      <h2>📋 Conceptos de Cobro</h2>
 
-  <table>
+      <p class="subtitulo">
+        Comunidad ID:
+        <strong>{{ comunidadId }}</strong>
+      </p>
+    </div>
 
-    <thead>
-    <tr>
-      <th>Descripción</th>
-      <th>Importe</th>
-      <th>Periodicidad</th>
-      <th>Cuenta Código</th>
-      <th>Cuenta Nombre</th>
-      <th>Estado</th>
-    </tr>
-    </thead>
+    <div class="header-actions">
 
-    <tbody>
-    <tr *ngFor="let c of conceptos">
+      <div class="badge-total">
+        Total registros:
+        <strong>{{ totalRegistros }}</strong>
+      </div>
 
-      <td>{{ c.descripcion }}</td>
-      <td>{{ c.importe }}</td>
-      <td>{{ c.periodicidad }}</td>
+      <button
+        type="button"
+        class="btn-nuevo"
+        [disabled]="!comunidadId"
+        (click)="nuevoConcepto()">
+        ＋ Nuevo concepto
+      </button>
 
-      <td>{{ c.cuentaContableCodigo }}</td>
-      <td>{{ c.cuentaContableNombre }}</td>
+    </div>
 
-      <td>
-          <span [class]="c.activo ? 'ok' : 'ko'">
-            {{ c.activo ? 'Activo' : 'Baja' }}
-          </span>
-      </td>
+  </div>
 
-    </tr>
-    </tbody>
+  <div *ngIf="cargando" class="info-card">
+    Cargando conceptos...
+  </div>
 
-  </table>
+  <div *ngIf="error" class="error-card">
+    {{ error }}
+  </div>
+
+  <div
+    *ngIf="!cargando && !error"
+    class="table-card">
+
+    <div class="table-toolbar">
+
+      <div class="toolbar-left">
+
+        <label for="tamPagina">
+          Registros por página
+        </label>
+
+        <select
+          id="tamPagina"
+          [value]="tamanioPagina"
+          (change)="cambiarTamPagina($event)">
+
+          <option
+            *ngFor="let tam of opcionesTamPagina"
+            [value]="tam">
+            {{ tam }}
+          </option>
+
+        </select>
+
+      </div>
+
+      <div class="toolbar-right">
+        Mostrando
+        {{ inicioRegistro }}-{{ finRegistro }}
+        de {{ totalRegistros }}
+      </div>
+
+    </div>
+
+    <div class="table-wrapper">
+
+      <table>
+
+        <thead>
+        <tr>
+
+          <th
+            class="sortable"
+            (click)="ordenarPor('descripcion')">
+            Descripción
+            <span>
+                {{ getIndicadorOrden('descripcion') }}
+              </span>
+          </th>
+
+          <th
+            class="sortable right"
+            (click)="ordenarPor('importe')">
+            Importe
+            <span>
+                {{ getIndicadorOrden('importe') }}
+              </span>
+          </th>
+
+          <th
+            class="sortable"
+            (click)="ordenarPor('periodicidad')">
+            Periodicidad
+            <span>
+                {{ getIndicadorOrden('periodicidad') }}
+              </span>
+          </th>
+
+          <th
+            class="sortable"
+            (click)="ordenarPor('cuentaContableCodigo')">
+            Cuenta Código
+            <span>
+                {{ getIndicadorOrden('cuentaContableCodigo') }}
+              </span>
+          </th>
+
+          <th
+            class="sortable"
+            (click)="ordenarPor('cuentaContableNombre')">
+            Cuenta Nombre
+            <span>
+                {{ getIndicadorOrden('cuentaContableNombre') }}
+              </span>
+          </th>
+
+          <th
+            class="sortable center"
+            (click)="ordenarPor('activo')">
+            Estado
+            <span>
+                {{ getIndicadorOrden('activo') }}
+              </span>
+          </th>
+
+          <th class="center acciones-header">
+            Acciones
+          </th>
+
+        </tr>
+        </thead>
+
+        <tbody>
+
+        <tr *ngIf="conceptosPaginados.length === 0">
+          <td
+            colspan="7"
+            class="empty-row">
+            No hay conceptos para esta comunidad.
+          </td>
+        </tr>
+
+        <tr *ngFor="let c of conceptosPaginados">
+
+          <td class="descripcion-cell">
+            {{ c.descripcion }}
+          </td>
+
+          <td class="right importe-cell">
+            {{ c.importe | number:'1.2-2' }} €
+          </td>
+
+          <td>
+            {{ c.periodicidad }}
+          </td>
+
+          <td>
+              <span
+                [class.sin-cuenta]="!c.cuentaContableId">
+                {{ getTextoCuentaCodigo(c) }}
+              </span>
+          </td>
+
+          <td>
+              <span
+                [class.sin-cuenta]="!c.cuentaContableId">
+                {{ getTextoCuentaNombre(c) }}
+              </span>
+          </td>
+
+          <td class="center">
+              <span [class]="c.activo ? 'ok' : 'ko'">
+                {{ c.activo ? 'Activo' : 'Baja' }}
+              </span>
+          </td>
+
+          <td class="acciones-cell">
+
+            <button
+              type="button"
+              class="btn-accion btn-editar"
+              (click)="editarConcepto(c)">
+              Editar
+            </button>
+
+            <button
+              type="button"
+              class="btn-accion btn-cuenta"
+              (click)="asignarCuenta(c)">
+              {{ c.cuentaContableId
+              ? 'Cambiar cuenta'
+              : 'Asignar cuenta' }}
+            </button>
+
+          </td>
+
+        </tr>
+
+        </tbody>
+
+      </table>
+
+    </div>
+
+    <div class="pagination-bar">
+
+      <button
+        type="button"
+        (click)="irPrimera()"
+        [disabled]="paginaActual === 1">
+        « Primera
+      </button>
+
+      <button
+        type="button"
+        (click)="irAnterior()"
+        [disabled]="paginaActual === 1">
+        ‹ Anterior
+      </button>
+
+      <span class="pagination-info">
+        Página
+        <strong>{{ paginaActual }}</strong>
+        de
+        <strong>{{ totalPaginas || 1 }}</strong>
+      </span>
+
+      <button
+        type="button"
+        (click)="irSiguiente()"
+        [disabled]="paginaActual >= totalPaginas">
+        Siguiente ›
+      </button>
+
+      <button
+        type="button"
+        (click)="irUltima()"
+        [disabled]="paginaActual >= totalPaginas">
+        Última »
+      </button>
+
+    </div>
+
+  </div>
 
 </div>

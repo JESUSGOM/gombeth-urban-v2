@@ -17,15 +17,17 @@
 
   <nav class="menu">
 
-    <a routerLink="/dashboard"
-       routerLinkActive="active"
-       class="menu-item">
+    <a
+      routerLink="/dashboard"
+      routerLinkActive="active"
+      class="menu-item">
       📊 Dashboard
     </a>
 
-    <a routerLink="/comunidades"
-       routerLinkActive="active"
-       class="menu-item">
+    <a
+      routerLink="/comunidades"
+      routerLinkActive="active"
+      class="menu-item">
       🏢 Comunidades
     </a>
 
@@ -37,17 +39,31 @@
     </a>
 
     <a
-      routerLink="/conceptos/comunidad/18"
+      routerLink="/conceptos"
       routerLinkActive="active"
       class="menu-item">
       📋 Conceptos
     </a>
 
     <a
-      routerLink="/remesas/comunidad/18"
+      routerLink="/recibos"
+      routerLinkActive="active"
+      class="menu-item">
+      🧾 Recibos
+    </a>
+
+    <a
+      routerLink="/remesas"
       routerLinkActive="active"
       class="menu-item">
       💳 Remesas SEPA
+    </a>
+
+    <a
+      routerLink="/incidencias"
+      routerLinkActive="active"
+      class="menu-item">
+      ⚠ Incidencias
     </a>
 
     <a
@@ -64,9 +80,10 @@
       📘 Diario Contable
     </a>
 
-    <a routerLink="/tesoreria/mayor"
-       routerLinkActive="active"
-       class="menu-item">
+    <a
+      routerLink="/tesoreria/mayor"
+      routerLinkActive="active"
+      class="menu-item">
       📘 Libro Mayor
     </a>
 
@@ -74,9 +91,7 @@
       routerLink="/tesoreria/balance"
       routerLinkActive="active"
       class="menu-item">
-
       📊 Balance Sumas y Saldos
-
     </a>
 
     <a
@@ -88,6 +103,14 @@
 
     <a class="menu-item">
       ⚙ Configuración
+    </a>
+
+    <hr class="menu-separador">
+
+    <a
+      class="menu-item salir"
+      (click)="cerrarSesion()">
+      🚪 Cerrar sesión
     </a>
 
   </nav>

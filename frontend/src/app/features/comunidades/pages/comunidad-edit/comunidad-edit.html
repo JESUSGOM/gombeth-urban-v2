@@ -9,7 +9,10 @@
 
   @if (mensajeExito) {
     <div class="gombeth-alert success">
-      <img src="/images/logo.png" alt="Gombeth Urban">
+      <img
+        src="/images/logo.png"
+        alt="Gombeth Urban">
+
       <div>
         <strong>Gombeth Urban dice</strong>
         <p>{{ mensajeExito }}</p>
@@ -19,7 +22,10 @@
 
   @if (mensajeError) {
     <div class="gombeth-alert error">
-      <img src="/images/logo.png" alt="Gombeth Urban">
+      <img
+        src="/images/logo.png"
+        alt="Gombeth Urban">
+
       <div>
         <strong>Gombeth Urban dice</strong>
         <p>{{ mensajeError }}</p>
@@ -35,6 +41,7 @@
 
         <div class="form-group">
           <label>ID</label>
+
           <input
             type="text"
             [value]="comunidad.id"
@@ -43,6 +50,7 @@
 
         <div class="form-group full">
           <label>Nombre</label>
+
           <input
             type="text"
             [(ngModel)]="comunidad.nombre">
@@ -50,6 +58,7 @@
 
         <div class="form-group">
           <label>CIF/NIF</label>
+
           <input
             type="text"
             [(ngModel)]="comunidad.nifCif">
@@ -57,6 +66,7 @@
 
         <div class="form-group">
           <label>Identificador SEPA</label>
+
           <input
             type="text"
             [(ngModel)]="comunidad.identificadorAcreedor">
@@ -64,6 +74,7 @@
 
         <div class="form-group full">
           <label>Dirección</label>
+
           <input
             type="text"
             [(ngModel)]="comunidad.direccion">
@@ -71,6 +82,7 @@
 
         <div class="form-group">
           <label>Código Postal</label>
+
           <input
             type="text"
             [(ngModel)]="comunidad.codigoPostal">
@@ -78,6 +90,7 @@
 
         <div class="form-group">
           <label>Población</label>
+
           <input
             type="text"
             [(ngModel)]="comunidad.poblacion">
@@ -85,6 +98,7 @@
 
         <div class="form-group">
           <label>Provincia</label>
+
           <input
             type="text"
             [(ngModel)]="comunidad.provincia">
@@ -92,6 +106,7 @@
 
         <div class="form-group">
           <label>País</label>
+
           <input
             type="text"
             [(ngModel)]="comunidad.paiscod">
@@ -99,6 +114,7 @@
 
         <div class="form-group full">
           <label>IBAN</label>
+
           <input
             type="text"
             [(ngModel)]="comunidad.iban">
@@ -106,6 +122,7 @@
 
         <div class="form-group">
           <label>BIC</label>
+
           <input
             type="text"
             [(ngModel)]="comunidad.bic">
@@ -113,6 +130,7 @@
 
         <div class="form-group">
           <label>Sufijo</label>
+
           <input
             type="text"
             [(ngModel)]="comunidad.sufijo">
@@ -120,9 +138,7 @@
 
       </div>
 
-      <!-- CONFIGURACIÓN DE REPARTO -->
-
-      <div class="reparto-card">
+      <section class="reparto-card">
 
         <h3>Configuración de reparto</h3>
 
@@ -163,7 +179,113 @@
 
         </div>
 
-      </div>
+      </section>
+
+      <section class="qr-card">
+
+        <div class="qr-card-header">
+
+          <div>
+            <h3>Código QR de incidencias</h3>
+
+            <p>
+              Este código identifica de forma única a la comunidad
+              y abre el formulario público de incidencias.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            class="secondary-small-button"
+            [disabled]="cargandoQr"
+            (click)="cargarQrComunidad()">
+
+            {{
+              cargandoQr
+                ? 'Generando...'
+                : 'Actualizar QR'
+            }}
+
+          </button>
+
+        </div>
+
+        @if (mensajeErrorQr) {
+          <div class="qr-error">
+            {{ mensajeErrorQr }}
+          </div>
+        }
+
+        @if (cargandoQr) {
+          <div class="qr-loading">
+            Generando el código QR de la comunidad...
+          </div>
+        }
+
+        @if (!cargandoQr && qrUrlTemporal) {
+
+          <div class="qr-content">
+
+            <button
+              type="button"
+              class="qr-preview"
+              aria-label="Ampliar código QR"
+              (click)="abrirQr()">
+
+              <img
+                [src]="qrUrlTemporal"
+                [alt]="'Código QR de ' + comunidad.nombre">
+
+            </button>
+
+            <div class="qr-information">
+
+              <strong>
+                {{ comunidad.nombre }}
+              </strong>
+
+              <span>
+                Comunidad número {{ comunidad.id }}
+              </span>
+
+              <p>
+                Al escanearlo desde un teléfono móvil se abrirá
+                el formulario público identificando automáticamente
+                esta comunidad.
+              </p>
+
+              <div class="qr-actions">
+
+                <button
+                  type="button"
+                  class="secondary-small-button"
+                  (click)="abrirQr()">
+                  Ver ampliado
+                </button>
+
+                <button
+                  type="button"
+                  class="secondary-small-button"
+                  (click)="descargarQr()">
+                  Descargar PNG
+                </button>
+
+                <button
+                  type="button"
+                  class="primary-small-button"
+                  (click)="imprimirQr()">
+                  Imprimir QR
+                </button>
+
+              </div>
+
+            </div>
+
+          </div>
+
+        }
+
+      </section>
 
       <div class="form-actions">
 
@@ -177,10 +299,14 @@
         <button
           type="button"
           class="primary-button"
-          (click)="guardar()"
-          [disabled]="guardando">
+          [disabled]="guardando"
+          (click)="guardar()">
 
-          {{ guardando ? 'Guardando...' : 'Guardar cambios' }}
+          {{
+            guardando
+              ? 'Guardando...'
+              : 'Guardar cambios'
+          }}
 
         </button>
 
@@ -197,3 +323,86 @@
   }
 
 </div>
+
+@if (
+  visorQrAbierto
+  && qrUrlTemporal
+  && comunidad
+  ) {
+
+  <div
+    class="qr-modal-backdrop"
+    role="presentation"
+    (click)="cerrarQr()">
+
+    <section
+      class="qr-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Código QR ampliado"
+      (click)="$event.stopPropagation()">
+
+      <header class="qr-modal-header">
+
+        <div>
+          <strong>
+            Código QR de incidencias
+          </strong>
+
+          <span>
+            {{ comunidad.nombre }}
+          </span>
+        </div>
+
+        <button
+          type="button"
+          class="qr-modal-close"
+          aria-label="Cerrar código QR"
+          (click)="cerrarQr()">
+          ×
+        </button>
+
+      </header>
+
+      <div class="qr-modal-content">
+
+        <img
+          [src]="qrUrlTemporal"
+          [alt]="'Código QR ampliado de ' + comunidad.nombre">
+
+        <p>
+          Escanee este código con la cámara de un teléfono móvil.
+        </p>
+
+      </div>
+
+      <footer class="qr-modal-footer">
+
+        <button
+          type="button"
+          class="secondary-button"
+          (click)="cerrarQr()">
+          Cerrar
+        </button>
+
+        <button
+          type="button"
+          class="secondary-button"
+          (click)="descargarQr()">
+          Descargar PNG
+        </button>
+
+        <button
+          type="button"
+          class="primary-button"
+          (click)="imprimirQr()">
+          Imprimir QR
+        </button>
+
+      </footer>
+
+    </section>
+
+  </div>
+
+}

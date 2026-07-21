@@ -1,23 +1,45 @@
 <div class="comunidades-page">
+
   <div class="page-header">
+
     <div>
       <h2>Comunidades</h2>
-      <p>Gestión de comunidades de propietarios</p>
+
+      <p>
+        Gestión de comunidades de propietarios
+      </p>
     </div>
-    <button class="primary-button">
+
+    <button
+      type="button"
+      class="primary-button">
       + Nueva Comunidad
     </button>
+
   </div>
-  <div class="table-card">
+
+  <div
+    *ngIf="cargando"
+    class="info-card">
+    Cargando comunidades...
+  </div>
+
+  <div
+    *ngIf="!cargando"
+    class="table-card">
+
     <div class="table-summary">
       Total comunidades: {{ totalElementos }}
-      @if (error) {
-        <div class="error-card">
-          {{ error }}
-        </div>
-      }
     </div>
+
+    <div
+      *ngIf="error"
+      class="error-card">
+      {{ error }}
+    </div>
+
     <table>
+
       <thead>
       <tr>
         <th>ID</th>
@@ -29,61 +51,260 @@
         <th>Acciones</th>
       </tr>
       </thead>
+
       <tbody>
-        @for (comunidad of comunidades; track comunidad.id) {
-          <tr>
-            <td>{{ comunidad.id }}</td>
-            <td class="nombre-col">{{ comunidad.nombre }}</td>
-            <td>{{ comunidad.nifCif || '-' }}</td>
-            <td>{{ comunidad.identificadorAcreedor || '-' }}</td>
-            <td>{{ comunidad.poblacion || '-' }}</td>
-            <td>{{ comunidad.provincia || '-' }}</td>
-            <td class="actions">
-              <button class="btn-action btn-primary">Activar</button>
-              <button class="btn-icon btn-success" title="Ingresos">🏦</button>
-              <button class="btn-icon btn-warning" title="Gastos">🧾</button>
-              <button class="btn-icon btn-info" title="Vecinos" (click)="verVecinos(comunidad.id)">👥</button>
-              <button class="btn-icon btn-primary" title="Recibos" (click)="verRecibos(comunidad.id)">💶</button>
-              <button class="btn-icon btn-warning" title="Remesas" (click)="verRemesas(comunidad.id)">🧾</button>
-              <button class="btn-icon btn-dark" title="Cuaderno C19">📄</button>
-              <button class="btn-icon btn-success" title="QR">▣</button>
-              <button class="btn-icon btn-danger-outline" title="PDF">PDF</button>
-              <button
-                class="btn-icon btn-secondary-outline"
-                title="Configurar"
-                (click)="editarComunidad(comunidad.id)">
-                ⚙
-              </button>
-            </td>
-          </tr>
-        }
+
+      <tr *ngFor="let comunidad of comunidades">
+
+        <td>
+          {{ comunidad.id }}
+        </td>
+
+        <td class="nombre-col">
+          {{ comunidad.nombre }}
+        </td>
+
+        <td>
+          {{ comunidad.nifCif || '-' }}
+        </td>
+
+        <td>
+          {{ comunidad.identificadorAcreedor || '-' }}
+        </td>
+
+        <td>
+          {{ comunidad.poblacion || '-' }}
+        </td>
+
+        <td>
+          {{ comunidad.provincia || '-' }}
+        </td>
+
+        <td class="actions">
+
+          <button
+            type="button"
+            class="btn-action btn-primary">
+            Activar
+          </button>
+
+          <button
+            type="button"
+            class="btn-icon btn-success"
+            title="Ingresos"
+            aria-label="Ingresos">
+            €
+          </button>
+
+          <button
+            type="button"
+            class="btn-icon btn-warning"
+            title="Gastos"
+            aria-label="Gastos">
+            G
+          </button>
+
+          <button
+            type="button"
+            class="btn-icon btn-info"
+            title="Vecinos"
+            aria-label="Vecinos"
+            (click)="verVecinos(comunidad.id)">
+            V
+          </button>
+
+          <button
+            type="button"
+            class="btn-icon btn-primary"
+            title="Recibos"
+            aria-label="Recibos"
+            (click)="verRecibos(comunidad.id)">
+            R
+          </button>
+
+          <button
+            type="button"
+            class="btn-icon btn-warning"
+            title="Remesas"
+            aria-label="Remesas"
+            (click)="verRemesas(comunidad.id)">
+            RM
+          </button>
+
+          <button
+            type="button"
+            class="btn-icon btn-dark"
+            title="Cuaderno C19"
+            aria-label="Cuaderno C19">
+            C19
+          </button>
+
+          <button
+            type="button"
+            class="btn-icon btn-success"
+            title="Ver código QR"
+            aria-label="Ver código QR"
+            (click)="abrirQrComunidad(comunidad)">
+            QR
+          </button>
+
+          <button
+            type="button"
+            class="btn-icon btn-danger-outline"
+            title="PDF"
+            aria-label="PDF">
+            PDF
+          </button>
+
+          <button
+            type="button"
+            class="btn-icon btn-secondary-outline"
+            title="Configurar"
+            aria-label="Configurar comunidad"
+            (click)="editarComunidad(comunidad.id)">
+            &#9881;
+          </button>
+
+        </td>
+
+      </tr>
+
       </tbody>
+
     </table>
+
     <div class="pagination-bar">
 
       <button
+        type="button"
         class="page-button"
-        (click)="cambiarPagina(paginaActual - 1)"
-        [disabled]="paginaActual === 1">
+        [disabled]="paginaActual === 1"
+        (click)="cambiarPagina(paginaActual - 1)">
         Anterior
       </button>
 
-      @for (pagina of paginas(); track pagina) {
-        <button
-          class="page-button"
-          [class.active]="pagina === paginaActual"
-          (click)="cambiarPagina(pagina)">
-          {{ pagina }}
-        </button>
-      }
+      <button
+        *ngFor="let pagina of paginas()"
+        type="button"
+        class="page-button"
+        [class.active]="pagina === paginaActual"
+        (click)="cambiarPagina(pagina)">
+        {{ pagina }}
+      </button>
 
       <button
+        type="button"
         class="page-button"
-        (click)="cambiarPagina(paginaActual + 1)"
-        [disabled]="paginaActual === totalPaginas">
+        [disabled]="paginaActual === totalPaginas"
+        (click)="cambiarPagina(paginaActual + 1)">
         Siguiente
       </button>
 
     </div>
+
   </div>
+
+</div>
+
+<div
+  *ngIf="qrComunidad as comunidadQr"
+  class="qr-modal-backdrop"
+  role="presentation"
+  (click)="cerrarQr()">
+
+  <section
+    class="qr-modal"
+    role="dialog"
+    aria-modal="true"
+    aria-label="Código QR de incidencias"
+    (click)="$event.stopPropagation()">
+
+    <header class="qr-modal-header">
+
+      <div>
+        <strong>
+          Código QR de incidencias
+        </strong>
+
+        <span>
+          {{ comunidadQr.nombre }}
+        </span>
+      </div>
+
+      <button
+        type="button"
+        class="qr-modal-close"
+        aria-label="Cerrar"
+        (click)="cerrarQr()">
+        ×
+      </button>
+
+    </header>
+
+    <div class="qr-modal-content">
+
+      <div
+        *ngIf="cargandoQr"
+        class="qr-loading">
+        Generando el código QR...
+      </div>
+
+      <div
+        *ngIf="errorQr"
+        class="qr-error">
+        {{ errorQr }}
+      </div>
+
+      <ng-container
+        *ngIf="
+          !cargandoQr
+          && qrUrlTemporal
+        ">
+
+        <img
+          [src]="qrUrlTemporal"
+          [alt]="'Código QR de ' + comunidadQr.nombre">
+
+        <p>
+          Escanee este código con la cámara de un teléfono móvil
+          para abrir el formulario público de incidencias.
+        </p>
+
+        <span class="qr-community-id">
+          Comunidad número {{ comunidadQr.id }}
+        </span>
+
+      </ng-container>
+
+    </div>
+
+    <footer class="qr-modal-footer">
+
+      <button
+        type="button"
+        class="secondary-button"
+        (click)="cerrarQr()">
+        Cerrar
+      </button>
+
+      <button
+        type="button"
+        class="secondary-button"
+        [disabled]="!qrUrlTemporal"
+        (click)="descargarQr()">
+        Descargar PNG
+      </button>
+
+      <button
+        type="button"
+        class="primary-button"
+        [disabled]="!qrUrlTemporal"
+        (click)="imprimirQr()">
+        Imprimir QR
+      </button>
+
+    </footer>
+
+  </section>
+
 </div>

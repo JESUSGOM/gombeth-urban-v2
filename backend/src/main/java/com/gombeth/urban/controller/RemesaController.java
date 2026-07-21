@@ -4,6 +4,8 @@ import com.gombeth.urban.dto.GenerarRemesaSeleccionRequest;
 import com.gombeth.urban.dto.RemesaResumenResponse;
 import com.gombeth.urban.dto.ValidacionRemesaResponse;
 import com.gombeth.urban.dto.SepaValidacionResultado;
+import com.gombeth.urban.dto.remesa.ProcesoRemesaRequest;
+import com.gombeth.urban.dto.remesa.ProcesoRemesaResponse;
 import com.gombeth.urban.entity.Comunidad;
 import com.gombeth.urban.entity.ContabilidadRecibo;
 import com.gombeth.urban.entity.FicheroGenerado;
@@ -14,15 +16,19 @@ import com.gombeth.urban.repository.ContabilidadReciboRepository;
 import com.gombeth.urban.repository.FicheroGeneradoRepository;
 import com.gombeth.urban.repository.RemesaLineaRepository;
 import com.gombeth.urban.repository.VecinoRepository;
-import com.gombeth.urban.service.RemesaService;
-import com.gombeth.urban.service.SepaC19Service;
-import com.gombeth.urban.service.SepaCoreXmlService;
-import com.gombeth.urban.service.SepaRemesaValidationService;
+import com.gombeth.urban.service.*;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import com.gombeth.urban.service.storage.*;
+import com.gombeth.urban.dto.remesa.RemesaDetalleResponse;
+import com.gombeth.urban.dto.remesa.RemesaLineaDetalleResponse;
+import com.gombeth.urban.dto.remesa.RemesaLineaConceptoDetalleResponse;
+import com.gombeth.urban.entity.RemesaLineaConcepto;
+import com.gombeth.urban.repository.RemesaLineaConceptoRepository;
 
+import java.nio.file.Path;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
@@ -43,6 +49,9 @@ public class RemesaController {
     private final SepaC19Service sepaC19Service;
     private final RemesaService remesaService;
     private final SepaRemesaValidationService sepaRemesaValidationService;
+    private final DocumentStorageService documentStorageService;
+    private final ProcesoRemesaService procesoRemesaService;
+    private final RemesaLineaConceptoRepository remesaLineaConceptoRepository;
 
     public RemesaController(
             ContabilidadReciboRepository reciboRepository,
@@ -53,7 +62,10 @@ public class RemesaController {
             SepaCoreXmlService sepaCoreXmlService,
             SepaC19Service sepaC19Service,
             RemesaService remesaService,
-            SepaRemesaValidationService sepaRemesaValidationService
+            SepaRemesaValidationService sepaRemesaValidationService,
+            DocumentStorageService documentStorageService,
+            ProcesoRemesaService procesoRemesaService,
+            RemesaLineaConceptoRepository remesaLineaConceptoRepository
     ) {
         this.reciboRepository = reciboRepository;
         this.ficheroGeneradoRepository = ficheroGeneradoRepository;
@@ -64,6 +76,9 @@ public class RemesaController {
         this.sepaC19Service = sepaC19Service;
         this.remesaService = remesaService;
         this.sepaRemesaValidationService = sepaRemesaValidationService;
+        this.documentStorageService = documentStorageService;
+        this.procesoRemesaService = procesoRemesaService;
+        this.remesaLineaConceptoRepository = remesaLineaConceptoRepository;
     }
 
     @PostMapping("/generar")
@@ -78,13 +93,15 @@ public class RemesaController {
         LocalDate fechaHastaDate = LocalDate.parse(fechaHasta);
 
         List<ContabilidadRecibo> recibosPendientes =
-                reciboRepository
-                        .findByComunidadIdAndEstadoAndFechaEmisionBetweenOrderByFechaEmisionAscIdAsc(
-                                comunidadId,
-                                "PENDIENTE",
-                                fechaDesdeDate,
-                                fechaHastaDate
-                        );
+                remesaService.obtenerRecibosParaRemesa(
+                        comunidadId,
+                        fechaDesdeDate
+                );
+
+        recibosPendientes =
+                remesaService.eliminarRecibosYaIncluidos(
+                        recibosPendientes
+                );
 
         if (recibosPendientes.isEmpty()) {
             return Map.of(
@@ -103,6 +120,8 @@ public class RemesaController {
 
         FicheroGenerado fichero = remesaService.crearRemesaInicial(
                 comunidadId,
+                fechaDesdeDate.getYear(),
+                fechaDesdeDate.getMonthValue(),
                 fechaCobroDate,
                 "recibos pendientes"
         );
@@ -191,6 +210,8 @@ public class RemesaController {
 
         FicheroGenerado fichero = remesaService.crearRemesaInicial(
                 request.comunidadId(),
+                request.fechaCobro().getYear(),
+                request.fechaCobro().getMonthValue(),
                 request.fechaCobro(),
                 "recibos seleccionados"
         );
@@ -308,10 +329,31 @@ public class RemesaController {
                 vecinos
         );
 
+        String nombreArchivo;
+
+        Path rutaGuardada;
+        try {
+            rutaGuardada =
+                    documentStorageService.guardarRemesaXml(
+                            Path.of("W:/PROYECTOS/gombeth-urban-v2/ficheros"),
+                            comunidad,
+                            xml,
+                            remesa.getFechaCreacion(),
+                            remesa.getFechaCobro(),
+                            remesa.getEsquemaSepa()
+                    );
+
+            nombreArchivo = rutaGuardada.getFileName().toString();
+
+        } catch (Exception e) {
+            throw new RuntimeException(
+                    "Error guardando fichero XML en disco: " + e.getMessage(),
+                    e
+            );
+        }
+
         remesa.setContenido(xml);
-        remesa.setNombreArchivo(
-                "remesa_core_" + remesa.getId() + ".xml"
-        );
+        remesa.setNombreArchivo(nombreArchivo);
 
         ficheroGeneradoRepository.save(remesa);
 
@@ -320,7 +362,7 @@ public class RemesaController {
         return ResponseEntity.ok()
                 .header(
                         HttpHeaders.CONTENT_DISPOSITION,
-                        "attachment; filename=\"" + remesa.getNombreArchivo() + "\""
+                        "attachment; filename=\"" + nombreArchivo + "\""
                 )
                 .contentType(MediaType.APPLICATION_XML)
                 .body(bytes);
@@ -392,7 +434,7 @@ public class RemesaController {
     }
 
     @GetMapping("/{id}/c19")
-    public String descargarC19(@PathVariable Long id) {
+    public ResponseEntity<byte[]> descargarC19(@PathVariable Long id) {
 
         FicheroGenerado remesa =
                 ficheroGeneradoRepository.findById(id)
@@ -421,12 +463,51 @@ public class RemesaController {
             );
         }
 
-        return sepaC19Service.generarC19(
+        String contenido = sepaC19Service.generarC19(
                 remesa,
                 comunidad,
                 lineas,
                 vecinos
         );
+
+        String nombreArchivo =
+                "REMESA_" + remesa.getId() + ".c19";
+
+        Path rutaGuardada;
+        try {
+            rutaGuardada =
+                    documentStorageService.guardarRemesaC19(
+                            Path.of("W:/PROYECTOS/gombeth-urban-v2/ficheros"),
+                            comunidad,
+                            contenido,
+                            remesa.getFechaCreacion(),
+                            remesa.getFechaCobro(),
+                            remesa.getEsquemaSepa()
+                    );
+
+            nombreArchivo = rutaGuardada.getFileName().toString();
+
+        } catch (Exception e) {
+            throw new RuntimeException(
+                    "Error guardando fichero C19 en disco: " + e.getMessage(),
+                    e
+            );
+        }
+
+        remesa.setContenido(contenido);
+        remesa.setNombreArchivo(nombreArchivo);
+        ficheroGeneradoRepository.save(remesa);
+
+        byte[] bytes =
+                contenido.getBytes(StandardCharsets.ISO_8859_1);
+
+        return ResponseEntity.ok()
+                .header(
+                        HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=\"" + nombreArchivo + "\""
+                )
+                .contentType(MediaType.TEXT_PLAIN)
+                .body(bytes);
     }
 
     private List<Vecino> obtenerVecinosDeLineas(List<RemesaLinea> lineas) {
@@ -442,5 +523,82 @@ public class RemesaController {
                                 )
                 )
                 .toList();
+    }
+
+    @PostMapping("/proceso")
+    public ProcesoRemesaResponse procesoCompleto(
+            @RequestBody ProcesoRemesaRequest request
+    ) {
+
+        return procesoRemesaService.ejecutar(request);
+
+    }
+
+    @GetMapping("/{id}/detalle")
+    public RemesaDetalleResponse detalleRemesa(
+            @PathVariable Long id
+    ) {
+        FicheroGenerado remesa = ficheroGeneradoRepository
+                .findById(id)
+                .orElseThrow(() -> new RuntimeException("Remesa no encontrada"));
+
+        Comunidad comunidad = comunidadRepository
+                .findById(remesa.getComunidadId())
+                .orElseThrow(() -> new RuntimeException("Comunidad no encontrada"));
+
+        List<RemesaLinea> lineas =
+                remesaLineaRepository.findByRemesaIdOrderByIdAsc(id);
+
+        List<RemesaLineaDetalleResponse> lineasDetalle =
+                lineas.stream()
+                        .map(linea -> {
+
+                            Vecino vecino = vecinoRepository
+                                    .findById(linea.getVecinoId())
+                                    .orElse(null);
+
+                            List<RemesaLineaConceptoDetalleResponse> conceptos =
+                                    remesaLineaConceptoRepository
+                                            .findByRemesaLineaIdOrderByOrdenAsc(linea.getId())
+                                            .stream()
+                                            .map(c -> new RemesaLineaConceptoDetalleResponse(
+                                                    c.getId(),
+                                                    c.getDescripcion(),
+                                                    c.getImporte(),
+                                                    c.getOrden(),
+                                                    c.getAgrupadoEnUltimaLinea()
+                                            ))
+                                            .toList();
+
+                            return new RemesaLineaDetalleResponse(
+                                    linea.getId(),
+                                    linea.getVecinoId(),
+                                    vecino == null ? "Vecino no encontrado" : vecino.getNombre(),
+                                    linea.getReciboContableId(),
+                                    linea.getImporte(),
+                                    linea.getDomiciliado(),
+                                    linea.getIncluidoSepa(),
+                                    linea.getPdfGenerado(),
+                                    linea.getEmailEnviado(),
+                                    conceptos
+                            );
+                        })
+                        .toList();
+
+        return new RemesaDetalleResponse(
+                remesa.getId(),
+                remesa.getComunidadId(),
+                comunidad.getNombre(),
+                remesa.getFechaCreacion(),
+                remesa.getFechaCobro(),
+                remesa.getEstado(),
+                remesa.getEsquemaSepa(),
+                remesa.getTotalImporte(),
+                remesa.getTotalDomiciliado(),
+                remesa.getTotalNoDomiciliado(),
+                remesa.getNumeroRecibos(),
+                remesa.getNombreArchivo(),
+                lineasDetalle
+        );
     }
 }

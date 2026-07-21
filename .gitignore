@@ -62,3 +62,56 @@ backend/src/main/resources/application-secrets.properties
 *.zip
 *.rar
 *.7z
+# --- Gombeth Urban: archivos locales y generados ---
+
+# IntelliJ y editores
+.idea/
+*.iml
+.vscode/
+
+# Maven
+backend/target/
+*.jar
+
+# Angular
+frontend/node_modules/
+frontend/node_modules_windows/
+frontend/dist/
+.angular/
+
+# Angular compilado y copiado al backend
+backend/src/main/resources/static/
+
+# Configuración local y credenciales
+application-local.properties
+backend/application-local.properties
+backend/src/main/resources/application-local.properties
+.env
+.env.*
+
+# Datos privados y documentación local
+a_documentacion/
+a_documentaci*/
+ficheros/
+pruebas/
+*.sql
+
+# Fotografías y QR generados durante las pruebas
+backend/adjunto-incidencia-*.jpg
+backend/qr-comunidad-*.png
+
+# Logs y temporales
+*.log
+logs/
+tmp/
+temp/
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+
+# --- Fin archivos locales y generados ---
+
+# Scripts locales de arranque
+/arrancar-backend.bat
+/frontend/arrancar-frontend.bat

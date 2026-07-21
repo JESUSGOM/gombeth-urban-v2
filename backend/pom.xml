@@ -13,13 +13,14 @@
     </parent>
 
     <groupId>com.gombeth.urban</groupId>
-    <artifactId>backend</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
-    <name>gombeth-urban-backend</name>
+    <artifactId>gombeth-urban</artifactId>
+    <version>1.0.0</version>
+    <name>Gombeth Urban</name>
     <description>Backend Gombeth Urban</description>
 
     <properties>
         <java.version>21</java.version>
+        <zxing.version>3.5.4</zxing.version>
     </properties>
 
     <dependencies>
@@ -55,7 +56,27 @@
             <scope>runtime</scope>
         </dependency>
 
-        <!-- Tests correctos -->
+        <!-- Generación de códigos QR -->
+        <dependency>
+            <groupId>com.google.zxing</groupId>
+            <artifactId>core</artifactId>
+            <version>${zxing.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.google.zxing</groupId>
+            <artifactId>javase</artifactId>
+            <version>${zxing.version}</version>
+        </dependency>
+
+        <!-- Generación de documentos PDF -->
+        <dependency>
+            <groupId>com.github.librepdf</groupId>
+            <artifactId>openpdf</artifactId>
+            <version>2.0.3</version>
+        </dependency>
+
+        <!-- Tests -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
@@ -68,22 +89,16 @@
             <scope>test</scope>
         </dependency>
 
-        <dependency>
-            <groupId>com.github.librepdf</groupId>
-            <artifactId>openpdf</artifactId>
-            <version>2.0.3</version>
-        </dependency>
-
     </dependencies>
 
     <build>
-        <plugins>
+        <finalName>GombethUrban-${project.version}</finalName>
 
+        <plugins>
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
             </plugin>
-
         </plugins>
     </build>
 

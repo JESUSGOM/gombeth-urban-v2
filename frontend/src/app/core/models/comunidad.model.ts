@@ -12,4 +12,5 @@ export interface Comunidad {
   sufijo?: string;
   paiscod?: string;
   metodoReparto?: string;
+  tipoReparto?: string;
 }

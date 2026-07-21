@@ -5,11 +5,16 @@ import com.gombeth.urban.dto.CoeficientesResumenResponse;
 import com.gombeth.urban.entity.Comunidad;
 import com.gombeth.urban.repository.ComunidadRepository;
 import com.gombeth.urban.repository.VecinoRepository;
+import com.gombeth.urban.service.QrCodeService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.http.CacheControl;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -20,29 +25,42 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Locale;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/comunidades")
 public class ComunidadController {
 
+    private static final String FORMULARIO_PUBLICO_INCIDENCIAS =
+            "https://jfgb.es/incidenciacomunidad/";
+
     private final ComunidadRepository repository;
     private final VecinoRepository vecinoRepository;
+    private final QrCodeService qrCodeService;
 
     public ComunidadController(
             ComunidadRepository repository,
-            VecinoRepository vecinoRepository
+            VecinoRepository vecinoRepository,
+            QrCodeService qrCodeService
     ) {
         this.repository = repository;
         this.vecinoRepository = vecinoRepository;
+        this.qrCodeService = qrCodeService;
     }
 
     @GetMapping
     public Page<Comunidad> listar(
             @RequestParam(required = false) Long usuarioId,
             @RequestParam(required = false) Long administradorId,
-            @PageableDefault(size = 10, sort = "nombre", direction = Sort.Direction.ASC)
+            @PageableDefault(
+                    size = 10,
+                    sort = "nombre",
+                    direction = Sort.Direction.ASC
+            )
             Pageable pageable
     ) {
         if (usuarioId != null) {
@@ -50,7 +68,10 @@ public class ComunidadController {
         }
 
         if (administradorId != null) {
-            return repository.findByAdministradorId(administradorId, pageable);
+            return repository.findByAdministradorId(
+                    administradorId,
+                    pageable
+            );
         }
 
         return repository.findAll(pageable);
@@ -64,11 +85,53 @@ public class ComunidadController {
     ) {
         validarAcceso(id, usuarioId, administradorId);
 
-        return repository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND,
-                        "Comunidad no encontrada con ID: " + id
-                ));
+        return obtenerComunidad(id);
+    }
+
+    @GetMapping(
+            value = "/{id}/qr",
+            produces = MediaType.IMAGE_PNG_VALUE
+    )
+    public ResponseEntity<byte[]> generarQrIncidencias(
+            @PathVariable Long id,
+            @RequestParam(required = false) Long usuarioId,
+            @RequestParam(required = false) Long administradorId
+    ) {
+        validarAcceso(id, usuarioId, administradorId);
+
+        Comunidad comunidad = obtenerComunidad(id);
+
+        String tokenQr = obtenerOCrearTokenQr(comunidad);
+
+        String tokenCodificado = URLEncoder.encode(
+                tokenQr,
+                StandardCharsets.UTF_8
+        );
+
+        String urlFormulario = FORMULARIO_PUBLICO_INCIDENCIAS
+                + "?t="
+                + tokenCodificado;
+
+        byte[] imagenQr = qrCodeService.generarQrPng(urlFormulario);
+
+        return ResponseEntity.ok()
+                .contentType(MediaType.IMAGE_PNG)
+                .cacheControl(CacheControl.noStore())
+                .header(
+                        HttpHeaders.PRAGMA,
+                        "no-cache"
+                )
+                .header(
+                        HttpHeaders.EXPIRES,
+                        "0"
+                )
+                .header(
+                        HttpHeaders.CONTENT_DISPOSITION,
+                        "inline; filename=\"qr-comunidad-"
+                                + id
+                                + ".png\""
+                )
+                .body(imagenQr);
     }
 
     @PutMapping("/{id}")
@@ -80,25 +143,53 @@ public class ComunidadController {
     ) {
         validarAcceso(id, usuarioId, administradorId);
 
-        Comunidad comunidad = repository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND,
-                        "Comunidad no encontrada con ID: " + id
-                ));
+        Comunidad comunidad = obtenerComunidad(id);
 
-        comunidad.setNombre(limpiarEspacios(comunidadActualizada.getNombre()));
-        comunidad.setNifCif(normalizarTextoSimple(comunidadActualizada.getNifCif()));
-        comunidad.setDireccion(limpiarEspacios(comunidadActualizada.getDireccion()));
-        comunidad.setCodigoPostal(limpiarEspacios(comunidadActualizada.getCodigoPostal()));
-        comunidad.setPoblacion(limpiarEspacios(comunidadActualizada.getPoblacion()));
-        comunidad.setProvincia(limpiarEspacios(comunidadActualizada.getProvincia()));
-        comunidad.setPaiscod(normalizarTextoSimple(comunidadActualizada.getPaiscod()));
-        comunidad.setIban(normalizarIban(comunidadActualizada.getIban()));
-        comunidad.setBic(normalizarTextoSimple(comunidadActualizada.getBic()));
-        comunidad.setIdentificadorAcreedor(
-                normalizarTextoSimple(comunidadActualizada.getIdentificadorAcreedor())
+        comunidad.setNombre(
+                limpiarEspacios(comunidadActualizada.getNombre())
         );
-        comunidad.setSufijo(normalizarTextoSimple(comunidadActualizada.getSufijo()));
+
+        comunidad.setNifCif(
+                normalizarTextoSimple(comunidadActualizada.getNifCif())
+        );
+
+        comunidad.setDireccion(
+                limpiarEspacios(comunidadActualizada.getDireccion())
+        );
+
+        comunidad.setCodigoPostal(
+                limpiarEspacios(comunidadActualizada.getCodigoPostal())
+        );
+
+        comunidad.setPoblacion(
+                limpiarEspacios(comunidadActualizada.getPoblacion())
+        );
+
+        comunidad.setProvincia(
+                limpiarEspacios(comunidadActualizada.getProvincia())
+        );
+
+        comunidad.setPaiscod(
+                normalizarTextoSimple(comunidadActualizada.getPaiscod())
+        );
+
+        comunidad.setIban(
+                normalizarIban(comunidadActualizada.getIban())
+        );
+
+        comunidad.setBic(
+                normalizarTextoSimple(comunidadActualizada.getBic())
+        );
+
+        comunidad.setIdentificadorAcreedor(
+                normalizarTextoSimple(
+                        comunidadActualizada.getIdentificadorAcreedor()
+                )
+        );
+
+        comunidad.setSufijo(
+                normalizarTextoSimple(comunidadActualizada.getSufijo())
+        );
 
         validarDatosComunidad(comunidad);
 
@@ -139,24 +230,59 @@ public class ComunidadController {
         return vecinoRepository.detalleCoeficientesPorComunidad(id);
     }
 
+    private Comunidad obtenerComunidad(Long id) {
+        return repository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Comunidad no encontrada con ID: " + id
+                ));
+    }
+
+    private String obtenerOCrearTokenQr(Comunidad comunidad) {
+        String tokenActual = comunidad.getTokenQr();
+
+        if (tokenActual != null && !tokenActual.isBlank()) {
+            return tokenActual;
+        }
+
+        String nuevoToken = UUID.randomUUID()
+                .toString()
+                .replace("-", "");
+
+        comunidad.setTokenQr(nuevoToken);
+
+        Comunidad comunidadGuardada = repository.save(comunidad);
+
+        return comunidadGuardada.getTokenQr();
+    }
+
     private void validarAcceso(
             Long comunidadId,
             Long usuarioId,
             Long administradorId
     ) {
         if (usuarioId != null) {
-            boolean existe = repository.existsByIdAndUsuarioId(comunidadId, usuarioId);
+            boolean existe = repository.existsByIdAndUsuarioId(
+                    comunidadId,
+                    usuarioId
+            );
+
             if (!existe) {
                 throw new ResponseStatusException(
                         HttpStatus.FORBIDDEN,
                         "No tiene permisos para acceder a esta comunidad."
                 );
             }
+
             return;
         }
 
         if (administradorId != null) {
-            boolean existe = repository.existsByIdAndAdministradorId(comunidadId, administradorId);
+            boolean existe = repository.existsByIdAndAdministradorId(
+                    comunidadId,
+                    administradorId
+            );
+
             if (!existe) {
                 throw new ResponseStatusException(
                         HttpStatus.FORBIDDEN,
@@ -167,7 +293,10 @@ public class ComunidadController {
     }
 
     private void validarDatosComunidad(Comunidad comunidad) {
-        if (comunidad.getNombre() == null || comunidad.getNombre().isBlank()) {
+        if (
+                comunidad.getNombre() == null
+                        || comunidad.getNombre().isBlank()
+        ) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
                     "El nombre de la comunidad es obligatorio."
@@ -176,7 +305,11 @@ public class ComunidadController {
 
         String cif = comunidad.getNifCif();
 
-        if (cif != null && !cif.isBlank() && !validarCif(cif)) {
+        if (
+                cif != null
+                        && !cif.isBlank()
+                        && !validarCif(cif)
+        ) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
                     "CIF/NIF inválido."
@@ -189,9 +322,13 @@ public class ComunidadController {
             return null;
         }
 
-        String limpio = valor.trim().toUpperCase(Locale.ROOT);
+        String limpio = valor
+                .trim()
+                .toUpperCase(Locale.ROOT);
 
-        return limpio.isBlank() ? null : limpio;
+        return limpio.isBlank()
+                ? null
+                : limpio;
     }
 
     private String normalizarIban(String iban) {
@@ -203,7 +340,9 @@ public class ComunidadController {
                 .replaceAll("\\s+", "")
                 .toUpperCase(Locale.ROOT);
 
-        return limpio.isBlank() ? null : limpio;
+        return limpio.isBlank()
+                ? null
+                : limpio;
     }
 
     private String limpiarEspacios(String valor) {
@@ -213,7 +352,9 @@ public class ComunidadController {
 
         String limpio = valor.trim();
 
-        return limpio.isBlank() ? null : limpio;
+        return limpio.isBlank()
+                ? null
+                : limpio;
     }
 
     private boolean validarCif(String cif) {
@@ -222,6 +363,7 @@ public class ComunidadController {
         }
 
         cif = cif.toUpperCase(Locale.ROOT);
+
         String letras = "ABCDEFGHJNPQRSUVW";
 
         if (!letras.contains(cif.substring(0, 1))) {
@@ -232,24 +374,37 @@ public class ComunidadController {
             String digitos = cif.substring(1, 8);
 
             int sumaPares = 0;
+
             for (int i = 1; i < digitos.length(); i += 2) {
-                sumaPares += Character.getNumericValue(digitos.charAt(i));
+                sumaPares += Character.getNumericValue(
+                        digitos.charAt(i)
+                );
             }
 
             int sumaImpares = 0;
+
             for (int i = 0; i < digitos.length(); i += 2) {
-                int doble = Character.getNumericValue(digitos.charAt(i)) * 2;
-                sumaImpares += (doble > 9) ? (doble - 9) : doble;
+                int doble = Character.getNumericValue(
+                        digitos.charAt(i)
+                ) * 2;
+
+                sumaImpares += doble > 9
+                        ? doble - 9
+                        : doble;
             }
 
-            int numControl = (10 - ((sumaPares + sumaImpares) % 10)) % 10;
-            char letraControl = "JABCDEFGHI".charAt(numControl);
+            int numeroControl =
+                    (10 - ((sumaPares + sumaImpares) % 10)) % 10;
+
+            char letraControl =
+                    "JABCDEFGHI".charAt(numeroControl);
+
             char ultimo = cif.charAt(8);
 
-            return ultimo == Character.forDigit(numControl, 10)
+            return ultimo == Character.forDigit(numeroControl, 10)
                     || ultimo == letraControl;
 
-        } catch (Exception e) {
+        } catch (Exception excepcion) {
             return false;
         }
     }

@@ -1,5 +1,6 @@
 package com.gombeth.urban.config;
 
+import jakarta.servlet.DispatcherType;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -16,15 +17,34 @@ import java.util.List;
 public class SecurityConfig {
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(
+            HttpSecurity http
+    ) throws Exception {
+
         return http
                 .csrf(csrf -> csrf.disable())
 
-                // 🔥 CORS ACTIVADO
-                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                .cors(cors ->
+                        cors.configurationSource(
+                                corsConfigurationSource()
+                        )
+                )
 
                 .authorizeHttpRequests(auth -> auth
+
+                        .dispatcherTypeMatchers(
+                                DispatcherType.ERROR
+                        )
+                        .permitAll()
+
                         .requestMatchers(
+                                "/",
+                                "/error",
+                                "/index.html",
+                                "/favicon.ico",
+                                "/images/**",
+                                "/*.js",
+                                "/*.css",
                                 "/api/health",
                                 "/api/auth/login",
                                 "/api/usuario/**",
@@ -32,6 +52,7 @@ public class SecurityConfig {
                                 "/api/dashboard/**",
                                 "/api/vecinos/**",
                                 "/api/documentos/**",
+                                "/api/vecino-documentos/**",
                                 "/api/propiedades/**",
                                 "/api/presupuestos/**",
                                 "/api/conceptos-cobro/**",
@@ -45,42 +66,56 @@ public class SecurityConfig {
                                 "/api/diario/**",
                                 "/api/mayor/**",
                                 "/api/balance/",
-                                "/api/balance/**"
+                                "/api/balance/**",
+                                "/api/incidencias/",
+                                "/api/incidencias/**"
                         )
                         .permitAll()
-                        .anyRequest().authenticated()
+
+                        .anyRequest()
+                        .authenticated()
                 )
+
                 .formLogin(form -> form.disable())
                 .httpBasic(basic -> basic.disable())
                 .build();
     }
 
-    // 🔥 CONFIGURACIÓN CORS PARA ANGULAR
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
 
-        CorsConfiguration config = new CorsConfiguration();
+        CorsConfiguration config =
+                new CorsConfiguration();
 
-        config.setAllowedOrigins(List.of(
-                "http://localhost:4200"
-        ));
+        config.setAllowedOrigins(
+                List.of(
+                        "http://localhost:4200"
+                )
+        );
 
-        config.setAllowedMethods(List.of(
-                "GET",
-                "POST",
-                "PUT",
-                "DELETE",
-                "OPTIONS"
-        ));
+        config.setAllowedMethods(
+                List.of(
+                        "GET",
+                        "POST",
+                        "PUT",
+                        "DELETE",
+                        "OPTIONS"
+                )
+        );
 
-        config.setAllowedHeaders(List.of("*"));
+        config.setAllowedHeaders(
+                List.of("*")
+        );
 
         config.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source =
                 new UrlBasedCorsConfigurationSource();
 
-        source.registerCorsConfiguration("/**", config);
+        source.registerCorsConfiguration(
+                "/**",
+                config
+        );
 
         return source;
     }

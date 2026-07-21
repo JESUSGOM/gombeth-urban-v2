@@ -67,3 +67,22 @@
   background: #2563eb;
   font-weight: 600;
 }
+
+.menu-separador{
+
+  margin:20px 10px;
+  border:none;
+  border-top:1px solid rgba(255,255,255,.15);
+
+}
+
+.salir{
+  margin-top:auto;
+  color:#ffb5b5;
+  cursor:pointer;
+}
+
+.salir:hover{
+  background:#b71c1c;
+  color:white;
+}

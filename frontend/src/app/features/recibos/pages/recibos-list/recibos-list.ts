@@ -1,27 +1,94 @@
-import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
+import {
+  Component,
+  DestroyRef,
+  OnInit,
+  inject
+} from '@angular/core';
 
 import { CommonModule } from '@angular/common';
-
-import { Recibo } from '../../../../core/models/recibo.model';
-import { ReciboService } from '../../../../core/services/recibo';
-import { ComunidadService } from '../../../../core/services/comunidad';
-import { ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { RemesaService } from '../../../../core/services/remesa.service';
+import {
+  ActivatedRoute,
+  Router
+} from '@angular/router';
+
+import {
+  Subscription
+} from 'rxjs';
+
+import {
+  takeUntilDestroyed
+} from '@angular/core/rxjs-interop';
+
+import {
+  Recibo
+} from '../../../../core/models/recibo.model';
+
+import {
+  ReciboService
+} from '../../../../core/services/recibo';
+
+import {
+  ComunidadService
+} from '../../../../core/services/comunidad';
+
+import {
+  RemesaService
+} from '../../../../core/services/remesa.service';
+
+import {
+  ComunidadSeleccionada,
+  ComunidadStateService
+} from '../../../../core/state/comunidad-state.service';
 
 @Component({
   selector: 'app-recibos-list',
-  imports: [CommonModule, FormsModule],
+  standalone: true,
+  imports: [
+    CommonModule,
+    FormsModule
+  ],
   templateUrl: './recibos-list.html',
   styleUrl: './recibos-list.scss'
 })
 export class RecibosList implements OnInit {
 
-  private reciboService = inject(ReciboService);
-  private remesaService = inject(RemesaService);
-  private comunidadService = inject(ComunidadService);
-  private cdr = inject(ChangeDetectorRef);
-  private route = inject(ActivatedRoute);
+  private reciboService =
+    inject(ReciboService);
+
+  private remesaService =
+    inject(RemesaService);
+
+  private comunidadService =
+    inject(ComunidadService);
+
+  private comunidadState =
+    inject(ComunidadStateService);
+
+  private route =
+    inject(ActivatedRoute);
+
+  private router =
+    inject(Router);
+
+  private destroyRef =
+    inject(DestroyRef);
+
+  /*
+   * Peticiones activas.
+   *
+   * Se cancelan cuando el usuario cambia rápidamente
+   * de comunidad.
+   */
+  private cargaRecibosActual?: Subscription;
+  private cargaComunidadActual?: Subscription;
+
+  /*
+   * Durante la apertura de /recibos/comunidad/:id
+   * ignoramos momentáneamente una comunidad antigua
+   * que pudiera estar guardada en localStorage.
+   */
+  private sincronizandoRuta = false;
 
   paginaActual = 1;
   registrosPorPagina = 10;
@@ -29,10 +96,14 @@ export class RecibosList implements OnInit {
   comunidadId = 0;
   nombreComunidad = '';
 
-  campoOrden: keyof Recibo = 'fechaEmision';
-  direccionOrden: 'asc' | 'desc' = 'desc';
+  campoOrden: keyof Recibo =
+    'fechaEmision';
 
-  recibosSeleccionados = new Set<number>();
+  direccionOrden:
+    'asc' | 'desc' = 'desc';
+
+  recibosSeleccionados =
+    new Set<number>();
 
   estadoFiltro = '';
 
@@ -48,114 +119,383 @@ export class RecibosList implements OnInit {
   error = '';
 
   ngOnInit(): void {
-    this.route.params.subscribe(params => {
-      this.comunidadId = Number(params['id'] || 0);
+    const comunidadIdRuta =
+      this.obtenerComunidadIdRuta();
 
-      if (this.comunidadId > 0) {
-        this.cargarNombreComunidad();
-        this.cargarRecibos();
-      }
-    });
+    /*
+     * Si la URL contiene una comunidad, impedimos que
+     * primero se cargue la comunidad antigua almacenada.
+     */
+    this.sincronizandoRuta =
+      comunidadIdRuta !== null;
+
+    this.comunidadState.init();
+
+    /*
+     * Escucha permanentemente el combo superior.
+     */
+    this.comunidadState.comunidad$
+      .pipe(
+        takeUntilDestroyed(this.destroyRef)
+      )
+      .subscribe(comunidad => {
+        if (
+          this.sincronizandoRuta
+        ) {
+          return;
+        }
+
+        if (
+          !comunidad ||
+          !comunidad.id
+        ) {
+          this.limpiarPantalla();
+          return;
+        }
+
+        this.activarComunidad(
+          comunidad,
+          true
+        );
+      });
+
+    /*
+     * Cuando se entra desde Comunidades mediante el botón R,
+     * activa inmediatamente la comunidad de la URL.
+     */
+    if (comunidadIdRuta !== null) {
+      this.activarComunidadDesdeRuta(
+        comunidadIdRuta
+      );
+    }
   }
 
-  cargarNombreComunidad(): void {
-    this.comunidadService
-      .getComunidad(this.comunidadId)
-      .subscribe({
-        next: (comunidad) => {
-          this.nombreComunidad = comunidad.nombre;
-          this.cdr.detectChanges();
-        },
-        error: (err) => {
-          console.error('Error cargando comunidad:', err);
-          this.nombreComunidad = '';
-          this.cdr.detectChanges();
+  /**
+   * Lee rutas como:
+   *
+   * /recibos/comunidad/3
+   */
+  private obtenerComunidadIdRuta(): number | null {
+    const valor =
+      Number(
+        this.route.snapshot.paramMap.get('id')
+      );
+
+    if (
+      !Number.isInteger(valor) ||
+      valor <= 0
+    ) {
+      return null;
+    }
+
+    return valor;
+  }
+
+  /**
+   * Activa una comunidad recibida desde la URL.
+   *
+   * Los recibos comienzan a cargarse inmediatamente,
+   * sin esperar a una segunda selección en el combo.
+   */
+  private activarComunidadDesdeRuta(
+    comunidadId: number
+  ): void {
+    const seleccionInicial: ComunidadSeleccionada = {
+      id: comunidadId,
+      nombre: `Comunidad ${comunidadId}`
+    };
+
+    this.activarComunidad(
+      seleccionInicial,
+      false
+    );
+
+    /*
+     * Una vez aplicada la comunidad de la URL,
+     * ya permitimos cambios desde el combo superior.
+     */
+    this.sincronizandoRuta = false;
+
+    this.cargarDatosComunidad(
+      comunidadId
+    );
+  }
+
+  /**
+   * Cambia la comunidad mostrada y carga sus recibos.
+   */
+  private activarComunidad(
+    comunidad: ComunidadSeleccionada,
+    actualizarUrl: boolean
+  ): void {
+    const comunidadId =
+      Number(comunidad.id);
+
+    if (
+      !Number.isInteger(comunidadId) ||
+      comunidadId <= 0
+    ) {
+      return;
+    }
+
+    const cambiaComunidad =
+      this.comunidadId !== comunidadId;
+
+    this.comunidadId =
+      comunidadId;
+
+    if (
+      comunidad.nombre &&
+      comunidad.nombre.trim() !== ''
+    ) {
+      this.nombreComunidad =
+        comunidad.nombre;
+    }
+
+    /*
+     * Mantiene la dirección del navegador asociada
+     * a la comunidad actualmente seleccionada.
+     */
+    if (actualizarUrl) {
+      void this.router.navigate(
+        [
+          '/recibos/comunidad',
+          comunidadId
+        ],
+        {
+          replaceUrl: true
         }
-      });
+      );
+    }
+
+    /*
+     * Cuando solo cambia el nombre de la misma comunidad,
+     * no repetimos la consulta de recibos.
+     */
+    if (!cambiaComunidad) {
+      return;
+    }
+
+    this.cancelarPeticiones();
+
+    this.recibosSeleccionados.clear();
+    this.recibos = [];
+
+    this.paginaActual = 1;
+    this.error = '';
+
+    this.cargarRecibos();
+  }
+
+  /**
+   * Obtiene el nombre real de la comunidad indicada
+   * en la URL y sincroniza el combo superior.
+   */
+  private cargarDatosComunidad(
+    comunidadId: number
+  ): void {
+    this.cargaComunidadActual?.unsubscribe();
+
+    this.cargaComunidadActual =
+      this.comunidadService
+        .getComunidad(comunidadId)
+        .pipe(
+          takeUntilDestroyed(this.destroyRef)
+        )
+        .subscribe({
+          next: comunidad => {
+            /*
+             * El usuario puede haber cambiado de comunidad
+             * mientras llegaba esta respuesta.
+             */
+            if (
+              this.comunidadId !== comunidadId
+            ) {
+              return;
+            }
+
+            const nombre =
+              comunidad.nombre ||
+              `Comunidad ${comunidadId}`;
+
+            this.nombreComunidad =
+              nombre;
+
+            /*
+             * Al actualizar el estado global,
+             * el combo superior seleccionará automáticamente
+             * esta comunidad.
+             */
+            this.comunidadState.setComunidad({
+              id: comunidadId,
+              nombre
+            });
+          },
+
+          error: error => {
+            console.error(
+              'Error cargando la comunidad:',
+              error
+            );
+
+            if (
+              this.comunidadId !== comunidadId
+            ) {
+              return;
+            }
+
+            const nombreTemporal =
+              `Comunidad ${comunidadId}`;
+
+            this.nombreComunidad =
+              nombreTemporal;
+
+            /*
+             * Incluso cuando no se puede recuperar el nombre,
+             * dejamos sincronizado el identificador.
+             */
+            this.comunidadState.setComunidad({
+              id: comunidadId,
+              nombre: nombreTemporal
+            });
+          }
+        });
   }
 
   cargarRecibos(): void {
     if (this.comunidadId <= 0) {
+      this.limpiarPantalla();
       return;
     }
+
+    this.cargaRecibosActual?.unsubscribe();
+
+    const comunidadSolicitada =
+      this.comunidadId;
 
     this.cargando = true;
     this.error = '';
 
-    this.reciboService
-      .getRecibos(this.comunidadId)
-      .subscribe({
-        next: (data) => {
-          this.recibos = data;
-          this.paginaActual = 1;
-          this.cargando = false;
-          this.cdr.detectChanges();
-        },
-        error: (err) => {
-          console.error('Error cargando recibos:', err);
-          this.error =
-            err?.error?.message ||
-            err?.error ||
-            'No se pudieron cargar los recibos.';
-          this.cargando = false;
-          this.cdr.detectChanges();
-        }
-      });
+    this.cargaRecibosActual =
+      this.reciboService
+        .getRecibos(comunidadSolicitada)
+        .pipe(
+          takeUntilDestroyed(this.destroyRef)
+        )
+        .subscribe({
+          next: data => {
+            /*
+             * Ignora respuestas antiguas cuando el usuario
+             * ya ha cambiado de comunidad.
+             */
+            if (
+              this.comunidadId !==
+              comunidadSolicitada
+            ) {
+              return;
+            }
+
+            this.recibos =
+              data ?? [];
+
+            this.paginaActual = 1;
+            this.cargando = false;
+          },
+
+          error: error => {
+            if (
+              this.comunidadId !==
+              comunidadSolicitada
+            ) {
+              return;
+            }
+
+            console.error(
+              'Error cargando recibos:',
+              error
+            );
+
+            this.recibos = [];
+
+            this.error =
+              error?.error?.message ||
+              error?.error ||
+              'No se pudieron cargar los recibos.';
+
+            this.cargando = false;
+          }
+        });
+  }
+
+  private aplicarFiltros(
+    recibos: Recibo[]
+  ): Recibo[] {
+    let resultado =
+      [...recibos];
+
+    if (this.estadoFiltro) {
+      resultado = resultado.filter(
+        recibo =>
+          recibo.estado ===
+          this.estadoFiltro
+      );
+    }
+
+    if (this.fechaDesde) {
+      resultado = resultado.filter(
+        recibo =>
+          recibo.fechaEmision >=
+          this.fechaDesde
+      );
+    }
+
+    if (this.fechaHasta) {
+      resultado = resultado.filter(
+        recibo =>
+          recibo.fechaEmision <=
+          this.fechaHasta
+      );
+    }
+
+    if (this.importeMinimo !== null) {
+      resultado = resultado.filter(
+        recibo =>
+          recibo.importe >=
+          Number(this.importeMinimo)
+      );
+    }
+
+    if (this.importeMaximo !== null) {
+      resultado = resultado.filter(
+        recibo =>
+          recibo.importe <=
+          Number(this.importeMaximo)
+      );
+    }
+
+    return resultado;
   }
 
   get totalPaginas(): number {
-
-    let resultado = [...this.recibos];
-
-    if (this.estadoFiltro) {
-      resultado =
-        resultado.filter(
-          r => r.estado === this.estadoFiltro
-        );
-    }
+    const cantidad =
+      this.aplicarFiltros(
+        this.recibos
+      ).length;
 
     return Math.max(
       1,
       Math.ceil(
-        resultado.length /
+        cantidad /
         this.registrosPorPagina
       )
     );
   }
 
   get recibosPaginados(): Recibo[] {
-
-    let resultado = [...this.recibos];
-
-    if (this.estadoFiltro) {
-      resultado = resultado.filter(
-        r => r.estado === this.estadoFiltro
+    const resultado =
+      this.aplicarFiltros(
+        this.recibos
       );
-    }
-
-    if (this.fechaDesde) {
-      resultado = resultado.filter(
-        r => r.fechaEmision >= this.fechaDesde
-      );
-    }
-
-    if (this.fechaHasta) {
-      resultado = resultado.filter(
-        r => r.fechaEmision <= this.fechaHasta
-      );
-    }
-
-    if (this.importeMinimo !== null) {
-      resultado = resultado.filter(
-        r => r.importe >= this.importeMinimo!
-      );
-    }
-
-    if (this.importeMaximo !== null) {
-      resultado = resultado.filter(
-        r => r.importe <= this.importeMaximo!
-      );
-    }
 
     const inicio =
       (this.paginaActual - 1) *
@@ -165,105 +505,153 @@ export class RecibosList implements OnInit {
       inicio +
       this.registrosPorPagina;
 
-    return resultado.slice(inicio, fin);
+    return resultado.slice(
+      inicio,
+      fin
+    );
   }
 
-  cambiarPagina(pagina: number): void {
-    if (pagina < 1 || pagina > this.totalPaginas) {
+  cambiarPagina(
+    pagina: number
+  ): void {
+    if (
+      pagina < 1 ||
+      pagina > this.totalPaginas
+    ) {
       return;
     }
 
     this.paginaActual = pagina;
   }
 
-  ordenar(campo: keyof Recibo): void {
-
-    if (this.campoOrden === campo) {
-
+  ordenar(
+    campo: keyof Recibo
+  ): void {
+    if (
+      this.campoOrden === campo
+    ) {
       this.direccionOrden =
         this.direccionOrden === 'asc'
           ? 'desc'
           : 'asc';
-
     } else {
-
       this.campoOrden = campo;
       this.direccionOrden = 'asc';
-
     }
 
-    this.recibos.sort((a: any, b: any) => {
+    this.recibos.sort(
+      (a: Recibo, b: Recibo) => {
+        const valorA =
+          a[campo];
 
-      const valorA = a[campo];
-      const valorB = b[campo];
+        const valorB =
+          b[campo];
 
-      if (valorA == null) return 1;
-      if (valorB == null) return -1;
+        if (
+          valorA === null ||
+          valorA === undefined
+        ) {
+          return 1;
+        }
 
-      const resultado =
-        valorA > valorB ? 1 :
-          valorA < valorB ? -1 : 0;
+        if (
+          valorB === null ||
+          valorB === undefined
+        ) {
+          return -1;
+        }
 
-      return this.direccionOrden === 'asc'
-        ? resultado
-        : -resultado;
-    });
+        let resultado = 0;
+
+        if (
+          typeof valorA === 'number' &&
+          typeof valorB === 'number'
+        ) {
+          resultado =
+            valorA - valorB;
+        } else {
+          resultado =
+            String(valorA).localeCompare(
+              String(valorB),
+              'es',
+              {
+                sensitivity: 'base',
+                numeric: true
+              }
+            );
+        }
+
+        return this.direccionOrden === 'asc'
+          ? resultado
+          : -resultado;
+      }
+    );
 
     this.paginaActual = 1;
   }
 
   get totalSeleccionado(): number {
-
     return this.recibos
-      .filter(r =>
-        this.recibosSeleccionados.has(r.id)
+      .filter(recibo =>
+        this.recibosSeleccionados.has(
+          recibo.id
+        )
       )
       .reduce(
-        (total, r) =>
-          total + r.importe,
+        (total, recibo) =>
+          total + recibo.importe,
         0
       );
   }
 
-  toggleRecibo(id: number): void {
-
-    if (this.recibosSeleccionados.has(id)) {
-
+  toggleRecibo(
+    id: number
+  ): void {
+    if (
+      this.recibosSeleccionados.has(id)
+    ) {
       this.recibosSeleccionados.delete(id);
-
     } else {
-
       this.recibosSeleccionados.add(id);
-
     }
   }
 
-  estaSeleccionado(id: number): boolean {
-
+  estaSeleccionado(
+    id: number
+  ): boolean {
     return this.recibosSeleccionados.has(id);
   }
 
-  seleccionarTodos(event: any): void {
+  seleccionarTodos(
+    event: Event
+  ): void {
+    const marcado =
+      (event.target as HTMLInputElement)
+        .checked;
 
-    if (event.target.checked) {
-
-      this.recibosPaginados.forEach(r => {
-        this.recibosSeleccionados.add(r.id);
-      });
-
+    if (marcado) {
+      this.recibosPaginados.forEach(
+        recibo => {
+          this.recibosSeleccionados.add(
+            recibo.id
+          );
+        }
+      );
     } else {
-
-      this.recibosPaginados.forEach(r => {
-        this.recibosSeleccionados.delete(r.id);
-      });
-
+      this.recibosPaginados.forEach(
+        recibo => {
+          this.recibosSeleccionados.delete(
+            recibo.id
+          );
+        }
+      );
     }
   }
 
   generarRemesa(): void {
-
-    if (this.recibosSeleccionados.size === 0) {
-
+    if (
+      this.recibosSeleccionados.size === 0
+    ) {
       alert(
         'Debe seleccionar al menos un recibo'
       );
@@ -271,39 +659,71 @@ export class RecibosList implements OnInit {
       return;
     }
 
-    const fechaCobro = new Date()
-      .toISOString()
-      .split('T')[0];
+    const fechaCobro =
+      new Date()
+        .toISOString()
+        .split('T')[0];
 
     this.remesaService
       .generarRemesaSeleccion(
         this.comunidadId,
         fechaCobro,
-        [...this.recibosSeleccionados]
+        [
+          ...this.recibosSeleccionados
+        ]
+      )
+      .pipe(
+        takeUntilDestroyed(this.destroyRef)
       )
       .subscribe({
-
-        next: (response) => {
-
+        next: response => {
           alert(
-            'Remesa generada correctamente. ID: '
-            + response.remesaId
+            'Remesa generada correctamente. ID: ' +
+            response.remesaId
           );
 
           this.recibosSeleccionados.clear();
 
+          /*
+           * Refresca los recibos después de generar
+           * correctamente la remesa.
+           */
+          this.cargarRecibos();
         },
 
-        error: (err) => {
-
-          console.error(err);
+        error: error => {
+          console.error(
+            'Error generando remesa:',
+            error
+          );
 
           alert(
             'Error generando remesa'
           );
-
         }
-
       });
+  }
+
+  private cancelarPeticiones(): void {
+    this.cargaRecibosActual?.unsubscribe();
+    this.cargaRecibosActual = undefined;
+
+    this.cargaComunidadActual?.unsubscribe();
+    this.cargaComunidadActual = undefined;
+  }
+
+  private limpiarPantalla(): void {
+    this.cancelarPeticiones();
+
+    this.comunidadId = 0;
+    this.nombreComunidad = '';
+
+    this.recibos = [];
+    this.recibosSeleccionados.clear();
+
+    this.paginaActual = 1;
+    this.cargando = false;
+    this.error =
+      'Seleccione una comunidad en la barra superior.';
   }
 }

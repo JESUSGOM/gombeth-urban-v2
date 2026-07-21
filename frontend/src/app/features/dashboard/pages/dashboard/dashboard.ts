@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 
@@ -12,7 +12,6 @@ export class Dashboard implements OnInit {
 
   private router = inject(Router);
   private http = inject(HttpClient);
-  private cdr = inject(ChangeDetectorRef);
 
   username = 'Usuario';
 
@@ -21,35 +20,37 @@ export class Dashboard implements OnInit {
   totalIncidencias = 0;
 
   ngOnInit(): void {
+
     const usuario = JSON.parse(
       localStorage.getItem('usuario') || 'null'
     );
 
-    if (usuario) {
-      this.username = usuario.username;
+    if (!usuario) {
+      return;
     }
 
-    const usuarioId = usuario?.usuarioId;
+    this.username = usuario.username;
 
     this.http
-      .get<any>(`http://localhost:8080/api/dashboard?usuarioId=${usuarioId}`)
+      .get<any>(`http://localhost:8080/api/dashboard?usuarioId=${usuario.usuarioId}`)
       .subscribe({
-        next: (data) => {
-          console.log('DASHBOARD:', data);
+
+        next: data => {
 
           this.totalComunidades = data.totalComunidades ?? 0;
           this.totalVecinos = data.totalPropietarios ?? 0;
           this.totalIncidencias = data.totalIncidencias ?? 0;
 
-          this.cdr.detectChanges();
         },
-        error: (err) => {
-          console.error('Error cargando dashboard:', err);
-        }
+
+        error: err => console.error(err)
+
       });
+
   }
 
   irAComunidades(): void {
     this.router.navigate(['/comunidades']);
   }
+
 }

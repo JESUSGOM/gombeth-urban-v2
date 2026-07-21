@@ -16,6 +16,7 @@ export interface Vecino {
   codigoPostal?: string;
   paisCod?: string;
   referenciaMandato?: string;
+  fechaMandato?: string | null;
   direccionNotificacion?: string;
   rutaMandatoFirmado?: string;
   cuentaContableId?: number;

@@ -9,21 +9,7 @@
 
     <div class="toolbar-card">
 
-      <div class="toolbar-item comunidad-item">
-        <label>Comunidad</label>
 
-        <select
-          [(ngModel)]="comunidadId"
-          (change)="cargarTodo()">
-
-          <option
-            *ngFor="let c of comunidades"
-            [ngValue]="c.id">
-            {{ c.nombre }}
-          </option>
-
-        </select>
-      </div>
 
       <div class="toolbar-item year-item">
         <label>Año</label>
@@ -38,7 +24,7 @@
           <option value="COEFICIENTE">
             Por coeficiente
           </option>
-          <option value="IGUALITARIO">
+          <option value="PARTES_IGUALES">
             A partes iguales
           </option>
         </select>

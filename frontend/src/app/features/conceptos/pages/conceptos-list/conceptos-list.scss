@@ -1,41 +1,213 @@
 .conceptos-page {
-  padding: 24px;
+  width: 100%;
+  max-width: 100%;
+  padding: 20px 24px 28px 24px;
+  box-sizing: border-box;
 }
 
 .page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 16px;
   margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.page-header h2 {
+  margin: 0;
+  font-size: 28px;
+  color: #111827;
+}
+
+.subtitulo {
+  margin: 6px 0 0 0;
+  color: #4b5563;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.badge-total {
+  background: #eef2ff;
+  color: #1e3a8a;
+  border: 1px solid #c7d2fe;
+  border-radius: 10px;
+  padding: 8px 12px;
+  font-size: 14px;
+}
+
+.btn-nuevo {
+  border: 1px solid #2563eb;
+  background: #2563eb;
+  color: white;
+  border-radius: 9px;
+  padding: 9px 15px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.btn-nuevo:hover:not(:disabled) {
+  background: #1d4ed8;
+}
+
+.btn-nuevo:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 .table-card {
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 .125rem .25rem rgba(0,0,0,.075);
+  width: 100%;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
   overflow: hidden;
+}
+
+.table-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid #e5e7eb;
+  background: #f9fafb;
+  flex-wrap: wrap;
+}
+
+.toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.toolbar-left label {
+  font-weight: 600;
+  color: #374151;
+}
+
+.toolbar-left select {
+  padding: 6px 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background: white;
+}
+
+.toolbar-right {
+  color: #4b5563;
+  font-size: 14px;
+}
+
+.table-wrapper {
+  width: 100%;
+  overflow-x: auto;
 }
 
 table {
   width: 100%;
+  min-width: 1350px;
   border-collapse: collapse;
 }
 
-th {
-  background: #111827;
-  color: white;
-  padding: 10px;
+thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #0f172a;
+  color: #ffffff;
+  padding: 12px 10px;
   text-align: left;
+  font-size: 14px;
+  white-space: nowrap;
 }
 
-td {
+tbody td {
   padding: 10px;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid #edf0f3;
+  font-size: 14px;
+  color: #111827;
+  vertical-align: middle;
+}
+
+tbody tr:nth-child(even) {
+  background: #fafafa;
+}
+
+tbody tr:hover {
+  background: #f3f4f6;
+}
+
+.sortable {
+  cursor: pointer;
+  user-select: none;
+}
+
+.sortable span {
+  margin-left: 6px;
+  font-size: 12px;
+  opacity: 0.9;
+}
+
+.right {
+  text-align: right;
 }
 
 .center {
   text-align: center;
 }
 
+.descripcion-cell {
+  min-width: 330px;
+}
+
+.importe-cell {
+  white-space: nowrap;
+}
+
+.acciones-header {
+  min-width: 210px;
+}
+
+.acciones-cell {
+  min-width: 210px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.btn-accion {
+  padding: 6px 10px;
+  border-radius: 7px;
+  font-weight: 600;
+  cursor: pointer;
+  margin: 2px 3px;
+}
+
+.btn-editar {
+  color: #1d4ed8;
+  background: #eff6ff;
+  border: 1px solid #93c5fd;
+}
+
+.btn-editar:hover {
+  background: #dbeafe;
+}
+
+.btn-cuenta {
+  color: #166534;
+  background: #f0fdf4;
+  border: 1px solid #86efac;
+}
+
+.btn-cuenta:hover {
+  background: #dcfce7;
+}
+
 .ok {
-  color: #198754;
+  color: #15803d;
   font-weight: 700;
 }
 
@@ -44,8 +216,63 @@ td {
   font-weight: 700;
 }
 
-.info-card {
-  padding: 14px;
-  background: #f3f4f6;
+.sin-cuenta {
+  color: #b45309;
+  font-style: italic;
+}
+
+.empty-row {
+  text-align: center;
+  color: #6b7280;
+  padding: 24px;
+}
+
+.pagination-bar {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  padding: 16px;
+  background: #f9fafb;
+  border-top: 1px solid #e5e7eb;
+  flex-wrap: wrap;
+}
+
+.pagination-bar button {
+  padding: 8px 12px;
+  border: 1px solid #cbd5e1;
+  background: white;
   border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.pagination-bar button:hover:not(:disabled) {
+  background: #f3f4f6;
+}
+
+.pagination-bar button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.pagination-info {
+  color: #374151;
+  font-size: 14px;
+}
+
+.info-card {
+  padding: 14px 16px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+  border-radius: 10px;
+}
+
+.error-card {
+  padding: 14px 16px;
+  background: #fef2f2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+  border-radius: 10px;
 }

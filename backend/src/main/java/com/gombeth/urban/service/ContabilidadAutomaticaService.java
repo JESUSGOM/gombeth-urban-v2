@@ -123,6 +123,88 @@ public class ContabilidadAutomaticaService {
     }
 
     @Transactional
+    public void registrarDevengoRecibo(ContabilidadRecibo recibo) {
+
+        if (recibo == null || recibo.getId() == null) {
+            return;
+        }
+
+        String numeroAsientoControl = "DEVENGO-RECIBO-" + recibo.getId();
+
+        boolean yaExiste =
+                movimientoRepository.existsByComunidadIdAndNumeroAsiento(
+                        recibo.getComunidadId(),
+                        numeroAsientoControl
+                );
+
+        if (yaExiste) {
+            return;
+        }
+
+        CuentaContable cuentaDeudores =
+                buscarCuentaPorPrefijoConAlternativa(
+                        recibo.getComunidadId(),
+                        "447",
+                        "430",
+                        "No existe cuenta de deudores 447 ni 430 para la comunidad "
+                );
+
+        CuentaContable cuentaIngresos =
+                buscarCuentaPorPrefijoConAlternativa(
+                        recibo.getComunidadId(),
+                        "731",
+                        "705",
+                        "No existe cuenta de ingresos 731 ni 705 para la comunidad "
+                );
+
+        BigDecimal importe = recibo.getImporte();
+
+        if (importe == null || importe.compareTo(BigDecimal.ZERO) <= 0) {
+            return;
+        }
+
+        LocalDate fecha =
+                recibo.getFechaEmision() != null
+                        ? recibo.getFechaEmision()
+                        : LocalDate.now();
+
+        ContabilidadAsiento asiento =
+                asientoService.crearAsientoAutomatico(
+                        recibo.getComunidadId(),
+                        fecha,
+                        "Emisión recibo " + recibo.getId(),
+                        "RECIBO_EMITIDO",
+                        recibo.getId(),
+                        null
+                );
+
+        String concepto =
+                "Emisión recibo " + recibo.getId()
+                        + " - asiento " + asiento.getNumeroAsiento();
+
+        ContabilidadMovimiento debeDeudores = new ContabilidadMovimiento();
+        debeDeudores.setComunidadId(recibo.getComunidadId());
+        debeDeudores.setFecha(fecha);
+        debeDeudores.setNumeroAsiento(numeroAsientoControl);
+        debeDeudores.setConcepto(concepto);
+        debeDeudores.setCuentaId(cuentaDeudores.getId());
+        debeDeudores.setDebe(importe);
+        debeDeudores.setHaber(BigDecimal.ZERO);
+
+        ContabilidadMovimiento haberIngresos = new ContabilidadMovimiento();
+        haberIngresos.setComunidadId(recibo.getComunidadId());
+        haberIngresos.setFecha(fecha);
+        haberIngresos.setNumeroAsiento(numeroAsientoControl);
+        haberIngresos.setConcepto(concepto);
+        haberIngresos.setCuentaId(cuentaIngresos.getId());
+        haberIngresos.setDebe(BigDecimal.ZERO);
+        haberIngresos.setHaber(importe);
+
+        movimientoRepository.save(debeDeudores);
+        movimientoRepository.save(haberIngresos);
+    }
+
+    @Transactional
     public int regularizarCobrosConciliadosComunidad(Long comunidadId) {
         List<ContabilidadRecibo> recibos =
                 reciboRepository.findByComunidadIdAndEstadoAndMovimientoBancarioIdIsNotNull(
@@ -266,4 +348,6 @@ public class ContabilidadAutomaticaService {
                 )
                 .orElseThrow(() -> new IllegalStateException(mensajeError + comunidadId));
     }
+
+
 }

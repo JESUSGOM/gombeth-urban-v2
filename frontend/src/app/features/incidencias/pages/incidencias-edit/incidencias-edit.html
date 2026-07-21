@@ -1,0 +1,471 @@
+<div class="incidencia-edit-page">
+
+  <div class="page-header">
+    <div class="page-title-inline">
+      <h2>
+        {{
+          editando
+            ? 'Editar incidencia'
+            : 'Nueva incidencia'
+        }}
+      </h2>
+
+      <p>
+        Registro y seguimiento de incidencias
+      </p>
+    </div>
+  </div>
+
+  <div
+    *ngIf="error"
+    class="alert error">
+    {{ error }}
+  </div>
+
+  <div
+    *ngIf="mensaje"
+    class="alert success">
+    {{ mensaje }}
+  </div>
+
+  <div
+    *ngIf="cargando"
+    class="estado-carga">
+    Cargando incidencia...
+  </div>
+
+  <div
+    *ngIf="!cargando"
+    class="form-card">
+
+    <div class="form-grid">
+
+      <label class="campo campo-titulo">
+
+        <span>Título *</span>
+
+        <input
+          type="text"
+          maxlength="255"
+          [(ngModel)]="incidencia.titulo"
+          placeholder="Ejemplo: Avería en ascensor">
+
+      </label>
+
+      <label class="campo campo-prioridad">
+
+        <span>Prioridad</span>
+
+        <select [(ngModel)]="incidencia.prioridad">
+
+          <option value="BAJA">Baja</option>
+          <option value="MEDIA">Media</option>
+          <option value="ALTA">Alta</option>
+          <option value="URGENTE">Urgente</option>
+
+        </select>
+
+      </label>
+
+      <label class="campo campo-estado">
+
+        <span>Estado</span>
+
+        <select [(ngModel)]="incidencia.estado">
+
+          <option value="PENDIENTE">
+            Pendiente
+          </option>
+
+          <option value="EN_PROCESO">
+            En proceso
+          </option>
+
+          <option value="ESPERANDO_PROVEEDOR">
+            Esperando proveedor
+          </option>
+
+          <option value="FINALIZADA">
+            Finalizada
+          </option>
+
+          <option value="CERRADA">
+            Cerrada
+          </option>
+
+          <option value="CANCELADA">
+            Cancelada
+          </option>
+
+        </select>
+
+      </label>
+
+      <label class="campo campo-coste">
+
+        <span>Coste estimado</span>
+
+        <input
+          type="text"
+          inputmode="decimal"
+          autocomplete="off"
+          [(ngModel)]="costeEstimadoTexto"
+          (blur)="normalizarCosteEstimado()"
+          placeholder="0,00">
+
+      </label>
+
+      <label class="campo campo-completo campo-descripcion">
+
+        <span>Descripción comunicada</span>
+
+        <textarea
+          rows="8"
+          [(ngModel)]="incidencia.descripcion"
+          placeholder="Descripción detallada de la incidencia">
+        </textarea>
+
+      </label>
+
+      <label class="campo campo-completo campo-observaciones">
+
+        <span>Observaciones internas</span>
+
+        <textarea
+          rows="5"
+          [(ngModel)]="incidencia.observacionesInternas"
+          placeholder="Anote aquí las actuaciones, llamadas, visitas, presupuestos o comunicaciones realizadas">
+        </textarea>
+
+      </label>
+
+    </div>
+
+    <section
+      *ngIf="editando"
+      class="seguimiento-section">
+
+      <div class="seguimiento-header">
+        <div class="seguimiento-title-inline">
+          <h3>Fechas de seguimiento</h3>
+
+          <p>
+            Estas fechas se gestionan automáticamente según el estado.
+          </p>
+        </div>
+      </div>
+
+      <div class="seguimiento-grid">
+
+        <article class="seguimiento-item">
+
+          <span>Registro</span>
+
+          <strong>
+            {{
+              incidencia.fechaRegistro
+                ? (
+                  incidencia.fechaRegistro
+                    | date:'dd/MM/yyyy HH:mm:ss'
+                )
+                : 'Sin fecha'
+            }}
+          </strong>
+
+        </article>
+
+        <article class="seguimiento-item">
+
+          <span>Última actualización</span>
+
+          <strong>
+            {{
+              incidencia.fechaActualizacion
+                ? (
+                  incidencia.fechaActualizacion
+                    | date:'dd/MM/yyyy HH:mm:ss'
+                )
+                : 'Sin actualizar'
+            }}
+          </strong>
+
+        </article>
+
+        <article class="seguimiento-item">
+
+          <span>Finalización</span>
+
+          <strong>
+            {{
+              incidencia.fechaFinalizacion
+                ? (
+                  incidencia.fechaFinalizacion
+                    | date:'dd/MM/yyyy HH:mm:ss'
+                )
+                : 'Pendiente'
+            }}
+          </strong>
+
+        </article>
+
+        <article class="seguimiento-item">
+
+          <span>Cierre</span>
+
+          <strong>
+            {{
+              incidencia.fechaCierre
+                ? (
+                  incidencia.fechaCierre
+                    | date:'dd/MM/yyyy HH:mm:ss'
+                )
+                : 'Pendiente'
+            }}
+          </strong>
+
+        </article>
+
+      </div>
+
+    </section>
+
+    <section
+      *ngIf="editando"
+      class="adjuntos-section">
+
+      <div class="adjuntos-header">
+
+        <div>
+
+          <h3>Fotografías adjuntas</h3>
+
+          <p>
+            Imágenes enviadas desde el formulario público.
+          </p>
+
+        </div>
+
+        <button
+          type="button"
+          class="secondary-small-button"
+          [disabled]="cargandoAdjuntos"
+          (click)="cargarAdjuntos()">
+
+          {{
+            cargandoAdjuntos
+              ? 'Actualizando...'
+              : 'Actualizar fotografías'
+          }}
+
+        </button>
+
+      </div>
+
+      <div
+        *ngIf="errorAdjuntos"
+        class="alert error adjuntos-alerta">
+        {{ errorAdjuntos }}
+      </div>
+
+      <div
+        *ngIf="cargandoAdjuntos"
+        class="estado-carga-adjuntos">
+        Cargando fotografías de forma segura...
+      </div>
+
+      <div
+        *ngIf="
+          !cargandoAdjuntos
+          && !errorAdjuntos
+          && adjuntos.length === 0
+        "
+        class="sin-adjuntos">
+        Esta incidencia no tiene fotografías adjuntas.
+      </div>
+
+      <div
+        *ngIf="
+          !cargandoAdjuntos
+          && adjuntos.length > 0
+        "
+        class="adjuntos-grid">
+
+        <article
+          *ngFor="let adjunto of adjuntos"
+          class="adjunto-card">
+
+          <button
+            type="button"
+            class="adjunto-preview"
+            [disabled]="!adjunto.urlTemporal"
+            (click)="abrirFotografia(adjunto)">
+
+            <img
+              *ngIf="adjunto.urlTemporal"
+              [src]="adjunto.urlTemporal"
+              [alt]="adjunto.nombreOriginal">
+
+            <span
+              *ngIf="!adjunto.urlTemporal"
+              class="adjunto-no-disponible">
+              Fotografía no disponible
+            </span>
+
+          </button>
+
+          <div class="adjunto-info">
+
+            <strong>
+              {{ adjunto.nombreOriginal }}
+            </strong>
+
+            <span>
+              {{ formatearTamanio(adjunto.tamanio) }}
+            </span>
+
+            <span>
+              {{
+                adjunto.fechaSubida
+                  | date:'dd/MM/yyyy HH:mm'
+              }}
+            </span>
+
+          </div>
+
+          <div class="adjunto-actions">
+
+            <button
+              type="button"
+              class="secondary-small-button"
+              [disabled]="!adjunto.urlTemporal"
+              (click)="abrirFotografia(adjunto)">
+              Ver
+            </button>
+
+            <button
+              type="button"
+              class="secondary-small-button"
+              [disabled]="!adjunto.urlTemporal"
+              (click)="descargarFotografia(adjunto)">
+              Descargar
+            </button>
+
+          </div>
+
+        </article>
+
+      </div>
+
+    </section>
+
+    <div class="actions">
+
+      <button
+        type="button"
+        class="secondary-button"
+        (click)="cancelar()">
+        Cancelar
+      </button>
+
+      <button
+        *ngIf="editando"
+        type="button"
+        class="secondary-button"
+        [disabled]="cargandoAdjuntos || guardando"
+        (click)="imprimirFicha()">
+
+        {{
+          cargandoAdjuntos
+            ? 'Cargando fotografías...'
+            : 'Imprimir / Guardar PDF'
+        }}
+
+      </button>
+
+      <button
+        type="button"
+        class="primary-button"
+        [disabled]="guardando"
+        (click)="guardar()">
+
+        {{
+          guardando
+            ? 'Guardando...'
+            : 'Guardar incidencia'
+        }}
+
+      </button>
+
+    </div>
+
+  </div>
+
+</div>
+
+<div
+  *ngIf="fotografiaSeleccionada as fotografia"
+  class="visor-overlay"
+  role="presentation"
+  (click)="cerrarFotografia()">
+
+  <section
+    class="visor-dialogo"
+    role="dialog"
+    aria-modal="true"
+    aria-label="Vista ampliada de la fotografía"
+    (click)="$event.stopPropagation()">
+
+    <header class="visor-header">
+
+      <div>
+
+        <strong>
+          {{ fotografia.nombreOriginal }}
+        </strong>
+
+        <span>
+          {{ formatearTamanio(fotografia.tamanio) }}
+        </span>
+
+      </div>
+
+      <button
+        type="button"
+        class="visor-cerrar"
+        aria-label="Cerrar fotografía"
+        (click)="cerrarFotografia()">
+        ×
+      </button>
+
+    </header>
+
+    <div class="visor-contenido">
+
+      <img
+        *ngIf="fotografia.urlTemporal"
+        [src]="fotografia.urlTemporal"
+        [alt]="fotografia.nombreOriginal">
+
+    </div>
+
+    <footer class="visor-footer">
+
+      <button
+        type="button"
+        class="secondary-button"
+        (click)="cerrarFotografia()">
+        Cerrar
+      </button>
+
+      <button
+        type="button"
+        class="primary-button"
+        (click)="descargarFotografia(fotografia)">
+        Descargar fotografía
+      </button>
+
+    </footer>
+
+  </section>
+
+</div>

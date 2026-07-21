@@ -4,15 +4,14 @@ import com.gombeth.urban.dto.ReciboResponse;
 import com.gombeth.urban.entity.ContabilidadRecibo;
 import com.gombeth.urban.entity.CuotaPresupuesto;
 import com.gombeth.urban.entity.Vecino;
-import com.gombeth.urban.repository.ContabilidadReciboRepository;
-import com.gombeth.urban.repository.CuotaPresupuestoRepository;
-import com.gombeth.urban.repository.VecinoRepository;
+import com.gombeth.urban.repository.*;
+import com.gombeth.urban.service.ContabilidadAutomaticaService;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/recibos")
@@ -21,15 +20,18 @@ public class ReciboController {
     private final CuotaPresupuestoRepository cuotaPresupuestoRepository;
     private final ContabilidadReciboRepository contabilidadReciboRepository;
     private final VecinoRepository vecinoRepository;
+    private final ContabilidadAutomaticaService contabilidadAutomaticaService;
 
     public ReciboController(
             CuotaPresupuestoRepository cuotaPresupuestoRepository,
             ContabilidadReciboRepository contabilidadReciboRepository,
-            VecinoRepository vecinoRepository
+            VecinoRepository vecinoRepository,
+            ContabilidadAutomaticaService contabilidadAutomaticaService
     ) {
         this.cuotaPresupuestoRepository = cuotaPresupuestoRepository;
         this.contabilidadReciboRepository = contabilidadReciboRepository;
         this.vecinoRepository = vecinoRepository;
+        this.contabilidadAutomaticaService = contabilidadAutomaticaService;
     }
 
     @PostMapping("/generar-desde-cuotas")
@@ -37,6 +39,7 @@ public class ReciboController {
             @RequestParam Long comunidadId,
             @RequestParam Integer anio
     ) {
+
         List<CuotaPresupuesto> cuotas =
                 cuotaPresupuestoRepository
                         .findByComunidadIdAndAnioAndEstadoOrderByIdAsc(
@@ -50,19 +53,14 @@ public class ReciboController {
 
         for (CuotaPresupuesto cuota : cuotas) {
 
-            boolean yaExiste =
-                    contabilidadReciboRepository
-                            .existsByCuotaPresupuestoId(
-                                    cuota.getId()
-                            );
+            if (contabilidadReciboRepository
+                    .existsByCuotaPresupuestoId(cuota.getId())) {
 
-            if (yaExiste) {
                 omitidos++;
                 continue;
             }
 
-            ContabilidadRecibo recibo =
-                    new ContabilidadRecibo();
+            ContabilidadRecibo recibo = new ContabilidadRecibo();
 
             recibo.setComunidadId(cuota.getComunidadId());
             recibo.setVecinoId(cuota.getVecinoId());
@@ -70,9 +68,9 @@ public class ReciboController {
             recibo.setFechaEmision(LocalDate.now());
 
             recibo.setImporte(
-                    cuota.getImporteMensual() == null
-                            ? BigDecimal.ZERO
-                            : cuota.getImporteMensual()
+                    cuota.getImporteMensual() != null
+                            ? cuota.getImporteMensual()
+                            : BigDecimal.ZERO
             );
 
             recibo.setPagadoAcumulado(BigDecimal.ZERO);
@@ -88,13 +86,12 @@ public class ReciboController {
 
             recibo.setEtiquetaExtra(
                     "V" + cuota.getVersion()
-                            + " "
-                            + cuota.getMesInicio()
-                            + "-"
-                            + cuota.getMesFin()
+                            + " " + cuota.getMesInicio()
+                            + "-" + cuota.getMesFin()
             );
 
             contabilidadReciboRepository.save(recibo);
+            contabilidadAutomaticaService.registrarDevengoRecibo(recibo);
 
             generados++;
         }
@@ -122,23 +119,39 @@ public class ReciboController {
     public List<ReciboResponse> listarRecibos(
             @RequestParam Long comunidadId
     ) {
-        return contabilidadReciboRepository
-                .findByComunidadIdOrderByFechaEmisionDescIdDesc(
-                        comunidadId
-                )
-                .stream()
-                .map(this::toResponse)
+        List<ContabilidadRecibo> recibos =
+                contabilidadReciboRepository
+                        .findByComunidadIdOrderByFechaEmisionDescIdDesc(
+                                comunidadId
+                        );
+
+        Set<Long> vecinoIds =
+                recibos.stream()
+                        .map(ContabilidadRecibo::getVecinoId)
+                        .filter(Objects::nonNull)
+                        .collect(Collectors.toSet());
+
+        Map<Long, Vecino> vecinosPorId =
+                vecinoRepository
+                        .findAllById(vecinoIds)
+                        .stream()
+                        .collect(Collectors.toMap(
+                                Vecino::getId,
+                                v -> v
+                        ));
+
+        return recibos.stream()
+                .map(recibo -> toResponse(
+                        recibo,
+                        vecinosPorId.get(recibo.getVecinoId())
+                ))
                 .toList();
     }
 
     private ReciboResponse toResponse(
-            ContabilidadRecibo recibo
+            ContabilidadRecibo recibo,
+            Vecino vecino
     ) {
-        Vecino vecino =
-                vecinoRepository
-                        .findById(recibo.getVecinoId())
-                        .orElse(null);
-
         String nombreVecino =
                 vecino != null
                         ? vecino.getNombre()
@@ -161,5 +174,20 @@ public class ReciboController {
                 recibo.getTipoRemesa(),
                 recibo.getEtiquetaExtra()
         );
+    }
+
+    @PostMapping("/limpiar-y-generar")
+    public Map<String, Object> limpiarYGenerar(
+            @RequestParam Long comunidadId,
+            @RequestParam Integer mes,
+            @RequestParam Integer anio
+    ) {
+        contabilidadReciboRepository.deletePendientesMes(
+                comunidadId,
+                mes,
+                anio
+        );
+
+        return generarDesdeCuotas(comunidadId, anio);
     }
 }

@@ -1,0 +1,527 @@
+<div class="incidencias-page">
+
+  <div class="page-header">
+
+    <div>
+
+      <h2>
+        Incidencias
+      </h2>
+
+      <p>
+        {{
+          nombreComunidad
+          || 'Seleccione una comunidad'
+        }}
+      </p>
+
+    </div>
+
+    <div class="header-actions">
+
+      <button
+        type="button"
+        class="secondary-button"
+        [disabled]="
+          !comunidadId
+          || cargando
+        "
+        (click)="actualizarListado()">
+
+        {{
+          cargando
+            ? 'Actualizando...'
+            : 'Actualizar'
+        }}
+
+      </button>
+
+      <button
+        type="button"
+        class="primary-button"
+        [disabled]="!comunidadId"
+        (click)="nuevaIncidencia()">
+        + Nueva incidencia
+      </button>
+
+    </div>
+
+  </div>
+
+  <section
+    *ngIf="comunidadId"
+    class="resumen-grid">
+
+    <article class="resumen-card total">
+
+      <span>Total</span>
+
+      <strong>
+        {{ resumen.total }}
+      </strong>
+
+    </article>
+
+    <article class="resumen-card pendiente">
+
+      <span>Pendientes</span>
+
+      <strong>
+        {{ resumen.pendientes }}
+      </strong>
+
+    </article>
+
+    <article class="resumen-card proceso">
+
+      <span>En proceso</span>
+
+      <strong>
+        {{ resumen.enProceso }}
+      </strong>
+
+    </article>
+
+    <article class="resumen-card esperando">
+
+      <span>Esperando proveedor</span>
+
+      <strong>
+        {{ resumen.esperandoProveedor }}
+      </strong>
+
+    </article>
+
+    <article class="resumen-card finalizada">
+
+      <span>Finalizadas</span>
+
+      <strong>
+        {{ resumen.finalizadas }}
+      </strong>
+
+    </article>
+
+    <article class="resumen-card cerrada">
+
+      <span>Cerradas</span>
+
+      <strong>
+        {{ resumen.cerradas }}
+      </strong>
+
+    </article>
+
+    <article class="resumen-card cancelada">
+
+      <span>Canceladas</span>
+
+      <strong>
+        {{ resumen.canceladas }}
+      </strong>
+
+    </article>
+
+  </section>
+
+  <div
+    *ngIf="cargando"
+    class="alert info">
+    Cargando incidencias...
+  </div>
+
+  <div
+    *ngIf="error"
+    class="alert error">
+    {{ error }}
+  </div>
+
+  <section
+    *ngIf="
+      !cargando
+      && !error
+      && incidencias.length > 0
+    "
+    class="filtros-card">
+
+    <div class="filtros-grid">
+
+      <label class="filtro busqueda">
+
+        <span>
+          Buscar
+        </span>
+
+        <input
+          type="search"
+          [(ngModel)]="textoBusqueda"
+          (ngModelChange)="aplicarFiltros()"
+          placeholder="ID, título, descripción u observaciones">
+
+      </label>
+
+      <label class="filtro">
+
+        <span>
+          Estado
+        </span>
+
+        <select
+          [(ngModel)]="filtroEstado"
+          (ngModelChange)="aplicarFiltros()">
+
+          <option value="TODOS">
+            Todos los estados
+          </option>
+
+          <option value="PENDIENTE">
+            Pendiente
+          </option>
+
+          <option value="EN_PROCESO">
+            En proceso
+          </option>
+
+          <option value="ESPERANDO_PROVEEDOR">
+            Esperando proveedor
+          </option>
+
+          <option value="FINALIZADA">
+            Finalizada
+          </option>
+
+          <option value="CERRADA">
+            Cerrada
+          </option>
+
+          <option value="CANCELADA">
+            Cancelada
+          </option>
+
+        </select>
+
+      </label>
+
+      <label class="filtro">
+
+        <span>
+          Prioridad
+        </span>
+
+        <select
+          [(ngModel)]="filtroPrioridad"
+          (ngModelChange)="aplicarFiltros()">
+
+          <option value="TODAS">
+            Todas las prioridades
+          </option>
+
+          <option value="URGENTE">
+            Urgente
+          </option>
+
+          <option value="ALTA">
+            Alta
+          </option>
+
+          <option value="MEDIA">
+            Media
+          </option>
+
+          <option value="BAJA">
+            Baja
+          </option>
+
+        </select>
+
+      </label>
+
+      <button
+        type="button"
+        class="limpiar-button"
+        [disabled]="!hayFiltrosActivos()"
+        (click)="limpiarFiltros()">
+        Limpiar filtros
+      </button>
+
+    </div>
+
+    <div class="resultado-filtros">
+
+      Mostrando
+      <strong>
+        {{ incidenciasFiltradas.length }}
+      </strong>
+      de
+      <strong>
+        {{ incidencias.length }}
+      </strong>
+      incidencias
+
+    </div>
+
+  </section>
+
+  <div
+    *ngIf="
+      !cargando
+      && !error
+      && incidencias.length === 0
+    "
+    class="empty-card">
+
+    <h3>
+      No existen incidencias
+    </h3>
+
+    <p>
+      No hay incidencias registradas para esta comunidad.
+    </p>
+
+  </div>
+
+  <div
+    *ngIf="
+      !cargando
+      && !error
+      && incidencias.length > 0
+      && incidenciasFiltradas.length === 0
+    "
+    class="empty-card">
+
+    <h3>
+      No hay resultados
+    </h3>
+
+    <p>
+      Ninguna incidencia cumple los filtros seleccionados.
+    </p>
+
+    <button
+      type="button"
+      class="secondary-button"
+      (click)="limpiarFiltros()">
+      Limpiar filtros
+    </button>
+
+  </div>
+
+  <div
+    *ngIf="
+      !cargando
+      && !error
+      && incidenciasFiltradas.length > 0
+    "
+    class="table-card">
+
+    <table class="incidencias-table">
+
+      <thead>
+
+      <tr>
+        <th>ID</th>
+        <th>Registro</th>
+        <th>Incidencia</th>
+        <th>Prioridad</th>
+        <th>Estado</th>
+        <th>Seguimiento</th>
+        <th>Coste estimado</th>
+        <th>Acciones</th>
+      </tr>
+
+      </thead>
+
+      <tbody>
+
+      <tr
+        *ngFor="
+            let incidencia of incidenciasFiltradas;
+            trackBy: trackByIncidencia
+          ">
+
+        <td class="id-col">
+          #{{ incidencia.id }}
+        </td>
+
+        <td class="fecha-col">
+
+          {{
+            incidencia.fechaRegistro
+              ? (
+                incidencia.fechaRegistro
+                  | date:'dd/MM/yyyy'
+              )
+              : '-'
+          }}
+
+          <span
+            *ngIf="incidencia.fechaRegistro">
+
+              {{
+              incidencia.fechaRegistro
+                | date:'HH:mm'
+            }}
+
+            </span>
+
+        </td>
+
+        <td class="incidencia-col">
+
+          <strong>
+            {{ incidencia.titulo }}
+          </strong>
+
+          <div
+            class="descripcion"
+            [title]="incidencia.descripcion || ''">
+
+            {{
+              incidencia.descripcion
+              || 'Sin descripción'
+            }}
+
+          </div>
+
+          <div
+            *ngIf="incidencia.observacionesInternas"
+            class="tiene-observaciones">
+
+            Tiene observaciones internas
+
+          </div>
+
+        </td>
+
+        <td>
+
+            <span
+              [class]="
+                clasePrioridad(
+                  incidencia.prioridad
+                )
+              ">
+
+              {{
+                textoPrioridad(
+                  incidencia.prioridad
+                )
+              }}
+
+            </span>
+
+        </td>
+
+        <td>
+
+            <span
+              [class]="
+                claseEstado(
+                  incidencia.estado
+                )
+              ">
+
+              {{
+                textoEstado(
+                  incidencia.estado
+                )
+              }}
+
+            </span>
+
+        </td>
+
+        <td class="seguimiento-col">
+
+          <div>
+
+              <span>
+                Actualización
+              </span>
+
+            <strong>
+              {{
+                incidencia.fechaActualizacion
+                  ? (
+                    incidencia.fechaActualizacion
+                      | date:'dd/MM/yyyy HH:mm'
+                  )
+                  : 'Sin actualizar'
+              }}
+            </strong>
+
+          </div>
+
+          <div
+            *ngIf="incidencia.fechaFinalizacion">
+
+              <span>
+                Finalización
+              </span>
+
+            <strong>
+              {{
+                incidencia.fechaFinalizacion
+                  | date:'dd/MM/yyyy HH:mm'
+              }}
+            </strong>
+
+          </div>
+
+          <div
+            *ngIf="incidencia.fechaCierre">
+
+              <span>
+                Cierre
+              </span>
+
+            <strong>
+              {{
+                incidencia.fechaCierre
+                  | date:'dd/MM/yyyy HH:mm'
+              }}
+            </strong>
+
+          </div>
+
+        </td>
+
+        <td class="importe">
+
+          {{
+            incidencia.costeEstimado !== null
+              ? (
+              incidencia.costeEstimado
+                | number:'1.2-2'
+            ) + ' €'
+              : '-'
+          }}
+
+        </td>
+
+        <td>
+
+          <button
+            type="button"
+            class="edit-button"
+            (click)="
+                editarIncidencia(
+                  incidencia.id
+                )
+              ">
+
+            Ver / Editar
+
+          </button>
+
+        </td>
+
+      </tr>
+
+      </tbody>
+
+    </table>
+
+  </div>
+
+</div>

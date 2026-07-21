@@ -4,6 +4,8 @@ import com.gombeth.urban.dto.CuotaPresupuestoResponse;
 import com.gombeth.urban.entity.Presupuesto;
 import com.gombeth.urban.repository.PresupuestoRepository;
 import com.gombeth.urban.dto.PresupuestoResponse;
+import com.gombeth.urban.service.GeneracionReciboConceptosService;
+import com.gombeth.urban.service.RegeneracionRecibosService;
 import org.springframework.web.bind.annotation.*;
 import com.gombeth.urban.dto.RepartoPresupuestoResponse;
 import com.gombeth.urban.entity.Vecino;
@@ -18,6 +20,10 @@ import com.gombeth.urban.repository.PresupuestoRevisionRepository;
 import com.gombeth.urban.dto.PresupuestoRevisionResponse;
 import com.gombeth.urban.entity.ContabilidadRecibo;
 import com.gombeth.urban.repository.ContabilidadReciboRepository;
+import com.gombeth.urban.service.GeneracionReciboConceptosService;
+import com.gombeth.urban.service.RegeneracionRecibosService;
+
+
 import java.time.LocalDate;
 
 import java.time.LocalDateTime;
@@ -35,6 +41,8 @@ public class PresupuestoController {
     private final ComunidadConfiguracionRepartoRepository configuracionRepartoRepository;
     private final PresupuestoRevisionRepository presupuestoRevisionRepository;
     private final ContabilidadReciboRepository contabilidadReciboRepository;
+    private final GeneracionReciboConceptosService generacionReciboConceptosService;
+    private final RegeneracionRecibosService regeneracionRecibosService;
 
     public PresupuestoController(
             PresupuestoRepository presupuestoRepository,
@@ -42,7 +50,9 @@ public class PresupuestoController {
             CuotaPresupuestoRepository cuotaPresupuestoRepository,
             ComunidadConfiguracionRepartoRepository configuracionRepartoRepository,
             PresupuestoRevisionRepository presupuestoRevisionRepository,
-            ContabilidadReciboRepository contabilidadReciboRepository
+            ContabilidadReciboRepository contabilidadReciboRepository,
+            GeneracionReciboConceptosService generacionReciboConceptosService,
+            RegeneracionRecibosService regeneracionRecibosService
     ) {
         this.presupuestoRepository = presupuestoRepository;
         this.vecinoRepository = vecinoRepository;
@@ -50,6 +60,8 @@ public class PresupuestoController {
         this.configuracionRepartoRepository = configuracionRepartoRepository;
         this.presupuestoRevisionRepository = presupuestoRevisionRepository;
         this.contabilidadReciboRepository = contabilidadReciboRepository;
+        this.generacionReciboConceptosService = generacionReciboConceptosService;
+        this.regeneracionRecibosService = regeneracionRecibosService;
     }
 
     @GetMapping("/comunidad/{comunidadId}")
@@ -179,97 +191,92 @@ public class PresupuestoController {
                 .toList();
     }
 
-    @PostMapping("/comunidad/{comunidadId}/generar-borrador-cuotas")
-    public GeneracionCuotasResponse generarBorradorCuotas(
+    @PostMapping("/comunidad/{comunidadId}/generar-recibos")
+    public GeneracionCuotasResponse generarRecibosDesdeCuotas(
             @PathVariable Long comunidadId,
-            @RequestParam Integer anio
+            @RequestParam Integer anio,
+            @RequestParam Integer mes,
+            @RequestParam(defaultValue = "false") Boolean regenerar
     ) {
-        if (
+        List<CuotaPresupuesto> cuotas =
                 cuotaPresupuestoRepository
-                        .existsByComunidadIdAndAnioAndEstado(
+                        .findByComunidadIdAndAnioAndEstadoOrderByIdAsc(
                                 comunidadId,
                                 anio,
                                 "APROBADA"
-                        )
-        ) {
+                        );
 
-            throw new IllegalStateException(
-                    "Ya existen cuotas aprobadas para este ejercicio. Utilice una revisión presupuestaria."
-            );
+        int borrados = 0;
 
+        if (Boolean.TRUE.equals(regenerar)) {
+            borrados =
+                    regeneracionRecibosService.borrarRecibosPeriodo(
+                            comunidadId,
+                            anio,
+                            mes
+                    );
         }
 
-        String metodoReparto = configuracionRepartoRepository
-                .findByComunidadId(comunidadId)
-                .map(config -> config.getMetodoReparto())
-                .orElse("COEFICIENTE");
+        int generados = 0;
 
-        if ("COEFICIENTE".equalsIgnoreCase(metodoReparto)) {
-            BigDecimal totalCoeficientes = sumarCoeficientesActivos(comunidadId);
+        LocalDate fechaEmision =
+                LocalDate.of(anio, mes, 1);
 
-            if (totalCoeficientes.compareTo(new BigDecimal("100.0000")) != 0) {
-                throw new IllegalStateException(
-                        "No se pueden generar cuotas por coeficiente porque los coeficientes activos suman "
-                                + totalCoeficientes
-                                + " y deben sumar 100.0000"
-                );
+        for (CuotaPresupuesto cuota : cuotas) {
+
+            if (
+                    contabilidadReciboRepository
+                            .existsByCuotaPresupuestoIdAndFechaEmision(
+                                    cuota.getId(),
+                                    fechaEmision
+                            )
+            ) {
+                continue;
             }
-        }
 
-        cuotaPresupuestoRepository
-                .deleteByComunidadIdAndAnioAndEstado(
-                        comunidadId,
-                        anio,
-                        "BORRADOR"
-                );
+            ContabilidadRecibo recibo =
+                    new ContabilidadRecibo();
 
-        List<RepartoPresupuestoResponse> reparto =
-                simularReparto(comunidadId, anio);
+            recibo.setComunidadId(comunidadId);
+            recibo.setVecinoId(cuota.getVecinoId());
+            recibo.setCuotaPresupuestoId(cuota.getId());
 
-        for (RepartoPresupuestoResponse r : reparto) {
+            recibo.setFechaEmision(fechaEmision);
 
-            CuotaPresupuesto cuota = new CuotaPresupuesto();
-
-            cuota.setComunidadId(comunidadId);
-            cuota.setVecinoId(r.getVecinoId());
-
-            cuota.setAnio(anio);
-
-            cuota.setMesInicio(1);
-            cuota.setMesFin(12);
-            cuota.setVersion(1);
-            cuota.setMotivoRevision("Presupuesto inicial");
-
-            cuota.setDescripcion(
-                    "Cuota ordinaria presupuesto " + anio
+            recibo.setImporte(
+                    cuota.getImporteMensual()
             );
 
-            cuota.setCoeficiente(
-                    r.getCoeficiente()
+            recibo.setEstado("PENDIENTE");
+
+            recibo.setConcepto(
+                    cuota.getDescripcion()
+                            + " - "
+                            + mes
+                            + "/"
+                            + anio
             );
 
-            cuota.setImporteAnual(
-                    r.getImporteAnual()
+            recibo.setTipoRemesa("ORDINARIA");
+            recibo.setPagadoAcumulado(BigDecimal.ZERO);
+
+            ContabilidadRecibo reciboGuardado =
+                    contabilidadReciboRepository.save(recibo);
+
+            generacionReciboConceptosService.generarConceptosDesdeCuota(
+                    reciboGuardado,
+                    cuota,
+                    mes
             );
 
-            cuota.setImporteMensual(
-                    r.getImporteMensual()
-            );
-
-            cuota.setEstado("BORRADOR");
-
-            cuota.setFechaGeneracion(
-                    LocalDateTime.now()
-            );
-
-            cuotaPresupuestoRepository.save(cuota);
+            generados++;
         }
 
         return new GeneracionCuotasResponse(
                 comunidadId,
                 anio,
-                reparto.size(),
-                "Borrador de cuotas generado correctamente"
+                generados,
+                "Recibos generados correctamente. Recibos anteriores borrados: " + borrados
         );
     }
 
@@ -548,72 +555,4 @@ public class PresupuestoController {
         presupuestoRevisionRepository.deleteById(revisionId);
     }
 
-    @PostMapping("/comunidad/{comunidadId}/generar-recibos")
-    public GeneracionCuotasResponse generarRecibosDesdeCuotas(
-            @PathVariable Long comunidadId,
-            @RequestParam Integer anio,
-            @RequestParam Integer mes
-    ) {
-        List<CuotaPresupuesto> cuotas =
-                cuotaPresupuestoRepository
-                        .findByComunidadIdAndAnioAndEstadoOrderByIdAsc(
-                                comunidadId,
-                                anio,
-                                "APROBADA"
-                        );
-
-        int generados = 0;
-
-        LocalDate fechaEmision =
-                LocalDate.of(anio, mes, 1);
-
-        for (CuotaPresupuesto cuota : cuotas) {
-
-            if (
-                    contabilidadReciboRepository
-                            .existsByCuotaPresupuestoId(
-                                    cuota.getId()
-                            )
-            ) {
-                continue;
-            }
-
-            ContabilidadRecibo recibo =
-                    new ContabilidadRecibo();
-
-            recibo.setComunidadId(comunidadId);
-            recibo.setVecinoId(cuota.getVecinoId());
-            recibo.setCuotaPresupuestoId(cuota.getId());
-
-            recibo.setFechaEmision(fechaEmision);
-
-            recibo.setImporte(
-                    cuota.getImporteMensual()
-            );
-
-            recibo.setEstado("PENDIENTE");
-
-            recibo.setConcepto(
-                    cuota.getDescripcion()
-                            + " - "
-                            + mes
-                            + "/"
-                            + anio
-            );
-
-            recibo.setTipoRemesa("ORDINARIA");
-            recibo.setPagadoAcumulado(BigDecimal.ZERO);
-
-            contabilidadReciboRepository.save(recibo);
-
-            generados++;
-        }
-
-        return new GeneracionCuotasResponse(
-                comunidadId,
-                anio,
-                generados,
-                "Recibos generados correctamente"
-        );
-    }
 }

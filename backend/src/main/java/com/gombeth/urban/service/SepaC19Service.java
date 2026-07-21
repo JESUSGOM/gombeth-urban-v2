@@ -5,14 +5,17 @@ import com.gombeth.urban.entity.FicheroGenerado;
 import com.gombeth.urban.entity.RemesaLinea;
 import com.gombeth.urban.entity.Vecino;
 import org.springframework.stereotype.Service;
+import com.gombeth.urban.entity.RemesaLineaConcepto;
+import com.gombeth.urban.repository.RemesaLineaConceptoRepository;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.text.Normalizer;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
-import java.util.List;
 import java.util.regex.Pattern;
 
 @Service
@@ -32,6 +35,14 @@ public class SepaC19Service {
 
     private static final Pattern NON_ALPHANUMERIC =
             Pattern.compile("[^A-Z0-9 ]");
+
+    private final RemesaLineaConceptoRepository remesaLineaConceptoRepository;
+
+    public SepaC19Service(
+            RemesaLineaConceptoRepository remesaLineaConceptoRepository
+    ) {
+        this.remesaLineaConceptoRepository = remesaLineaConceptoRepository;
+    }
 
     public String generarC19(
             FicheroGenerado remesa,
@@ -149,9 +160,7 @@ public class SepaC19Service {
                             + "003";
 
             List<String> conceptos =
-                    dividirConcepto(
-                            linea.getConcepto()
-                    );
+                    obtenerConceptosC19(linea);
 
             for (int i = 0; i < conceptos.size(); i++) {
 
@@ -237,6 +246,44 @@ public class SepaC19Service {
         file.append(completarRegistro(r99)).append("\n");
 
         return file.toString();
+    }
+
+    private List<String> obtenerConceptosC19(RemesaLinea linea) {
+
+        List<RemesaLineaConcepto> conceptos =
+                remesaLineaConceptoRepository
+                        .findByRemesaLineaIdOrderByOrdenAsc(
+                                linea.getId()
+                        );
+
+        if (conceptos.isEmpty()) {
+            return dividirConcepto(linea.getConcepto());
+        }
+
+        List<String> resultado =
+                new ArrayList<>();
+
+        for (RemesaLineaConcepto concepto : conceptos) {
+
+            String descripcion =
+                    concepto.getDescripcion() == null
+                            ? "Concepto"
+                            : concepto.getDescripcion();
+
+            String importe =
+                    concepto.getImporte() == null
+                            ? "0.00"
+                            : concepto.getImporte().toPlainString();
+
+            resultado.add(
+                    limitar(
+                            descripcion + " " + importe + " EUR",
+                            140
+                    )
+            );
+        }
+
+        return resultado;
     }
 
     private List<String> dividirConcepto(String concepto) {

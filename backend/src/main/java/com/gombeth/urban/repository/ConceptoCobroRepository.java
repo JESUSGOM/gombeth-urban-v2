@@ -31,4 +31,9 @@ public interface ConceptoCobroRepository
     );
 
     List<ConceptoCobro> findByComunidadId(Long comunidadId);
+
+    List<ConceptoCobro> findByComunidadIdAndVecinoIdAndActivoTrueOrderByDescripcionAsc(
+            Long comunidadId,
+            Long vecinoId
+    );
 }

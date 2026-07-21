@@ -3,16 +3,28 @@ package com.gombeth.urban.service;
 import com.gombeth.urban.entity.Comunidad;
 import com.gombeth.urban.entity.FicheroGenerado;
 import com.gombeth.urban.entity.RemesaLinea;
+import com.gombeth.urban.entity.RemesaLineaConcepto;
 import com.gombeth.urban.entity.Vecino;
+import com.gombeth.urban.repository.RemesaLineaConceptoRepository;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 public class SepaCoreXmlService {
+
+    private final RemesaLineaConceptoRepository remesaLineaConceptoRepository;
+
+    public SepaCoreXmlService(
+            RemesaLineaConceptoRepository remesaLineaConceptoRepository
+    ) {
+        this.remesaLineaConceptoRepository = remesaLineaConceptoRepository;
+    }
 
     public String generarXmlCore(
             FicheroGenerado remesa,
@@ -22,14 +34,23 @@ public class SepaCoreXmlService {
     ) {
 
         String msgId = limpiar(remesa.getIdentificadorFichero());
-        String fechaCreacion = LocalDateTime.now()
-                .format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+
+        String fechaCreacion =
+                LocalDateTime.now()
+                        .format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
 
         int numeroOperaciones = lineas.size();
 
         BigDecimal total = lineas.stream()
-                .map(RemesaLinea::getImporte)
+                .map(l -> l.getImporte() == null ? BigDecimal.ZERO : l.getImporte())
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        Map<Long, Vecino> mapaVecinos =
+                vecinos.stream()
+                        .collect(Collectors.toMap(
+                                Vecino::getId,
+                                v -> v
+                        ));
 
         StringBuilder xml = new StringBuilder();
 
@@ -95,25 +116,32 @@ public class SepaCoreXmlService {
 
         for (RemesaLinea linea : lineas) {
 
-            Vecino vecino = vecinos.stream()
-                    .filter(v -> v.getId().equals(linea.getVecinoId()))
-                    .findFirst()
-                    .orElse(null);
+            Vecino vecino =
+                    mapaVecinos.get(linea.getVecinoId());
 
             if (vecino == null) {
                 continue;
             }
 
+            String endToEndId =
+                    "CP"
+                            + comunidad.getId()
+                            + "-"
+                            + remesa.getFechaCobro().getYear()
+                            + String.format("%02d", remesa.getFechaCobro().getMonthValue())
+                            + "-REC"
+                            + linea.getReciboContableId();
+
             xml.append("      <DrctDbtTxInf>\n");
 
             xml.append("        <PmtId>\n");
-            xml.append("          <EndToEndId>REC-")
-                    .append(linea.getReciboContableId())
+            xml.append("          <EndToEndId>")
+                    .append(esc(endToEndId))
                     .append("</EndToEndId>\n");
             xml.append("        </PmtId>\n");
 
             xml.append("        <InstdAmt Ccy=\"EUR\">")
-                    .append(linea.getImporte())
+                    .append(linea.getImporte() == null ? BigDecimal.ZERO : linea.getImporte())
                     .append("</InstdAmt>\n");
 
             xml.append("        <DrctDbtTx>\n");
@@ -144,11 +172,26 @@ public class SepaCoreXmlService {
             xml.append("        </DbtrAcct>\n");
 
             xml.append("        <RmtInf>\n");
-            xml.append("          <Ustrd>")
-                    .append(esc(linea.getConcepto()))
-                    .append("</Ustrd>\n");
-            xml.append("        </RmtInf>\n");
 
+            List<RemesaLineaConcepto> conceptos =
+                    remesaLineaConceptoRepository
+                            .findByRemesaLineaIdOrderByOrdenAsc(
+                                    linea.getId()
+                            );
+
+            if (conceptos.isEmpty()) {
+                xml.append("          <Ustrd>")
+                        .append(esc(linea.getConcepto()))
+                        .append("</Ustrd>\n");
+            } else {
+                for (RemesaLineaConcepto concepto : conceptos) {
+                    xml.append("          <Ustrd>")
+                            .append(esc(concepto.getDescripcion()))
+                            .append("</Ustrd>\n");
+                }
+            }
+
+            xml.append("        </RmtInf>\n");
             xml.append("      </DrctDbtTxInf>\n");
         }
 

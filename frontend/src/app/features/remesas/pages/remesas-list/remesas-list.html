@@ -15,39 +15,70 @@
     </button>
   </div>
 
-  <div class="generate-card">
+  <div class="generacion-remesa">
 
-    <h3>Generar nueva remesa</h3>
+    <h2>🏦 Generación de Remesa SEPA</h2>
 
-    <div class="generate-form">
+    <div class="fila-generacion">
 
-      <label>
-        Fecha cobro
+      <div class="campo-generacion">
+
+        <label>📅 Ejercicio</label>
+
+        <input
+          type="number"
+          [(ngModel)]="anio"
+          (change)="actualizarFechaCobro()">
+
+      </div>
+
+      <div class="campo-generacion">
+
+        <label>🗓 Mes</label>
+
+        <select
+          [(ngModel)]="mes"
+          (change)="actualizarFechaCobro()">
+
+          <option [ngValue]="1">Enero</option>
+          <option [ngValue]="2">Febrero</option>
+          <option [ngValue]="3">Marzo</option>
+          <option [ngValue]="4">Abril</option>
+          <option [ngValue]="5">Mayo</option>
+          <option [ngValue]="6">Junio</option>
+          <option [ngValue]="7">Julio</option>
+          <option [ngValue]="8">Agosto</option>
+          <option [ngValue]="9">Septiembre</option>
+          <option [ngValue]="10">Octubre</option>
+          <option [ngValue]="11">Noviembre</option>
+          <option [ngValue]="12">Diciembre</option>
+
+        </select>
+
+      </div>
+
+      <div class="campo-generacion">
+
+        <label>💳 Fecha de cobro</label>
+
         <input
           type="date"
           [(ngModel)]="fechaCobro">
-      </label>
 
-      <label>
-        Fecha desde
-        <input
-          type="date"
-          [(ngModel)]="fechaDesde">
-      </label>
+      </div>
 
-      <label>
-        Fecha hasta
-        <input
-          type="date"
-          [(ngModel)]="fechaHasta">
-      </label>
+      <div class="boton-generacion">
 
-      <button
-        class="primary-button"
-        [disabled]="generando"
-        (click)="generarRemesa()">
-        {{ generando ? 'Generando...' : 'Generar remesa' }}
-      </button>
+        <button
+          class="btn-generar-remesa"
+          [disabled]="generando"
+          (click)="generarRemesa()">
+
+          {{ generando ? '⏳ Generando remesa...' : '🏦 GENERAR REMESA COMPLETA' }}
+
+        </button>
+
+      </div>
 
     </div>
 
@@ -170,12 +201,9 @@
           <button
             class="xml-button"
             type="button"
-            [disabled]="
-              r.numeroRecibos === 0 ||
-              !remesasValidadas.has(r.id)
-            "
+            [disabled]="r.numeroRecibos === 0"
             (click)="descargarXml(r)">
-            Descargar
+            📄 XML
           </button>
         </td>
 
@@ -183,12 +211,9 @@
           <button
             class="xml-button"
             type="button"
-            [disabled]="
-              r.numeroRecibos === 0 ||
-              !remesasValidadas.has(r.id)
-            "
+            [disabled]="r.numeroRecibos === 0"
             (click)="descargarC19(r)">
-            Descargar
+            🏦 C19
           </button>
         </td>
 

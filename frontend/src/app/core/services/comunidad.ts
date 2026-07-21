@@ -1,10 +1,12 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import {
+  HttpClient,
+  HttpParams
+} from '@angular/common/http';
 import { Observable } from 'rxjs';
 
 import { Comunidad } from '../models/comunidad.model';
 import { PageResponse } from '../models/page-response.model';
-
 import { CoeficientesResumen } from '../models/coeficientes-resumen.model';
 import { ConfiguracionReparto } from '../models/configuracion-reparto.model';
 
@@ -13,9 +15,10 @@ import { ConfiguracionReparto } from '../models/configuracion-reparto.model';
 })
 export class ComunidadService {
 
-  private http = inject(HttpClient);
+  private readonly http = inject(HttpClient);
 
-  private apiUrl = 'http://localhost:8080/api/comunidades';
+  private readonly apiUrl =
+    'http://localhost:8080/api/comunidades';
 
   getComunidades(
     page: number = 0,
@@ -23,13 +26,23 @@ export class ComunidadService {
     usuarioId?: number
   ): Observable<PageResponse<Comunidad>> {
 
-    let url = `${this.apiUrl}?page=${page}&size=${size}`;
+    let params = new HttpParams()
+      .set('page', page.toString())
+      .set('size', size.toString());
 
-    if (usuarioId) {
-      url += `&usuarioId=${usuarioId}`;
+    if (usuarioId !== undefined) {
+      params = params.set(
+        'usuarioId',
+        usuarioId.toString()
+      );
     }
 
-    return this.http.get<PageResponse<Comunidad>>(url);
+    return this.http.get<PageResponse<Comunidad>>(
+      this.apiUrl,
+      {
+        params
+      }
+    );
   }
 
   getComunidad(
@@ -38,23 +51,32 @@ export class ComunidadService {
     administradorId?: number
   ): Observable<Comunidad> {
 
-    let url = `${this.apiUrl}/${id}`;
+    let params = new HttpParams()
+      .set(
+        'nocache',
+        Date.now().toString()
+      );
 
-    const params: string[] = [];
-
-    if (usuarioId) {
-      params.push(`usuarioId=${usuarioId}`);
+    if (usuarioId !== undefined) {
+      params = params.set(
+        'usuarioId',
+        usuarioId.toString()
+      );
     }
 
-    if (administradorId) {
-      params.push(`administradorId=${administradorId}`);
+    if (administradorId !== undefined) {
+      params = params.set(
+        'administradorId',
+        administradorId.toString()
+      );
     }
 
-    if (params.length > 0) {
-      url += `?${params.join('&')}`;
-    }
-
-    return this.http.get<Comunidad>(url);
+    return this.http.get<Comunidad>(
+      `${this.apiUrl}/${id}`,
+      {
+        params
+      }
+    );
   }
 
   actualizarComunidad(
@@ -64,41 +86,91 @@ export class ComunidadService {
     administradorId?: number
   ): Observable<Comunidad> {
 
-    let url = `${this.apiUrl}/${id}`;
+    let params = new HttpParams();
 
-    const params: string[] = [];
-
-    if (usuarioId) {
-      params.push(`usuarioId=${usuarioId}`);
+    if (usuarioId !== undefined) {
+      params = params.set(
+        'usuarioId',
+        usuarioId.toString()
+      );
     }
 
-    if (administradorId) {
-      params.push(`administradorId=${administradorId}`);
-    }
-
-    if (params.length > 0) {
-      url += `?${params.join('&')}`;
+    if (administradorId !== undefined) {
+      params = params.set(
+        'administradorId',
+        administradorId.toString()
+      );
     }
 
     return this.http.put<Comunidad>(
-      url,
-      comunidad
+      `${this.apiUrl}/${id}`,
+      comunidad,
+      {
+        params
+      }
+    );
+  }
+
+  obtenerQrComunidad(
+    comunidadId: number,
+    usuarioId?: number,
+    administradorId?: number
+  ): Observable<Blob> {
+
+    let params = new HttpParams()
+      .set(
+        'nocache',
+        Date.now().toString()
+      );
+
+    if (usuarioId !== undefined) {
+      params = params.set(
+        'usuarioId',
+        usuarioId.toString()
+      );
+    }
+
+    if (administradorId !== undefined) {
+      params = params.set(
+        'administradorId',
+        administradorId.toString()
+      );
+    }
+
+    return this.http.get(
+      `${this.apiUrl}/${comunidadId}/qr`,
+      {
+        params,
+        responseType: 'blob'
+      }
     );
   }
 
   getResumenCoeficientes(
     comunidadId: number
   ): Observable<CoeficientesResumen> {
+
     return this.http.get<CoeficientesResumen>(
-      `${this.apiUrl}/${comunidadId}/coeficientes/resumen`
+      `${this.apiUrl}/${comunidadId}/coeficientes/resumen`,
+      {
+        params: {
+          nocache: Date.now().toString()
+        }
+      }
     );
   }
 
   getConfiguracionReparto(
     comunidadId: number
   ): Observable<ConfiguracionReparto> {
+
     return this.http.get<ConfiguracionReparto>(
-      `${this.apiUrl}/${comunidadId}/configuracion-reparto`
+      `${this.apiUrl}/${comunidadId}/configuracion-reparto`,
+      {
+        params: {
+          nocache: Date.now().toString()
+        }
+      }
     );
   }
 
@@ -106,9 +178,12 @@ export class ComunidadService {
     comunidadId: number,
     metodoReparto: string
   ): Observable<ConfiguracionReparto> {
+
     return this.http.put<ConfiguracionReparto>(
       `${this.apiUrl}/${comunidadId}/configuracion-reparto`,
-      { metodoReparto }
+      {
+        metodoReparto
+      }
     );
   }
 }

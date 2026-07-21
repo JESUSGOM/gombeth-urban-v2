@@ -1,18 +1,25 @@
 package com.gombeth.urban.controller;
 
-import com.gombeth.urban.entity.Vecino;
 import com.gombeth.urban.entity.Comunidad;
+import com.gombeth.urban.entity.Vecino;
+import com.gombeth.urban.repository.ComunidadRepository;
 import com.gombeth.urban.repository.VecinoRepository;
+import com.gombeth.urban.service.PdfService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.web.bind.annotation.*;
-import com.gombeth.urban.entity.Comunidad;
-import com.gombeth.urban.repository.ComunidadRepository;
-import com.gombeth.urban.service.PdfService;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
@@ -97,9 +104,15 @@ public class VecinoController {
     }
 
     @GetMapping("/{id}")
-    public Vecino obtenerPorId(@PathVariable Long id) {
+    public Vecino obtenerPorId(
+            @PathVariable Long id
+    ) {
         return vecinoRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Vecino no encontrado"));
+                .orElseThrow(() ->
+                        new RuntimeException(
+                                "Vecino no encontrado"
+                        )
+                );
     }
 
     @PutMapping("/{id}")
@@ -108,7 +121,11 @@ public class VecinoController {
             @RequestBody Vecino datos
     ) {
         Vecino vecino = vecinoRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Vecino no encontrado"));
+                .orElseThrow(() ->
+                        new RuntimeException(
+                                "Vecino no encontrado"
+                        )
+                );
 
         vecino.setNombre(datos.getNombre());
         vecino.setNif(datos.getNif());
@@ -130,59 +147,115 @@ public class VecinoController {
         vecino.setDomiciliado(datos.isDomiciliado());
         vecino.setActivo(datos.isActivo());
 
-        vecino.setReferenciaMandato(datos.getReferenciaMandato());
-        vecino.setDireccionNotificacion(datos.getDireccionNotificacion());
-        vecino.setRutaMandatoFirmado(datos.getRutaMandatoFirmado());
-        vecino.setCoeficiente(datos.getCoeficiente());
-        vecino.setNotas(datos.getNotas());
+        vecino.setReferenciaMandato(
+                datos.getReferenciaMandato()
+        );
+        vecino.setFechaMandato(
+                datos.getFechaMandato()
+        );
+        vecino.setDireccionNotificacion(
+                datos.getDireccionNotificacion()
+        );
+        vecino.setRutaMandatoFirmado(
+                datos.getRutaMandatoFirmado()
+        );
+        vecino.setCoeficiente(
+                datos.getCoeficiente()
+        );
+        vecino.setNotas(
+                datos.getNotas()
+        );
 
         return vecinoRepository.save(vecino);
     }
 
     @PostMapping
-    public Vecino crear(@RequestBody Vecino datos) {
+    public Vecino crear(
+            @RequestBody Vecino datos
+    ) {
         if (datos.getComunidadId() == null) {
-            throw new RuntimeException("La comunidad es obligatoria");
+            throw new RuntimeException(
+                    "La comunidad es obligatoria"
+            );
         }
 
         datos.setActivo(true);
 
-        if (datos.getPaisCod() == null || datos.getPaisCod().isBlank()) {
+        if (
+                datos.getPaisCod() == null
+                        || datos.getPaisCod().isBlank()
+        ) {
             datos.setPaisCod("ES");
         }
-        if (datos.getReferenciaMandato() == null || datos.getReferenciaMandato().isBlank()) {
-            datos.setReferenciaMandato("GTI-" + System.currentTimeMillis() / 1000);
+
+        if (
+                datos.getReferenciaMandato() == null
+                        || datos.getReferenciaMandato().isBlank()
+        ) {
+            datos.setReferenciaMandato(
+                    "GTI-"
+                            + System.currentTimeMillis()
+                            / 1000
+            );
         }
 
         return vecinoRepository.save(datos);
     }
 
     @DeleteMapping("/{id}")
-    public void darDeBaja(@PathVariable Long id) {
-        Vecino vecino = vecinoRepository.findById(id).orElseThrow(() -> new RuntimeException("Vecino no encontrado"));
+    public void darDeBaja(
+            @PathVariable Long id
+    ) {
+        Vecino vecino = vecinoRepository.findById(id)
+                .orElseThrow(() ->
+                        new RuntimeException(
+                                "Vecino no encontrado"
+                        )
+                );
+
         vecino.setActivo(false);
         vecinoRepository.save(vecino);
     }
 
     @GetMapping("/{id}/mandato-pdf")
-    public ResponseEntity<byte[]> descargarMandatoPdf(@PathVariable Long id) {
-
+    public ResponseEntity<byte[]> descargarMandatoPdf(
+            @PathVariable Long id
+    ) {
         Vecino vecino = vecinoRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Vecino no encontrado"));
+                .orElseThrow(() ->
+                        new RuntimeException(
+                                "Vecino no encontrado"
+                        )
+                );
 
-        Comunidad comunidad = comunidadRepository.findById(vecino.getComunidadId())
-                .orElseThrow(() -> new RuntimeException("Comunidad no encontrada"));
+        Comunidad comunidad = comunidadRepository
+                .findById(vecino.getComunidadId())
+                .orElseThrow(() ->
+                        new RuntimeException(
+                                "Comunidad no encontrada"
+                        )
+                );
 
-        byte[] pdf = pdfService.generarMandatoSepa(comunidad, vecino);
+        byte[] pdf = pdfService.generarMandatoSepa(
+                comunidad,
+                vecino
+        );
 
-        String nombreArchivo = "mandato_sepa_" + vecino.getId() + ".pdf";
+        String nombreArchivo =
+                "mandato_sepa_"
+                        + vecino.getId()
+                        + ".pdf";
 
         return ResponseEntity.ok()
                 .header(
                         HttpHeaders.CONTENT_DISPOSITION,
-                        "inline; filename=\"" + nombreArchivo + "\""
+                        "inline; filename=\""
+                                + nombreArchivo
+                                + "\""
                 )
-                .contentType(MediaType.APPLICATION_PDF)
+                .contentType(
+                        MediaType.APPLICATION_PDF
+                )
                 .body(pdf);
     }
 }

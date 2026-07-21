@@ -4,6 +4,7 @@ import com.gombeth.urban.util.AesEncryptor;
 import jakarta.persistence.*;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 
 @Entity
 @Table(name = "vecinos")
@@ -95,6 +96,9 @@ public class Vecino {
     @Column(columnDefinition = "TEXT")
     private String notas;
 
+    @Column(name = "fecha_mandato")
+    private LocalDate fechaMandato;
+
     public Long getId() {return id;}
     public Long getComunidadId() {return comunidadId;}
     public void setComunidadId(Long comunidadId) {this.comunidadId = comunidadId;}
@@ -140,4 +144,6 @@ public class Vecino {
     public void setCoeficiente(BigDecimal coeficiente) {this.coeficiente = coeficiente;}
     public String getNotas() {return notas;}
     public void setNotas(String notas) {this.notas = notas;}
+    public LocalDate getFechaMandato() {return fechaMandato;}
+    public void setFechaMandato(LocalDate fechaMandato) {this.fechaMandato = fechaMandato;}
 }

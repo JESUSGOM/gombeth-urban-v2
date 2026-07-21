@@ -1,0 +1,352 @@
+<div class="detalle-page">
+
+  <div class="page-header">
+
+    <div>
+      <h2>
+        🏦 Detalle de Remesa
+        <span *ngIf="detalle">
+          #{{ detalle.id }}
+        </span>
+      </h2>
+
+      <p *ngIf="detalle">
+        {{ detalle.comunidad }}
+      </p>
+    </div>
+
+    <div class="header-actions">
+
+      <button
+        type="button"
+        class="btn-secundario"
+        (click)="volver()">
+        ← Volver a remesas
+      </button>
+
+      <button
+        type="button"
+        class="btn-validar"
+        [disabled]="validando || cargando"
+        (click)="validar()">
+        {{ validando
+        ? 'Validando...'
+        : 'Validar remesa' }}
+      </button>
+
+      <button
+        type="button"
+        class="btn-descarga"
+        [disabled]="cargando || !detalle"
+        (click)="descargarXml()">
+        📄 XML
+      </button>
+
+      <button
+        type="button"
+        class="btn-descarga"
+        [disabled]="cargando || !detalle"
+        (click)="descargarC19()">
+        🏦 C19
+      </button>
+
+    </div>
+
+  </div>
+
+  <div
+    *ngIf="cargando"
+    class="alert info">
+    Cargando detalle de la remesa...
+  </div>
+
+  <div
+    *ngIf="error"
+    class="alert error">
+    {{ error }}
+  </div>
+
+  <div
+    *ngIf="mensajeValidacion"
+    class="alert info">
+    {{ mensajeValidacion }}
+  </div>
+
+  <ul
+    *ngIf="erroresValidacion.length > 0"
+    class="alert error">
+
+    <li *ngFor="let mensaje of erroresValidacion">
+      {{ mensaje }}
+    </li>
+
+  </ul>
+
+  <ng-container *ngIf="!cargando && detalle">
+
+    <div class="resumen-grid">
+
+      <div class="resumen-card">
+        <span>Fecha de creación</span>
+        <strong>{{ detalle.fechaCreacion }}</strong>
+      </div>
+
+      <div class="resumen-card">
+        <span>Fecha de cobro</span>
+        <strong>{{ detalle.fechaCobro || '-' }}</strong>
+      </div>
+
+      <div class="resumen-card">
+        <span>Estado</span>
+        <strong>{{ detalle.estado }}</strong>
+      </div>
+
+      <div class="resumen-card">
+        <span>Esquema SEPA</span>
+        <strong>{{ detalle.esquemaSepa }}</strong>
+      </div>
+
+      <div class="resumen-card">
+        <span>Número de recibos</span>
+        <strong>{{ detalle.numeroRecibos }}</strong>
+      </div>
+
+      <div class="resumen-card">
+        <span>Importe total</span>
+        <strong>
+          {{ detalle.totalImporte | number:'1.2-2' }} €
+        </strong>
+      </div>
+
+      <div class="resumen-card">
+        <span>Total domiciliado</span>
+        <strong>
+          {{ detalle.totalDomiciliado | number:'1.2-2' }} €
+        </strong>
+      </div>
+
+      <div class="resumen-card">
+        <span>Total no domiciliado</span>
+        <strong>
+          {{ detalle.totalNoDomiciliado | number:'1.2-2' }} €
+        </strong>
+      </div>
+
+    </div>
+
+    <div class="table-card">
+
+      <div class="table-toolbar">
+
+        <div>
+          <label for="tamPagina">
+            Registros por página
+          </label>
+
+          <select
+            id="tamPagina"
+            [value]="tamanioPagina"
+            (change)="cambiarTamPagina($event)">
+
+            <option
+              *ngFor="let opcion of opcionesTamPagina"
+              [value]="opcion">
+              {{ opcion }}
+            </option>
+
+          </select>
+        </div>
+
+        <div>
+          Mostrando
+          {{ inicioRegistro }}-{{ finRegistro }}
+          de {{ lineasOrdenadas.length }}
+        </div>
+
+      </div>
+
+      <div class="table-wrapper">
+
+        <table>
+
+          <thead>
+          <tr>
+
+            <th
+              class="sortable"
+              (click)="ordenarPor('vecino')">
+              Propietario
+              {{ getIndicadorOrden('vecino') }}
+            </th>
+
+            <th
+              class="sortable"
+              (click)="ordenarPor('reciboContableId')">
+              Recibo
+              {{ getIndicadorOrden('reciboContableId') }}
+            </th>
+
+            <th
+              class="sortable right"
+              (click)="ordenarPor('importe')">
+              Importe
+              {{ getIndicadorOrden('importe') }}
+            </th>
+
+            <th
+              class="sortable center"
+              (click)="ordenarPor('domiciliado')">
+              Domiciliado
+              {{ getIndicadorOrden('domiciliado') }}
+            </th>
+
+            <th
+              class="sortable center"
+              (click)="ordenarPor('incluidoSepa')">
+              Incluido SEPA
+              {{ getIndicadorOrden('incluidoSepa') }}
+            </th>
+
+            <th class="center">
+              PDF
+            </th>
+
+            <th class="center">
+              Email
+            </th>
+
+            <th>
+              Conceptos
+            </th>
+
+          </tr>
+          </thead>
+
+          <tbody>
+
+          <tr *ngIf="lineasPaginadas.length === 0">
+            <td
+              colspan="8"
+              class="empty-row">
+              La remesa no contiene líneas.
+            </td>
+          </tr>
+
+          <tr *ngFor="let linea of lineasPaginadas">
+
+            <td>
+              <strong>{{ linea.vecino }}</strong>
+
+              <small>
+                Vecino ID: {{ linea.vecinoId }}
+              </small>
+            </td>
+
+            <td>
+              {{ linea.reciboContableId || '-' }}
+            </td>
+
+            <td class="right">
+              {{ linea.importe | number:'1.2-2' }} €
+            </td>
+
+            <td class="center">
+                <span
+                  [class.estado-si]="linea.domiciliado"
+                  [class.estado-no]="!linea.domiciliado">
+                  {{ textoSiNo(linea.domiciliado) }}
+                </span>
+            </td>
+
+            <td class="center">
+                <span
+                  [class.estado-si]="linea.incluidoSepa"
+                  [class.estado-no]="!linea.incluidoSepa">
+                  {{ textoSiNo(linea.incluidoSepa) }}
+                </span>
+            </td>
+
+            <td class="center">
+              {{ textoSiNo(linea.pdfGenerado) }}
+            </td>
+
+            <td class="center">
+              {{ textoSiNo(linea.emailEnviado) }}
+            </td>
+
+            <td class="conceptos-cell">
+
+                <span
+                  *ngIf="linea.conceptos.length === 0"
+                  class="sin-conceptos">
+                  Sin conceptos
+                </span>
+
+              <div
+                *ngFor="let concepto of linea.conceptos"
+                class="concepto-item">
+
+                  <span>
+                    {{ concepto.descripcion }}
+                  </span>
+
+                <strong>
+                  {{ concepto.importe | number:'1.2-2' }} €
+                </strong>
+
+              </div>
+
+            </td>
+
+          </tr>
+
+          </tbody>
+
+        </table>
+
+      </div>
+
+      <div class="pagination-bar">
+
+        <button
+          type="button"
+          (click)="irPrimera()"
+          [disabled]="paginaActual === 1">
+          « Primera
+        </button>
+
+        <button
+          type="button"
+          (click)="irAnterior()"
+          [disabled]="paginaActual === 1">
+          ‹ Anterior
+        </button>
+
+        <span>
+          Página
+          <strong>{{ paginaActual }}</strong>
+          de
+          <strong>{{ totalPaginas }}</strong>
+        </span>
+
+        <button
+          type="button"
+          (click)="irSiguiente()"
+          [disabled]="paginaActual >= totalPaginas">
+          Siguiente ›
+        </button>
+
+        <button
+          type="button"
+          (click)="irUltima()"
+          [disabled]="paginaActual >= totalPaginas">
+          Última »
+        </button>
+
+      </div>
+
+    </div>
+
+  </ng-container>
+
+</div>

@@ -11,6 +11,7 @@ import { VecinoEdit } from './features/vecinos/pages/vecino-edit/vecino-edit';
 import { PresupuestosList } from './features/presupuestos/pages/presupuestos-list/presupuestos-list';
 import { RecibosList } from './features/recibos/pages/recibos-list/recibos-list';
 import { RemesasList } from './features/remesas/pages/remesas-list/remesas-list';
+import { RemesaDetalle } from './features/remesas/pages/remesa-detalle/remesa-detalle';
 import { MovimientosList } from './features/tesoreria/pages/movimientos-list/movimientos-list';
 
 import { ConceptosList } from './features/conceptos/pages/conceptos-list/conceptos-list';
@@ -48,6 +49,7 @@ export const routes: Routes = [
         path: 'comunidades',
         component: ComunidadesList
       },
+
       {
         path: 'comunidades/editar/:id',
         component: ComunidadEdit
@@ -57,14 +59,17 @@ export const routes: Routes = [
         path: 'vecinos',
         component: VecinosList
       },
+
       {
         path: 'vecinos/comunidad/:id',
         component: VecinosList
       },
+
       {
         path: 'vecinos/editar/:id',
         component: VecinoEdit
       },
+
       {
         path: 'vecinos/nuevo/comunidad/:comunidadId',
         component: VecinoEdit
@@ -76,10 +81,29 @@ export const routes: Routes = [
       },
 
       {
+        path: 'recibos',
+        component: RecibosList
+      },
+
+      {
         path: 'recibos/comunidad/:id',
         component: RecibosList
       },
 
+      {
+        path: 'remesas',
+        component: RemesasList
+      },
+
+      {
+        path: 'remesas/:id',
+        component: RemesaDetalle
+      },
+
+      /*
+       * Ruta utilizada por el botón RM
+       * del listado de comunidades.
+       */
       {
         path: 'remesas/comunidad/:id',
         component: RemesasList
@@ -127,6 +151,29 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./features/tesoreria/pages/balance/balance')
             .then(m => m.BalanceComponent)
+      },
+
+      {
+        path: 'incidencias',
+        loadComponent: () =>
+          import('./features/incidencias/pages/incidencias-list/incidencias-list')
+            .then(m => m.IncidenciasList)
+      },
+
+      {
+        path: 'incidencias/nueva',
+        loadComponent: () =>
+          import(
+            './features/incidencias/pages/incidencias-edit/incidencias-edit'
+            ).then(m => m.IncidenciasEdit)
+      },
+
+      {
+        path: 'incidencias/:id',
+        loadComponent: () =>
+          import(
+            './features/incidencias/pages/incidencias-edit/incidencias-edit'
+            ).then(m => m.IncidenciasEdit)
       }
 
     ]
