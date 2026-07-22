@@ -5,10 +5,12 @@ import com.gombeth.urban.entity.Vecino;
 import com.gombeth.urban.entity.VecinoDocumento;
 import com.gombeth.urban.repository.VecinoDocumentoRepository;
 import com.gombeth.urban.repository.VecinoRepository;
+import com.gombeth.urban.service.AccesoComunidadService;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -47,23 +49,44 @@ public class VecinoDocumentoController {
                     MediaType.IMAGE_PNG_VALUE
             );
 
-    private final VecinoDocumentoRepository documentoRepository;
-    private final VecinoRepository vecinoRepository;
+    private final VecinoDocumentoRepository
+            documentoRepository;
+
+    private final VecinoRepository
+            vecinoRepository;
+
+    private final AccesoComunidadService
+            accesoComunidadService;
 
     public VecinoDocumentoController(
             VecinoDocumentoRepository documentoRepository,
-            VecinoRepository vecinoRepository
+            VecinoRepository vecinoRepository,
+            AccesoComunidadService accesoComunidadService
     ) {
-        this.documentoRepository = documentoRepository;
-        this.vecinoRepository = vecinoRepository;
+        this.documentoRepository =
+                documentoRepository;
+
+        this.vecinoRepository =
+                vecinoRepository;
+
+        this.accesoComunidadService =
+                accesoComunidadService;
     }
 
+    /**
+     * Lista los documentos únicamente cuando el propietario
+     * pertenece a una comunidad accesible para el usuario.
+     */
     @GetMapping("/vecino/{vecinoId}")
     @Transactional(readOnly = true)
     public List<VecinoDocumentoResponse> listarPorVecino(
-            @PathVariable Long vecinoId
+            @PathVariable Long vecinoId,
+            Authentication authentication
     ) {
-        obtenerVecino(vecinoId);
+        obtenerVecinoAutorizado(
+                vecinoId,
+                authentication
+        );
 
         return documentoRepository
                 .findByVecinoIdOrderByFechaSubidaDescIdDesc(
@@ -74,13 +97,21 @@ public class VecinoDocumentoController {
                 .toList();
     }
 
+    /**
+     * Visualiza un documento únicamente cuando pertenece
+     * a un propietario autorizado.
+     */
     @GetMapping("/{documentoId}")
     @Transactional(readOnly = true)
     public ResponseEntity<byte[]> visualizar(
-            @PathVariable Long documentoId
+            @PathVariable Long documentoId,
+            Authentication authentication
     ) {
         VecinoDocumento documento =
-                obtenerDocumento(documentoId);
+                obtenerDocumentoAutorizado(
+                        documentoId,
+                        authentication
+                );
 
         MediaType mediaType =
                 obtenerMediaType(
@@ -104,13 +135,21 @@ public class VecinoDocumentoController {
                 );
     }
 
+    /**
+     * Descarga un documento únicamente cuando pertenece
+     * a un propietario autorizado.
+     */
     @GetMapping("/{documentoId}/descarga")
     @Transactional(readOnly = true)
     public ResponseEntity<byte[]> descargar(
-            @PathVariable Long documentoId
+            @PathVariable Long documentoId,
+            Authentication authentication
     ) {
         VecinoDocumento documento =
-                obtenerDocumento(documentoId);
+                obtenerDocumentoAutorizado(
+                        documentoId,
+                        authentication
+                );
 
         MediaType mediaType =
                 obtenerMediaType(
@@ -134,6 +173,10 @@ public class VecinoDocumentoController {
                 );
     }
 
+    /**
+     * Sube un documento únicamente para un propietario
+     * perteneciente a una comunidad accesible.
+     */
     @PostMapping("/vecino/{vecinoId}")
     @Transactional
     public ResponseEntity<VecinoDocumentoResponse> subir(
@@ -142,10 +185,14 @@ public class VecinoDocumentoController {
             @RequestParam(
                     defaultValue = "MANDATO_SEPA_FIRMADO"
             )
-            String tipoDocumento
+            String tipoDocumento,
+            Authentication authentication
     ) {
         Vecino vecino =
-                obtenerVecino(vecinoId);
+                obtenerVecinoAutorizado(
+                        vecinoId,
+                        authentication
+                );
 
         validarArchivo(file);
 
@@ -157,38 +204,51 @@ public class VecinoDocumentoController {
         VecinoDocumento documento =
                 new VecinoDocumento();
 
-        documento.setVecinoId(vecinoId);
+        documento.setVecinoId(
+                vecinoId
+        );
+
         documento.setTipoDocumento(
                 tipoNormalizado
         );
+
         documento.setNombreArchivo(
                 obtenerNombreArchivo(file)
         );
+
         documento.setContentType(
                 normalizarContentType(
                         file.getContentType()
                 )
         );
+
         documento.setContenido(
                 obtenerContenido(file)
         );
+
         documento.setFechaSubida(
                 LocalDateTime.now()
         );
 
         VecinoDocumento documentoGuardado =
-                documentoRepository.save(documento);
+                documentoRepository.save(
+                        documento
+                );
 
         if (
                 "MANDATO_SEPA_FIRMADO"
                         .equals(tipoNormalizado)
-                        || "MANDATO".equals(tipoNormalizado)
+                        || "MANDATO"
+                        .equals(tipoNormalizado)
         ) {
             vecino.setRutaMandatoFirmado(
-                    "BD:" + documentoGuardado.getId()
+                    "BD:"
+                            + documentoGuardado.getId()
             );
 
-            vecinoRepository.save(vecino);
+            vecinoRepository.save(
+                    vecino
+            );
         }
 
         return ResponseEntity
@@ -200,34 +260,73 @@ public class VecinoDocumentoController {
                 );
     }
 
+    /**
+     * Elimina un documento únicamente cuando pertenece
+     * a un propietario autorizado.
+     */
     @DeleteMapping("/{documentoId}")
     @Transactional
     public ResponseEntity<Void> eliminar(
-            @PathVariable Long documentoId
+            @PathVariable Long documentoId,
+            Authentication authentication
     ) {
         VecinoDocumento documento =
-                obtenerDocumento(documentoId);
+                obtenerDocumento(
+                        documentoId
+                );
 
         Vecino vecino =
-                obtenerVecino(
-                        documento.getVecinoId()
+                obtenerVecinoAutorizado(
+                        documento.getVecinoId(),
+                        authentication
                 );
 
         String referenciaDocumento =
-                "BD:" + documento.getId();
+                "BD:"
+                        + documento.getId();
 
         if (
                 referenciaDocumento.equals(
                         vecino.getRutaMandatoFirmado()
                 )
         ) {
-            vecino.setRutaMandatoFirmado(null);
-            vecinoRepository.save(vecino);
+            vecino.setRutaMandatoFirmado(
+                    null
+            );
+
+            vecinoRepository.save(
+                    vecino
+            );
         }
 
-        documentoRepository.delete(documento);
+        documentoRepository.delete(
+                documento
+        );
 
-        return ResponseEntity.noContent().build();
+        return ResponseEntity
+                .noContent()
+                .build();
+    }
+
+    /**
+     * Recupera un documento y comprueba el acceso
+     * a la comunidad de su propietario.
+     */
+    private VecinoDocumento obtenerDocumentoAutorizado(
+            Long documentoId,
+            Authentication authentication
+    ) {
+        VecinoDocumento documento =
+                obtenerDocumento(
+                        documentoId
+                );
+
+        obtenerVecinoAutorizado(
+                documento.getVecinoId(),
+                authentication
+        );
+
+        return documento;
     }
 
     private VecinoDocumento obtenerDocumento(
@@ -239,7 +338,8 @@ public class VecinoDocumentoController {
         ) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
-                    "El identificador del documento no es válido."
+                    "El identificador del documento "
+                            + "no es válido."
             );
         }
 
@@ -254,6 +354,27 @@ public class VecinoDocumentoController {
                 );
     }
 
+    /**
+     * Recupera un propietario y verifica que su comunidad
+     * pertenece al usuario autenticado.
+     */
+    private Vecino obtenerVecinoAutorizado(
+            Long vecinoId,
+            Authentication authentication
+    ) {
+        Vecino vecino =
+                obtenerVecino(
+                        vecinoId
+                );
+
+        accesoComunidadService.validarAcceso(
+                authentication,
+                vecino.getComunidadId()
+        );
+
+        return vecino;
+    }
+
     private Vecino obtenerVecino(
             Long vecinoId
     ) {
@@ -263,7 +384,8 @@ public class VecinoDocumentoController {
         ) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
-                    "El identificador del propietario no es válido."
+                    "El identificador del propietario "
+                            + "no es válido."
             );
         }
 
@@ -298,7 +420,8 @@ public class VecinoDocumentoController {
         ) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
-                    "El documento no puede superar los 10 MB."
+                    "El documento no puede superar "
+                            + "los 10 MB."
             );
         }
 
@@ -313,7 +436,8 @@ public class VecinoDocumentoController {
         ) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
-                    "Solo se permiten documentos PDF, JPG o PNG."
+                    "Solo se permiten documentos "
+                            + "PDF, JPG o PNG."
             );
         }
     }
@@ -356,7 +480,9 @@ public class VecinoDocumentoController {
 
         return contentType
                 .trim()
-                .toLowerCase(Locale.ROOT);
+                .toLowerCase(
+                        Locale.ROOT
+                );
     }
 
     private String obtenerNombreArchivo(
@@ -408,6 +534,7 @@ public class VecinoDocumentoController {
     ) {
         try {
             return file.getBytes();
+
         } catch (IOException error) {
             throw new ResponseStatusException(
                     HttpStatus.INTERNAL_SERVER_ERROR,
@@ -424,6 +551,7 @@ public class VecinoDocumentoController {
             return MediaType.parseMediaType(
                     contentType
             );
+
         } catch (Exception error) {
             return MediaType
                     .APPLICATION_OCTET_STREAM;
