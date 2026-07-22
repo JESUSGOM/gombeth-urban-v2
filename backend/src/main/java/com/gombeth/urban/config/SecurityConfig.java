@@ -3,6 +3,7 @@ package com.gombeth.urban.config;
 import jakarta.servlet.DispatcherType;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.env.Environment;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -24,6 +25,7 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.List;
 
 @Configuration
@@ -33,12 +35,15 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(
             HttpSecurity http,
             SecurityContextRepository securityContextRepository,
-            CookieCsrfTokenRepository csrfTokenRepository
+            CookieCsrfTokenRepository csrfTokenRepository,
+            CorsConfigurationSource corsConfigurationSource
     ) throws Exception {
 
         return http
                 .csrf(csrf -> csrf
-                        .csrfTokenRepository(csrfTokenRepository)
+                        .csrfTokenRepository(
+                                csrfTokenRepository
+                        )
                         .csrfTokenRequestHandler(
                                 new SpaCsrfTokenRequestHandler()
                         )
@@ -46,7 +51,7 @@ public class SecurityConfig {
 
                 .cors(cors -> cors
                         .configurationSource(
-                                corsConfigurationSource()
+                                corsConfigurationSource
                         )
                 )
 
@@ -100,15 +105,16 @@ public class SecurityConfig {
                         .permitAll()
 
                         /*
-                         * Todas las APIs de negocio exigen ahora
-                         * una sesión autenticada en el servidor.
+                         * Todas las APIs de negocio exigen
+                         * una sesión autenticada.
                          */
                         .requestMatchers("/api/**")
                         .authenticated()
 
                         /*
-                         * Las rutas Angular se sirven desde index.html.
-                         * Los datos quedan protegidos en el backend.
+                         * Las rutas Angular se sirven desde
+                         * index.html. Los datos quedan protegidos
+                         * dentro del backend.
                          */
                         .anyRequest()
                         .permitAll()
@@ -118,11 +124,15 @@ public class SecurityConfig {
                         .authenticationEntryPoint(
                                 (request, response, exception) -> {
                                     response.setStatus(
-                                            HttpStatus.UNAUTHORIZED.value()
+                                            HttpStatus
+                                                    .UNAUTHORIZED
+                                                    .value()
                                     );
 
                                     response.setCharacterEncoding(
-                                            StandardCharsets.UTF_8.name()
+                                            StandardCharsets
+                                                    .UTF_8
+                                                    .name()
                                     );
 
                                     response.setContentType(
@@ -130,7 +140,9 @@ public class SecurityConfig {
                                     );
 
                                     response.getWriter().write(
-                                            "{\"mensaje\":\"Sesión no iniciada o caducada.\"}"
+                                            "{\"mensaje\":"
+                                                    + "\"Sesión no iniciada "
+                                                    + "o caducada.\"}"
                                     );
                                 }
                         )
@@ -138,11 +150,15 @@ public class SecurityConfig {
                         .accessDeniedHandler(
                                 (request, response, exception) -> {
                                     response.setStatus(
-                                            HttpStatus.FORBIDDEN.value()
+                                            HttpStatus
+                                                    .FORBIDDEN
+                                                    .value()
                                     );
 
                                     response.setCharacterEncoding(
-                                            StandardCharsets.UTF_8.name()
+                                            StandardCharsets
+                                                    .UTF_8
+                                                    .name()
                                     );
 
                                     response.setContentType(
@@ -150,28 +166,49 @@ public class SecurityConfig {
                                     );
 
                                     response.getWriter().write(
-                                            "{\"mensaje\":\"No tiene permiso para realizar esta operación.\"}"
+                                            "{\"mensaje\":"
+                                                    + "\"No tiene permiso "
+                                                    + "para realizar esta "
+                                                    + "operación.\"}"
                                     );
                                 }
                         )
                 )
 
                 .logout(logout -> logout
-                        .logoutUrl("/api/auth/logout")
-                        .invalidateHttpSession(true)
-                        .clearAuthentication(true)
-                        .deleteCookies("JSESSIONID")
+                        .logoutUrl(
+                                "/api/auth/logout"
+                        )
+                        .invalidateHttpSession(
+                                true
+                        )
+                        .clearAuthentication(
+                                true
+                        )
+                        .deleteCookies(
+                                "JSESSIONID"
+                        )
                         .logoutSuccessHandler(
-                                (request, response, authentication) ->
+                                (
+                                        request,
+                                        response,
+                                        authentication
+                                ) ->
                                         response.setStatus(
-                                                HttpStatus.NO_CONTENT.value()
+                                                HttpStatus
+                                                        .NO_CONTENT
+                                                        .value()
                                         )
                         )
                         .permitAll()
                 )
 
-                .formLogin(form -> form.disable())
-                .httpBasic(basic -> basic.disable())
+                .formLogin(
+                        form -> form.disable()
+                )
+                .httpBasic(
+                        basic -> basic.disable()
+                )
                 .build();
     }
 
@@ -179,11 +216,14 @@ public class SecurityConfig {
     public AuthenticationManager authenticationManager(
             AuthenticationConfiguration configuration
     ) throws Exception {
-        return configuration.getAuthenticationManager();
+        return configuration
+                .getAuthenticationManager();
     }
 
     @Bean
-    public SecurityContextRepository securityContextRepository() {
+    public SecurityContextRepository
+    securityContextRepository() {
+
         return new DelegatingSecurityContextRepository(
                 new RequestAttributeSecurityContextRepository(),
                 new HttpSessionSecurityContextRepository()
@@ -191,30 +231,68 @@ public class SecurityConfig {
     }
 
     @Bean
-    public SessionAuthenticationStrategy sessionAuthenticationStrategy() {
+    public SessionAuthenticationStrategy
+    sessionAuthenticationStrategy() {
+
         return new ChangeSessionIdAuthenticationStrategy();
     }
 
     @Bean
-    public CookieCsrfTokenRepository csrfTokenRepository() {
-        CookieCsrfTokenRepository repository =
-                CookieCsrfTokenRepository.withHttpOnlyFalse();
+    public CookieCsrfTokenRepository
+    csrfTokenRepository() {
 
-        repository.setCookiePath("/");
+        CookieCsrfTokenRepository repository =
+                CookieCsrfTokenRepository
+                        .withHttpOnlyFalse();
+
+        repository.setCookiePath(
+                "/"
+        );
 
         return repository;
     }
 
+    /**
+     * Obtiene los orígenes autorizados desde:
+     *
+     * app.cors.allowed-origins
+     *
+     * Se pueden indicar varios orígenes separados
+     * mediante comas.
+     */
     @Bean
-    public CorsConfigurationSource corsConfigurationSource() {
+    public CorsConfigurationSource
+    corsConfigurationSource(
+            Environment environment
+    ) {
+        String allowedOrigins =
+                environment.getRequiredProperty(
+                        "app.cors.allowed-origins"
+                );
+
+        List<String> origins =
+                Arrays.stream(
+                                allowedOrigins.split(",")
+                        )
+                        .map(String::trim)
+                        .filter(origin ->
+                                !origin.isBlank()
+                        )
+                        .toList();
+
+        if (origins.isEmpty()) {
+            throw new IllegalStateException(
+                    "La propiedad "
+                            + "app.cors.allowed-origins "
+                            + "no contiene ningún origen válido."
+            );
+        }
 
         CorsConfiguration config =
                 new CorsConfiguration();
 
         config.setAllowedOrigins(
-                List.of(
-                        "http://localhost:4200"
-                )
+                origins
         );
 
         config.setAllowedMethods(
@@ -237,8 +315,13 @@ public class SecurityConfig {
                 )
         );
 
-        config.setAllowCredentials(true);
-        config.setMaxAge(3600L);
+        config.setAllowCredentials(
+                true
+        );
+
+        config.setMaxAge(
+                3600L
+        );
 
         UrlBasedCorsConfigurationSource source =
                 new UrlBasedCorsConfigurationSource();
