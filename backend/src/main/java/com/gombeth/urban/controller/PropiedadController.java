@@ -118,10 +118,30 @@ public class PropiedadController {
             @RequestBody Propiedad propiedad,
             Authentication authentication
     ) {
-        if (
-                propiedad == null
-                        || propiedad.getComunidadId() == null
-        ) {
+        if (propiedad == null) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Los datos de la propiedad "
+                            + "son obligatorios."
+            );
+        }
+
+        /*
+         * Una operación de alta nunca puede recibir
+         * un identificador.
+         *
+         * Evita que repository.save(...) actualice
+         * accidentalmente una propiedad existente.
+         */
+        if (propiedad.getId() != null) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "No se permite indicar un identificador "
+                            + "al crear una propiedad."
+            );
+        }
+
+        if (propiedad.getComunidadId() == null) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
                     "La comunidad de la propiedad "
