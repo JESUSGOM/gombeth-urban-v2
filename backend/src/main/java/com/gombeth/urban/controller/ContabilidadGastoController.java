@@ -111,7 +111,12 @@ public class ContabilidadGastoController {
     }
 
     /**
-     * Impide crear gastos en una comunidad ajena.
+     * Crea un gasto únicamente dentro de una comunidad
+     * accesible por el usuario autenticado.
+     *
+     * Una operación de alta no puede recibir un
+     * identificador, porque podría provocar la modificación
+     * de un gasto existente mediante repository.save(...).
      *
      * Cuando se indica una cuenta de gasto, también se
      * comprueba que pertenezca a la misma comunidad.
@@ -121,10 +126,22 @@ public class ContabilidadGastoController {
             @RequestBody ContabilidadGasto gasto,
             Authentication authentication
     ) {
-        if (
-                gasto == null
-                        || gasto.getComunidadId() == null
-        ) {
+        if (gasto == null) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Los datos del gasto son obligatorios."
+            );
+        }
+
+        if (gasto.getId() != null) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "No se permite indicar un identificador "
+                            + "al crear un gasto."
+            );
+        }
+
+        if (gasto.getComunidadId() == null) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
                     "La comunidad del gasto es obligatoria."
@@ -143,7 +160,9 @@ public class ContabilidadGastoController {
         );
 
         try {
-            return gastoService.crear(gasto);
+            return gastoService.crear(
+                    gasto
+            );
 
         } catch (IllegalArgumentException error) {
             throw new ResponseStatusException(
