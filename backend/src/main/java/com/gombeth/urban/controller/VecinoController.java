@@ -42,7 +42,9 @@ public class VecinoController {
             AccesoComunidadService accesoComunidadService
     ) {
         this.vecinoRepository = vecinoRepository;
+
         this.pdfService = pdfService;
+
         this.accesoComunidadService =
                 accesoComunidadService;
     }
@@ -129,72 +131,178 @@ public class VecinoController {
         );
     }
 
+    /**
+     * Actualiza un propietario autorizado.
+     *
+     * No se permite modificar comunidadId.
+     *
+     * Tampoco se permite modificar rutaMandatoFirmado
+     * desde el JSON recibido. Ese campo solamente puede
+     * cambiar mediante la API de documentos, después de
+     * subir o eliminar realmente el mandato firmado.
+     */
     @PutMapping("/{id}")
     public Vecino actualizar(
             @PathVariable Long id,
             @RequestBody Vecino datos,
             Authentication authentication
     ) {
-        Vecino vecino = obtenerVecinoAutorizado(
-                id,
-                authentication
-        );
+        if (datos == null) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Los datos del propietario "
+                            + "son obligatorios."
+            );
+        }
+
+        Vecino vecino =
+                obtenerVecinoAutorizado(
+                        id,
+                        authentication
+                );
 
         /*
-         * No se permite modificar comunidadId.
-         * El propietario permanece en su comunidad actual.
+         * No se modifica comunidadId.
+         * El propietario permanece siempre
+         * en su comunidad actual.
          */
-        vecino.setNombre(datos.getNombre());
-        vecino.setNif(datos.getNif());
-        vecino.setIban(datos.getIban());
-        vecino.setBic(datos.getBic());
-        vecino.setEmail(datos.getEmail());
+        vecino.setNombre(
+                datos.getNombre()
+        );
 
-        vecino.setTelefono1(datos.getTelefono1());
-        vecino.setTelefono2(datos.getTelefono2());
-        vecino.setTelefono3(datos.getTelefono3());
+        vecino.setNif(
+                datos.getNif()
+        );
 
-        vecino.setDireccion(datos.getDireccion());
-        vecino.setPoblacion(datos.getPoblacion());
-        vecino.setProvincia(datos.getProvincia());
+        vecino.setIban(
+                datos.getIban()
+        );
+
+        vecino.setBic(
+                datos.getBic()
+        );
+
+        vecino.setEmail(
+                datos.getEmail()
+        );
+
+        vecino.setTelefono1(
+                datos.getTelefono1()
+        );
+
+        vecino.setTelefono2(
+                datos.getTelefono2()
+        );
+
+        vecino.setTelefono3(
+                datos.getTelefono3()
+        );
+
+        vecino.setDireccion(
+                datos.getDireccion()
+        );
+
+        vecino.setPoblacion(
+                datos.getPoblacion()
+        );
+
+        vecino.setProvincia(
+                datos.getProvincia()
+        );
+
         vecino.setCodigoPostal(
                 datos.getCodigoPostal()
         );
-        vecino.setPaisCod(datos.getPaisCod());
 
-        vecino.setVivienda(datos.getVivienda());
+        vecino.setPaisCod(
+                datos.getPaisCod()
+        );
+
+        vecino.setVivienda(
+                datos.getVivienda()
+        );
+
         vecino.setDomiciliado(
                 datos.isDomiciliado()
         );
-        vecino.setActivo(datos.isActivo());
+
+        vecino.setActivo(
+                datos.isActivo()
+        );
 
         vecino.setReferenciaMandato(
                 datos.getReferenciaMandato()
         );
+
         vecino.setFechaMandato(
                 datos.getFechaMandato()
         );
+
         vecino.setDireccionNotificacion(
                 datos.getDireccionNotificacion()
         );
-        vecino.setRutaMandatoFirmado(
-                datos.getRutaMandatoFirmado()
-        );
+
+        /*
+         * No se llama a:
+         *
+         * vecino.setRutaMandatoFirmado(
+         *         datos.getRutaMandatoFirmado()
+         * );
+         *
+         * Se conserva el valor existente en la base
+         * de datos y se ignora cualquier valor enviado
+         * por el navegador.
+         */
+
         vecino.setCoeficiente(
                 datos.getCoeficiente()
         );
+
         vecino.setNotas(
                 datos.getNotas()
         );
 
-        return vecinoRepository.save(vecino);
+        return vecinoRepository.save(
+                vecino
+        );
     }
 
+    /**
+     * Crea un propietario únicamente dentro de una
+     * comunidad accesible por el usuario autenticado.
+     *
+     * rutaMandatoFirmado se fuerza siempre a null.
+     * Solo podrá establecerse posteriormente mediante
+     * la subida real del documento firmado.
+     */
     @PostMapping
     public Vecino crear(
             @RequestBody Vecino datos,
             Authentication authentication
     ) {
+        if (datos == null) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Los datos del propietario "
+                            + "son obligatorios."
+            );
+        }
+
+        /*
+         * Un alta nunca puede recibir un identificador.
+         *
+         * Evita que alguien envíe manualmente el ID de un
+         * propietario existente y provoque una actualización
+         * mediante repository.save(...).
+         */
+        if (datos.getId() != null) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "No se permite indicar un identificador "
+                            + "al crear un propietario."
+            );
+        }
+
         if (datos.getComunidadId() == null) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
@@ -203,21 +311,33 @@ public class VecinoController {
         }
 
         /*
-         * Impide crear un propietario dentro de
-         * una comunidad ajena.
+         * Impide crear un propietario dentro
+         * de una comunidad ajena.
          */
         accesoComunidadService.validarAcceso(
                 authentication,
                 datos.getComunidadId()
         );
 
-        datos.setActivo(true);
+        datos.setActivo(
+                true
+        );
+
+        /*
+         * Nunca se acepta como válido un mandato firmado
+         * indicado únicamente mediante el cuerpo JSON.
+         */
+        datos.setRutaMandatoFirmado(
+                null
+        );
 
         if (
                 datos.getPaisCod() == null
                         || datos.getPaisCod().isBlank()
         ) {
-            datos.setPaisCod("ES");
+            datos.setPaisCod(
+                    "ES"
+            );
         }
 
         if (
@@ -232,7 +352,9 @@ public class VecinoController {
             );
         }
 
-        return vecinoRepository.save(datos);
+        return vecinoRepository.save(
+                datos
+        );
     }
 
     @DeleteMapping("/{id}")
@@ -240,14 +362,19 @@ public class VecinoController {
             @PathVariable Long id,
             Authentication authentication
     ) {
-        Vecino vecino = obtenerVecinoAutorizado(
-                id,
-                authentication
+        Vecino vecino =
+                obtenerVecinoAutorizado(
+                        id,
+                        authentication
+                );
+
+        vecino.setActivo(
+                false
         );
 
-        vecino.setActivo(false);
-
-        vecinoRepository.save(vecino);
+        vecinoRepository.save(
+                vecino
+        );
     }
 
     @GetMapping("/{id}/mandato-pdf")
@@ -255,10 +382,11 @@ public class VecinoController {
             @PathVariable Long id,
             Authentication authentication
     ) {
-        Vecino vecino = obtenerVecinoAutorizado(
-                id,
-                authentication
-        );
+        Vecino vecino =
+                obtenerVecinoAutorizado(
+                        id,
+                        authentication
+                );
 
         Comunidad comunidad =
                 accesoComunidadService
@@ -267,10 +395,11 @@ public class VecinoController {
                                 vecino.getComunidadId()
                         );
 
-        byte[] pdf = pdfService.generarMandatoSepa(
-                comunidad,
-                vecino
-        );
+        byte[] pdf =
+                pdfService.generarMandatoSepa(
+                        comunidad,
+                        vecino
+                );
 
         String nombreArchivo =
                 "mandato_sepa_"
@@ -287,7 +416,9 @@ public class VecinoController {
                 .contentType(
                         MediaType.APPLICATION_PDF
                 )
-                .body(pdf);
+                .body(
+                        pdf
+                );
     }
 
     /**
@@ -298,16 +429,17 @@ public class VecinoController {
             Long vecinoId,
             Authentication authentication
     ) {
-        Vecino vecino = vecinoRepository
-                .findById(vecinoId)
-                .orElseThrow(() ->
-                        new ResponseStatusException(
-                                HttpStatus.NOT_FOUND,
-                                "Propietario no encontrado "
-                                        + "con ID: "
-                                        + vecinoId
-                        )
-                );
+        Vecino vecino =
+                vecinoRepository
+                        .findById(vecinoId)
+                        .orElseThrow(() ->
+                                new ResponseStatusException(
+                                        HttpStatus.NOT_FOUND,
+                                        "Propietario no encontrado "
+                                                + "con ID: "
+                                                + vecinoId
+                                )
+                        );
 
         accesoComunidadService.validarAcceso(
                 authentication,
