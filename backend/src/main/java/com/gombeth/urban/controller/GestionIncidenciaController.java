@@ -55,8 +55,8 @@ public class GestionIncidenciaController {
     }
 
     /**
-     * Comprueba la comunidad de la incidencia antes de
-     * devolver sus datos.
+     * Comprueba la comunidad de la incidencia antes
+     * de devolver sus datos.
      */
     @GetMapping("/{id}")
     public GestionIncidenciaResponse obtener(
@@ -75,14 +75,34 @@ public class GestionIncidenciaController {
     }
 
     /**
-     * Impide crear una incidencia interna dentro de una
-     * comunidad ajena.
+     * Crea una incidencia interna únicamente dentro de
+     * una comunidad accesible por el usuario autenticado.
+     *
+     * Una operación de alta nunca puede recibir un
+     * identificador, porque podría provocar la modificación
+     * de una incidencia existente mediante save(...).
      */
     @PostMapping
     public GestionIncidenciaResponse crear(
             @RequestBody GestionIncidencia incidencia,
             Authentication authentication
     ) {
+        if (incidencia == null) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "No se han recibido los datos "
+                            + "de la incidencia."
+            );
+        }
+
+        if (incidencia.getId() != null) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "No se permite indicar un identificador "
+                            + "al crear una incidencia."
+            );
+        }
+
         Long comunidadId =
                 obtenerComunidadIdParaAlta(
                         incidencia
@@ -101,8 +121,8 @@ public class GestionIncidenciaController {
     /**
      * Valida la comunidad de la incidencia existente.
      *
-     * No se permite trasladar una incidencia a otra comunidad
-     * modificando el cuerpo JSON.
+     * No se permite trasladar una incidencia a otra
+     * comunidad modificando el cuerpo JSON.
      */
     @PutMapping("/{id}")
     public GestionIncidenciaResponse actualizar(
@@ -113,7 +133,8 @@ public class GestionIncidenciaController {
         if (incidencia == null) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
-                    "No se han recibido los datos de la incidencia."
+                    "No se han recibido los datos "
+                            + "de la incidencia."
             );
         }
 
@@ -164,7 +185,9 @@ public class GestionIncidenciaController {
          * La dejamos a null para conservar siempre la comunidad
          * original almacenada en la base de datos.
          */
-        incidencia.setComunidad(null);
+        incidencia.setComunidad(
+                null
+        );
 
         return service.actualizar(
                 id,
