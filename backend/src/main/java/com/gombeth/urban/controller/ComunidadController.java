@@ -7,6 +7,7 @@ import com.gombeth.urban.repository.ComunidadRepository;
 import com.gombeth.urban.repository.VecinoRepository;
 import com.gombeth.urban.service.AccesoComunidadService;
 import com.gombeth.urban.service.QrCodeService;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -36,10 +37,6 @@ import java.util.UUID;
 @RequestMapping("/api/comunidades")
 public class ComunidadController {
 
-    private static final String
-            FORMULARIO_PUBLICO_INCIDENCIAS =
-            "https://jfgb.es/incidenciacomunidad/";
-
     private final ComunidadRepository repository;
 
     private final VecinoRepository vecinoRepository;
@@ -49,18 +46,27 @@ public class ComunidadController {
     private final AccesoComunidadService
             accesoComunidadService;
 
+    private final String formularioPublicoIncidencias;
+
     public ComunidadController(
             ComunidadRepository repository,
             VecinoRepository vecinoRepository,
             QrCodeService qrCodeService,
-            AccesoComunidadService
-                    accesoComunidadService
+            AccesoComunidadService accesoComunidadService,
+            @Value("${app.incidencias.public-url}")
+            String formularioPublicoIncidencias
     ) {
         this.repository = repository;
         this.vecinoRepository = vecinoRepository;
         this.qrCodeService = qrCodeService;
+
         this.accesoComunidadService =
                 accesoComunidadService;
+
+        this.formularioPublicoIncidencias =
+                normalizarUrlFormularioPublico(
+                        formularioPublicoIncidencias
+                );
     }
 
     /**
@@ -123,7 +129,7 @@ public class ComunidadController {
         );
 
         String urlFormulario =
-                FORMULARIO_PUBLICO_INCIDENCIAS
+                formularioPublicoIncidencias
                         + "?t="
                         + tokenCodificado;
 
@@ -326,6 +332,39 @@ public class ComunidadController {
                 repository.save(comunidad);
 
         return comunidadGuardada.getTokenQr();
+    }
+
+    private String normalizarUrlFormularioPublico(
+            String url
+    ) {
+        if (url == null || url.isBlank()) {
+            throw new IllegalStateException(
+                    "La propiedad "
+                            + "app.incidencias.public-url "
+                            + "es obligatoria."
+            );
+        }
+
+        String urlLimpia = url.trim();
+
+        if (
+                !urlLimpia.startsWith("http://")
+                        && !urlLimpia.startsWith("https://")
+        ) {
+            throw new IllegalStateException(
+                    "La propiedad "
+                            + "app.incidencias.public-url "
+                            + "debe comenzar por http:// "
+                            + "o https://."
+            );
+        }
+
+        if (!urlLimpia.endsWith("/")) {
+            urlLimpia =
+                    urlLimpia + "/";
+        }
+
+        return urlLimpia;
     }
 
     private void validarDatosComunidad(
