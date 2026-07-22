@@ -30,7 +30,8 @@ public class ConceptoCobroController {
             AccesoComunidadService accesoComunidadService
     ) {
         this.service = service;
-        this.accesoComunidadService = accesoComunidadService;
+        this.accesoComunidadService =
+                accesoComunidadService;
     }
 
     /**
@@ -47,7 +48,9 @@ public class ConceptoCobroController {
                 id
         );
 
-        return service.findByComunidad(id);
+        return service.findByComunidad(
+                id
+        );
     }
 
     /**
@@ -60,7 +63,9 @@ public class ConceptoCobroController {
             Authentication authentication
     ) {
         ConceptoCobroDTO concepto =
-                service.findById(id);
+                service.findById(
+                        id
+                );
 
         accesoComunidadService.validarAcceso(
                 authentication,
@@ -71,13 +76,33 @@ public class ConceptoCobroController {
     }
 
     /**
-     * Impide crear conceptos en comunidades ajenas.
+     * Crea un concepto únicamente dentro de una comunidad
+     * accesible por el usuario autenticado.
+     *
+     * Una operación de alta no puede recibir un identificador,
+     * porque podría provocar la modificación de un concepto
+     * existente mediante repository.save(...).
      */
     @PostMapping
     public ConceptoCobroDTO create(
             @RequestBody ConceptoCobro concepto,
             Authentication authentication
     ) {
+        if (concepto == null) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Los datos del concepto son obligatorios."
+            );
+        }
+
+        if (concepto.getId() != null) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "No se permite indicar un identificador "
+                            + "al crear un concepto de cobro."
+            );
+        }
+
         if (concepto.getComunidadId() == null) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
@@ -90,7 +115,9 @@ public class ConceptoCobroController {
                 concepto.getComunidadId()
         );
 
-        return service.create(concepto);
+        return service.create(
+                concepto
+        );
     }
 
     /**
@@ -107,7 +134,9 @@ public class ConceptoCobroController {
             Authentication authentication
     ) {
         ConceptoCobroDTO existente =
-                service.findById(id);
+                service.findById(
+                        id
+                );
 
         accesoComunidadService.validarAcceso(
                 authentication,
