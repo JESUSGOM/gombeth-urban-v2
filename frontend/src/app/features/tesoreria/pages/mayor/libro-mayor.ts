@@ -3,7 +3,6 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
 import { LibroMayorService, LibroMayor } from '../../../../core/services/libro-mayor.service';
-import { ComunidadActivaService } from '../../../../core/services/comunidad-activa.service';
 import { ComunidadStateService } from '../../../../core/state/comunidad-state.service';
 
 import { ComunidadActivaBar } from '../../../../shared/comunidad-activa-bar/comunidad-activa-bar';

@@ -85,8 +85,16 @@
 
           <button
             type="button"
-            class="btn-action btn-primary">
-            Activar
+            class="btn-action btn-primary"
+            [disabled]="esComunidadActiva(comunidad.id)"
+            (click)="activarComunidad(comunidad)">
+
+            {{
+              esComunidadActiva(comunidad.id)
+                ? 'Activa'
+                : 'Activar'
+            }}
+
           </button>
 
           <button

@@ -10,6 +10,7 @@ import { Router } from '@angular/router';
 
 import { Comunidad } from '../../../../core/models/comunidad.model';
 import { ComunidadService } from '../../../../core/services/comunidad';
+import { ComunidadStateService } from '../../../../core/state/comunidad-state.service';
 
 @Component({
   selector: 'app-comunidades-list',
@@ -23,6 +24,7 @@ import { ComunidadService } from '../../../../core/services/comunidad';
 export class ComunidadesList implements OnInit, OnDestroy {
 
   private comunidadService = inject(ComunidadService);
+  private comunidadState = inject(ComunidadStateService);
   private cdr = inject(ChangeDetectorRef);
   private router = inject(Router);
 
@@ -46,6 +48,7 @@ export class ComunidadesList implements OnInit, OnDestroy {
   errorQr = '';
 
   ngOnInit(): void {
+    this.comunidadState.init();
     this.cargarComunidades();
   }
 
@@ -120,6 +123,33 @@ export class ComunidadesList implements OnInit, OnDestroy {
     this.router.navigate([
       '/comunidades/nueva'
     ]);
+  }
+
+  activarComunidad(
+    comunidad: Comunidad
+  ): void {
+    if (!comunidad.id) {
+      return;
+    }
+
+    this.comunidadState.setComunidad({
+      id: comunidad.id,
+      nombre: comunidad.nombre
+    });
+
+    this.actualizarVista();
+  }
+
+  esComunidadActiva(
+    id: number | undefined
+  ): boolean {
+    if (!id) {
+      return false;
+    }
+
+    return this.comunidadState
+      .getComunidad()
+      ?.id === id;
   }
 
   editarComunidad(
