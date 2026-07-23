@@ -6,7 +6,6 @@ import {
 import { Router } from '@angular/router';
 import { catchError, throwError } from 'rxjs';
 
-const API_LOCAL = 'http://localhost:8080/api/';
 
 export const sessionInterceptor: HttpInterceptorFn = (
   request,
@@ -85,10 +84,7 @@ function esPeticionApi(
   url: string
 ): boolean {
 
-  return (
-    url.startsWith('/api/') ||
-    url.startsWith(API_LOCAL)
-  );
+  return url.startsWith('/api/');
 }
 
 function esPeticionDeLogin(

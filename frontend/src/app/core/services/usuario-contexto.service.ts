@@ -14,7 +14,7 @@ export class UsuarioContextoService {
 
   private http = inject(HttpClient);
 
-  private readonly api = 'http://localhost:8080/api/usuario/mis-comunidades';
+  private readonly api = '/api/usuario/mis-comunidades';
 
   private comunidadesCache: ComunidadUsuario[] = [];
 
@@ -33,7 +33,7 @@ export class UsuarioContextoService {
     }
 
     return this.http
-      .get<ComunidadUsuario[]>(`${this.api}?usuarioId=${usuarioId}`)
+      .get<ComunidadUsuario[]>(this.api)
       .pipe(
         tap(data => {
           this.comunidadesCache = data;

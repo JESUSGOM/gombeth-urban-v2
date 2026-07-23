@@ -23,7 +23,7 @@ export interface ProcesoRemesaResponse {
 })
 export class ProcesoRemesaService {
 
-  private readonly apiUrl = 'http://localhost:8080/api/remesas/proceso';
+  private readonly apiUrl = '/api/remesas/proceso';
 
   constructor(private http: HttpClient) {}
 

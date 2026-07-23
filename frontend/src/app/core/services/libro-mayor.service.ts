@@ -29,7 +29,7 @@ export class LibroMayorService {
   private http = inject(HttpClient);
 
   private readonly api =
-    'http://localhost:8080/api/mayor';
+    '/api/mayor';
 
   obtenerMayor(
     comunidadId: number,

@@ -14,7 +14,7 @@ export class RemesaService {
   private http = inject(HttpClient);
 
   private readonly apiUrl =
-      'http://localhost:8080/api/remesas';
+      '/api/remesas';
 
   getRemesas(
       comunidadId: number

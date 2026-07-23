@@ -11,21 +11,19 @@ import { PageResponse } from '../models/page-response.model';
 export class VecinoService {
 
   private http = inject(HttpClient);
-  private apiUrl = 'http://localhost:8080/api/vecinos';
+  private apiUrl = '/api/vecinos';
 
   getVecinos(
     page: number = 0,
-    size: number = 10,
-    usuarioId?: number
+    size: number = 10
   ): Observable<PageResponse<Vecino>> {
 
-    let url = `${this.apiUrl}?page=${page}&size=${size}`;
+    const url =
+      `${this.apiUrl}?page=${page}&size=${size}`;
 
-    if (usuarioId) {
-      url += `&usuarioId=${usuarioId}`;
-    }
-
-    return this.http.get<PageResponse<Vecino>>(url);
+    return this.http.get<PageResponse<Vecino>>(
+      url
+    );
   }
 
   getVecinosPorComunidad(
@@ -36,31 +34,47 @@ export class VecinoService {
   ): Observable<PageResponse<Vecino>> {
 
     return this.http.get<PageResponse<Vecino>>(
-      `${this.apiUrl}/comunidad/${comunidadId}?page=${page}&size=${size}&estado=${estado}`
+      `${this.apiUrl}/comunidad/${comunidadId}`
+      + `?page=${page}`
+      + `&size=${size}`
+      + `&estado=${estado}`
     );
   }
 
-  getVecino(id: number): Observable<Vecino> {
+  getVecino(
+    id: number
+  ): Observable<Vecino> {
+
     return this.http.get<Vecino>(
       `${this.apiUrl}/${id}`
     );
   }
 
-  actualizarVecino(id: number, vecino: Vecino): Observable<Vecino> {
+  actualizarVecino(
+    id: number,
+    vecino: Vecino
+  ): Observable<Vecino> {
+
     return this.http.put<Vecino>(
       `${this.apiUrl}/${id}`,
       vecino
     );
   }
 
-  crearVecino(vecino: Vecino): Observable<Vecino> {
+  crearVecino(
+    vecino: Vecino
+  ): Observable<Vecino> {
+
     return this.http.post<Vecino>(
       this.apiUrl,
       vecino
     );
   }
 
-  eliminarVecino(id: number) {
+  eliminarVecino(
+    id: number
+  ): Observable<void> {
+
     return this.http.delete<void>(
       `${this.apiUrl}/${id}`
     );

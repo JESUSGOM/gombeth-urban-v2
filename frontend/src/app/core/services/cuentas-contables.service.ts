@@ -15,7 +15,7 @@ export interface CuentaContable {
 export class CuentasContablesService {
   private http = inject(HttpClient);
   private readonly api =
-    'http://localhost:8080/api/cuentas-contables';
+    '/api/cuentas-contables';
 
   listarPorComunidad(
     comunidadId: number

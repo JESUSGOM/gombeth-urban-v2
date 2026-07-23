@@ -70,8 +70,7 @@ export class MovimientosList implements OnInit {
     this.comunidadService
         .getComunidades(
             0,
-            500,
-            this.getUsuarioId()
+            500
         )
         .subscribe({
           next: (response) => {
@@ -109,8 +108,7 @@ export class MovimientosList implements OnInit {
 
     this.movimientoService
         .getNombreComunidad(
-            comunidad,
-            this.getUsuarioId()
+            comunidad
         )
         .subscribe({
           next: (data) => {
@@ -124,8 +122,7 @@ export class MovimientosList implements OnInit {
 
     this.movimientoService
         .getMovimientos(
-            comunidad,
-            this.getUsuarioId()
+            comunidad
         )
         .subscribe({
           next: (data) => {
@@ -257,8 +254,7 @@ export class MovimientosList implements OnInit {
 
     this.movimientoService
         .getContextoMovimiento(
-            movimiento.id,
-            this.getUsuarioId()
+            movimiento.id
         )
         .subscribe({
           next: (data) => {
@@ -272,8 +268,7 @@ export class MovimientosList implements OnInit {
 
     this.movimientoService
         .getRecibosPendientes(
-            movimiento.id,
-            this.getUsuarioId()
+            movimiento.id
         )
         .subscribe({
           next: (data) => {
@@ -375,8 +370,7 @@ export class MovimientosList implements OnInit {
     this.movimientoService
         .conciliarMovimiento(
             this.movimientoSeleccionado.id,
-            reciboIds,
-            this.getUsuarioId()
+            reciboIds
         )
         .subscribe({
           next: () => {
@@ -430,8 +424,7 @@ export class MovimientosList implements OnInit {
 
     this.movimientoService
         .getResumenTesoreria(
-            this.comunidadId,
-            this.getUsuarioId()
+            this.comunidadId
         )
         .subscribe({
           next: (data) => {
@@ -460,8 +453,7 @@ export class MovimientosList implements OnInit {
 
     this.movimientoService
         .getCandidatosConciliacion(
-            this.movimientoSeleccionado.id,
-            this.getUsuarioId()
+            this.movimientoSeleccionado.id
         )
         .subscribe({
           next: (candidatos) => {

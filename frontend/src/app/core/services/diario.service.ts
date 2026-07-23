@@ -15,7 +15,7 @@ export class DiarioService {
   private http = inject(HttpClient);
 
   private readonly api =
-    'http://localhost:8080/api/diario';
+    '/api/diario';
   listar(
     comunidadId: number,
     ejercicio: number

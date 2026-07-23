@@ -31,8 +31,6 @@ export class ComunidadesList implements OnInit, OnDestroy {
 
   comunidades: Comunidad[] = [];
 
-  usuarioId?: number;
-  administradorId?: number;
 
   cargando = true;
   error = '';
@@ -48,13 +46,6 @@ export class ComunidadesList implements OnInit, OnDestroy {
   errorQr = '';
 
   ngOnInit(): void {
-    const usuario = JSON.parse(
-      localStorage.getItem('usuario') || 'null'
-    );
-
-    this.usuarioId = usuario?.usuarioId;
-    this.administradorId = usuario?.administradorId;
-
     this.cargarComunidades();
   }
 
@@ -71,8 +62,7 @@ export class ComunidadesList implements OnInit, OnDestroy {
     this.comunidadService
       .getComunidades(
         this.paginaActual - 1,
-        this.tamanioPagina,
-        this.usuarioId
+        this.tamanioPagina
       )
       .subscribe({
         next: data => {
@@ -198,9 +188,7 @@ export class ComunidadesList implements OnInit, OnDestroy {
 
     this.comunidadService
       .obtenerQrComunidad(
-        comunidad.id,
-        this.usuarioId,
-        this.administradorId
+        comunidad.id
       )
       .subscribe({
         next: contenidoQr => {

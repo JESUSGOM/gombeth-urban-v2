@@ -32,8 +32,6 @@ export class ComunidadEdit implements OnInit, OnDestroy {
   private componenteDestruido = false;
 
   comunidad?: Comunidad;
-  usuarioId?: number;
-  administradorId?: number;
 
   metodoReparto = 'COEFICIENTE';
 
@@ -57,18 +55,10 @@ export class ComunidadEdit implements OnInit, OnDestroy {
       return;
     }
 
-    const usuario = JSON.parse(
-      localStorage.getItem('usuario') || 'null'
-    );
-
-    this.usuarioId = usuario?.usuarioId;
-    this.administradorId = usuario?.administradorId;
 
     this.comunidadService
       .getComunidad(
-        id,
-        this.usuarioId,
-        this.administradorId
+        id
       )
       .subscribe({
         next: data => {
@@ -146,9 +136,7 @@ export class ComunidadEdit implements OnInit, OnDestroy {
 
     this.comunidadService
       .obtenerQrComunidad(
-        comunidadId,
-        this.usuarioId,
-        this.administradorId
+        comunidadId
       )
       .subscribe({
         next: contenidoQr => {
@@ -401,9 +389,7 @@ export class ComunidadEdit implements OnInit, OnDestroy {
     this.comunidadService
       .actualizarComunidad(
         this.comunidad.id,
-        this.comunidad,
-        this.usuarioId,
-        this.administradorId
+        this.comunidad
       )
       .subscribe({
         next: () => {

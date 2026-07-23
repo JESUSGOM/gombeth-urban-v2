@@ -39,7 +39,7 @@ export class IncidenciasService {
   private readonly http = inject(HttpClient);
 
   private readonly apiUrl =
-      'http://localhost:8080/api/incidencias';
+      '/api/incidencias';
 
   listarPorComunidad(
       comunidadId: number

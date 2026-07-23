@@ -13,7 +13,7 @@ import { PresupuestoRevision } from '../models/presupuesto-revision.model';
 export class PresupuestoService {
 
   private http = inject(HttpClient);
-  private apiUrl = 'http://localhost:8080/api/presupuestos';
+  private apiUrl = '/api/presupuestos';
 
   getPresupuestosComunidad(
     comunidadId: number,

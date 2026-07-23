@@ -610,7 +610,7 @@ export class RemesasList implements OnInit {
     }
 
     window.open(
-      `http://localhost:8080/api/remesas/${remesa.id}/xml`,
+      `/api/remesas/${remesa.id}/xml`,
       '_blank'
     );
   }
@@ -624,7 +624,7 @@ export class RemesasList implements OnInit {
     }
 
     window.open(
-      `http://localhost:8080/api/remesas/${remesa.id}/c19`,
+      `/api/remesas/${remesa.id}/c19`,
       '_blank'
     );
   }

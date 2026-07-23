@@ -12,7 +12,7 @@ export class BalanceService {
   private http = inject(HttpClient);
 
   private readonly api =
-    'http://localhost:8080/api/balance';
+    '/api/balance';
 
   obtenerBalance(
     comunidadId: number

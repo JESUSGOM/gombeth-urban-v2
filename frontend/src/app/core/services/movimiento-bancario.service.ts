@@ -10,70 +10,72 @@ import { MovimientoBancario } from '../models/movimiento-bancario.model';
 export class MovimientoBancarioService {
 
   private http = inject(HttpClient);
-  private apiUrl = 'http://localhost:8080/api/movimientos';
+  private apiUrl = '/api/movimientos';
 
   getMovimientos(
-    comunidadId: number,
-    usuarioId: number
+    comunidadId: number
   ): Observable<MovimientoBancario[]> {
+
     return this.http.get<MovimientoBancario[]>(
-      `${this.apiUrl}?comunidadId=${comunidadId}&usuarioId=${usuarioId}`
+      `${this.apiUrl}?comunidadId=${comunidadId}`
     );
   }
 
   getRecibosPendientes(
-    movimientoId: number,
-    usuarioId: number
+    movimientoId: number
   ): Observable<any[]> {
+
     return this.http.get<any[]>(
-      `${this.apiUrl}/${movimientoId}/recibos-pendientes?usuarioId=${usuarioId}`
+      `${this.apiUrl}/${movimientoId}/recibos-pendientes`
     );
   }
 
   conciliarMovimiento(
     movimientoId: number,
-    reciboIds: number[],
-    usuarioId: number
+    reciboIds: number[]
   ): Observable<any> {
+
     return this.http.post<any>(
-      `${this.apiUrl}/${movimientoId}/conciliar?usuarioId=${usuarioId}`,
-      { reciboIds }
+      `${this.apiUrl}/${movimientoId}/conciliar`,
+      {
+        reciboIds
+      }
     );
   }
 
   getContextoMovimiento(
-    movimientoId: number,
-    usuarioId: number
+    movimientoId: number
   ): Observable<any> {
+
     return this.http.get<any>(
-      `${this.apiUrl}/${movimientoId}/contexto?usuarioId=${usuarioId}`
+      `${this.apiUrl}/${movimientoId}/contexto`
     );
   }
 
   getNombreComunidad(
-    comunidadId: number,
-    usuarioId: number
+    comunidadId: number
   ): Observable<any> {
+
     return this.http.get<any>(
-      `${this.apiUrl}/comunidad/${comunidadId}/nombre?usuarioId=${usuarioId}`
+      `${this.apiUrl}/comunidad/${comunidadId}/nombre`
     );
   }
 
   getResumenTesoreria(
-    comunidadId: number,
-    usuarioId: number
+    comunidadId: number
   ): Observable<any> {
+
     return this.http.get<any>(
-      `${this.apiUrl}/resumen?comunidadId=${comunidadId}&usuarioId=${usuarioId}`
+      `${this.apiUrl}/resumen?comunidadId=${comunidadId}`
     );
   }
 
   getCandidatosConciliacion(
-    movimientoId: number,
-    usuarioId: number
+    movimientoId: number
   ): Observable<any[]> {
+
     return this.http.get<any[]>(
-      `${this.apiUrl}/${movimientoId}/candidatos?usuarioId=${usuarioId}`
+      `${this.apiUrl}/${movimientoId}/candidatos`
     );
   }
 }

@@ -32,7 +32,7 @@ export class Dashboard implements OnInit {
     this.username = usuario.username;
 
     this.http
-      .get<any>(`http://localhost:8080/api/dashboard?usuarioId=${usuario.usuarioId}`)
+      .get<any>('/api/dashboard')
       .subscribe({
 
         next: data => {

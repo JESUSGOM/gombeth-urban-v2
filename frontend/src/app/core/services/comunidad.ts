@@ -18,24 +18,16 @@ export class ComunidadService {
   private readonly http = inject(HttpClient);
 
   private readonly apiUrl =
-    'http://localhost:8080/api/comunidades';
+    '/api/comunidades';
 
   getComunidades(
     page: number = 0,
-    size: number = 10,
-    usuarioId?: number
+    size: number = 10
   ): Observable<PageResponse<Comunidad>> {
 
-    let params = new HttpParams()
+    const params = new HttpParams()
       .set('page', page.toString())
       .set('size', size.toString());
-
-    if (usuarioId !== undefined) {
-      params = params.set(
-        'usuarioId',
-        usuarioId.toString()
-      );
-    }
 
     return this.http.get<PageResponse<Comunidad>>(
       this.apiUrl,
@@ -46,30 +38,14 @@ export class ComunidadService {
   }
 
   getComunidad(
-    id: number,
-    usuarioId?: number,
-    administradorId?: number
+    id: number
   ): Observable<Comunidad> {
 
-    let params = new HttpParams()
+    const params = new HttpParams()
       .set(
         'nocache',
         Date.now().toString()
       );
-
-    if (usuarioId !== undefined) {
-      params = params.set(
-        'usuarioId',
-        usuarioId.toString()
-      );
-    }
-
-    if (administradorId !== undefined) {
-      params = params.set(
-        'administradorId',
-        administradorId.toString()
-      );
-    }
 
     return this.http.get<Comunidad>(
       `${this.apiUrl}/${id}`,
@@ -81,61 +57,24 @@ export class ComunidadService {
 
   actualizarComunidad(
     id: number,
-    comunidad: Comunidad,
-    usuarioId?: number,
-    administradorId?: number
+    comunidad: Comunidad
   ): Observable<Comunidad> {
-
-    let params = new HttpParams();
-
-    if (usuarioId !== undefined) {
-      params = params.set(
-        'usuarioId',
-        usuarioId.toString()
-      );
-    }
-
-    if (administradorId !== undefined) {
-      params = params.set(
-        'administradorId',
-        administradorId.toString()
-      );
-    }
 
     return this.http.put<Comunidad>(
       `${this.apiUrl}/${id}`,
-      comunidad,
-      {
-        params
-      }
+      comunidad
     );
   }
 
   obtenerQrComunidad(
-    comunidadId: number,
-    usuarioId?: number,
-    administradorId?: number
+    comunidadId: number
   ): Observable<Blob> {
 
-    let params = new HttpParams()
+    const params = new HttpParams()
       .set(
         'nocache',
         Date.now().toString()
       );
-
-    if (usuarioId !== undefined) {
-      params = params.set(
-        'usuarioId',
-        usuarioId.toString()
-      );
-    }
-
-    if (administradorId !== undefined) {
-      params = params.set(
-        'administradorId',
-        administradorId.toString()
-      );
-    }
 
     return this.http.get(
       `${this.apiUrl}/${comunidadId}/qr`,

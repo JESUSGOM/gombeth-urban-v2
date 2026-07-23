@@ -22,7 +22,7 @@ export class ConceptosService {
   private http = inject(HttpClient);
 
   private readonly baseUrl =
-    'http://localhost:8080/api/conceptos-cobro';
+    '/api/conceptos-cobro';
 
   getByComunidad(
     comunidadId: number

@@ -355,7 +355,7 @@ export class VecinosList implements OnInit {
     }
 
     window.open(
-      `http://localhost:8080/api/vecinos/${id}/mandato-pdf`,
+      `/api/vecinos/${id}/mandato-pdf`,
       '_blank'
     );
   }

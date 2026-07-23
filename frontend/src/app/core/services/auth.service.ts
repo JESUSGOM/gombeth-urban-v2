@@ -58,7 +58,7 @@ export class AuthService {
   private readonly router = inject(Router);
 
   private readonly apiUrl =
-    'http://localhost:8080/api/auth';
+    '/api/auth';
 
   /*
    * localStorage se mantiene temporalmente porque otras

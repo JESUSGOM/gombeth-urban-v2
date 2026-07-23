@@ -22,7 +22,7 @@ export class VecinoDocumentoService {
   private http = inject(HttpClient);
 
   private readonly apiUrl =
-    'http://localhost:8080/api/vecino-documentos';
+    '/api/vecino-documentos';
 
   listarPorVecino(
     vecinoId: number

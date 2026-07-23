@@ -10,7 +10,7 @@ import { Recibo } from '../models/recibo.model';
 export class ReciboService {
 
   private http = inject(HttpClient);
-  private apiUrl = 'http://localhost:8080/api/recibos';
+  private apiUrl = '/api/recibos';
 
   getRecibos(comunidadId: number): Observable<Recibo[]> {
     return this.http.get<Recibo[]>(

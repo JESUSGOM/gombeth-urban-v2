@@ -14,7 +14,7 @@ export class Health {
 
   private http = inject(HttpClient);
 
-  private apiUrl = 'http://localhost:8080/api/health';
+  private apiUrl = '/api/health';
 
   getHealth(): Observable<HealthResponse> {
     return this.http.get<HealthResponse>(this.apiUrl);
