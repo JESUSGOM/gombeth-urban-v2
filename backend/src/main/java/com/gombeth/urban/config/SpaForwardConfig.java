@@ -8,18 +8,41 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 public class SpaForwardConfig implements WebMvcConfigurer {
 
     @Override
-    public void addViewControllers(ViewControllerRegistry registry) {
+    public void addViewControllers(
+            ViewControllerRegistry registry
+    ) {
 
         registry.addViewController("/")
                 .setViewName("forward:/index.html");
 
-        registry.addViewController("/{path:[^\\.]*}")
+        registry.addViewController(
+                        "/{path:[^\\.]*}"
+                )
                 .setViewName("forward:/index.html");
 
-        registry.addViewController("/{path1:[^\\.]*}/{path2:[^\\.]*}")
+        registry.addViewController(
+                        "/{path1:[^\\.]*}/{path2:[^\\.]*}"
+                )
                 .setViewName("forward:/index.html");
 
-        registry.addViewController("/{path1:[^\\.]*}/{path2:[^\\.]*}/{path3:[^\\.]*}")
+        registry.addViewController(
+                        "/{path1:[^\\.]*}/{path2:[^\\.]*}/{path3:[^\\.]*}"
+                )
+                .setViewName("forward:/index.html");
+
+        registry.addViewController(
+                        "/vecinos/nuevo/comunidad/{comunidadId}"
+                )
+                .setViewName("forward:/index.html");
+
+        registry.addViewController(
+                        "/conceptos/comunidad/{comunidadId}/nuevo"
+                )
+                .setViewName("forward:/index.html");
+
+        registry.addViewController(
+                        "/conceptos/comunidad/{comunidadId}/editar/{conceptoId}"
+                )
                 .setViewName("forward:/index.html");
     }
 }
