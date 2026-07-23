@@ -1,6 +1,7 @@
 package com.gombeth.urban.service.storage;
 
 import com.gombeth.urban.entity.Comunidad;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -12,18 +13,30 @@ import java.nio.file.Path;
 public class DocumentStorageService {
 
     private final DocumentNameService documentNameService;
+
     private final DocumentPathService documentPathService;
+
+    private final Path basePath;
 
     public DocumentStorageService(
             DocumentNameService documentNameService,
-            DocumentPathService documentPathService
+            DocumentPathService documentPathService,
+            @Value("${app.storage.base-path}")
+            String basePath
     ) {
-        this.documentNameService = documentNameService;
-        this.documentPathService = documentPathService;
+        this.documentNameService =
+                documentNameService;
+
+        this.documentPathService =
+                documentPathService;
+
+        this.basePath =
+                normalizarBasePath(
+                        basePath
+                );
     }
 
     public Path guardarRemesaC19(
-            Path basePath,
             Comunidad comunidad,
             String contenido,
             java.time.LocalDate fechaEmision,
@@ -38,7 +51,9 @@ public class DocumentStorageService {
                         fechaEmision
                 );
 
-        Files.createDirectories(carpeta);
+        Files.createDirectories(
+                carpeta
+        );
 
         String nombreArchivo =
                 documentNameService.nombreRemesaC19(
@@ -49,18 +64,21 @@ public class DocumentStorageService {
                 );
 
         Path destino =
-                carpeta.resolve(nombreArchivo);
+                carpeta.resolve(
+                        nombreArchivo
+                );
 
         Files.write(
                 destino,
-                contenido.getBytes(StandardCharsets.ISO_8859_1)
+                contenido.getBytes(
+                        StandardCharsets.ISO_8859_1
+                )
         );
 
         return destino;
     }
 
     public Path guardarRemesaXml(
-            Path basePath,
             Comunidad comunidad,
             String contenido,
             java.time.LocalDate fechaEmision,
@@ -75,7 +93,9 @@ public class DocumentStorageService {
                         fechaEmision
                 );
 
-        Files.createDirectories(carpeta);
+        Files.createDirectories(
+                carpeta
+        );
 
         String nombreArchivo =
                 documentNameService.nombreRemesaXml(
@@ -86,13 +106,37 @@ public class DocumentStorageService {
                 );
 
         Path destino =
-                carpeta.resolve(nombreArchivo);
+                carpeta.resolve(
+                        nombreArchivo
+                );
 
         Files.write(
                 destino,
-                contenido.getBytes(StandardCharsets.UTF_8)
+                contenido.getBytes(
+                        StandardCharsets.UTF_8
+                )
         );
 
         return destino;
+    }
+
+    private Path normalizarBasePath(
+            String valor
+    ) {
+        if (
+                valor == null
+                        || valor.isBlank()
+        ) {
+            throw new IllegalStateException(
+                    "La propiedad app.storage.base-path "
+                            + "es obligatoria."
+            );
+        }
+
+        return Path.of(
+                        valor.trim()
+                )
+                .toAbsolutePath()
+                .normalize();
     }
 }

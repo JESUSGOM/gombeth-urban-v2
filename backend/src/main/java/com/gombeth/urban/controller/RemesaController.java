@@ -350,8 +350,7 @@ public class RemesaController {
         try {
             rutaGuardada =
                     documentStorageService.guardarRemesaXml(
-                            Path.of("W:/PROYECTOS/gombeth-urban-v2/ficheros"),
-                            comunidad,
+                        comunidad,
                             xml,
                             remesa.getFechaCreacion(),
                             remesa.getFechaCobro(),
@@ -504,8 +503,7 @@ public class RemesaController {
         try {
             rutaGuardada =
                     documentStorageService.guardarRemesaC19(
-                            Path.of("W:/PROYECTOS/gombeth-urban-v2/ficheros"),
-                            comunidad,
+                        comunidad,
                             contenido,
                             remesa.getFechaCreacion(),
                             remesa.getFechaCobro(),

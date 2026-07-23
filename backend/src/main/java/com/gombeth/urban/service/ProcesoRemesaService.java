@@ -147,7 +147,6 @@ public class ProcesoRemesaService {
 
             Path rutaC19 =
                     documentStorageService.guardarRemesaC19(
-                            Path.of("W:/PROYECTOS/gombeth-urban-v2/ficheros"),
                             comunidad,
                             contenidoC19,
                             fechaEmision,
@@ -165,7 +164,6 @@ public class ProcesoRemesaService {
 
             Path rutaXml =
                     documentStorageService.guardarRemesaXml(
-                            Path.of("W:/PROYECTOS/gombeth-urban-v2/ficheros"),
                             comunidad,
                             contenidoXml,
                             fechaEmision,
