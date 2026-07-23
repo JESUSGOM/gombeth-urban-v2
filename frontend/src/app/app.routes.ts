@@ -51,6 +51,11 @@ export const routes: Routes = [
       },
 
       {
+        path: 'comunidades/nueva',
+        component: ComunidadEdit
+      },
+
+      {
         path: 'comunidades/editar/:id',
         component: ComunidadEdit
       },

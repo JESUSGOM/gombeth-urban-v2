@@ -2,8 +2,17 @@
 
   <div class="page-header">
     <div>
-      <h2>Editar Comunidad</h2>
-      <p>Datos generales de la comunidad</p>
+      <h2>
+        {{ modoAlta ? 'Nueva Comunidad' : 'Editar Comunidad' }}
+      </h2>
+
+      <p>
+        {{
+          modoAlta
+            ? 'Alta de una nueva comunidad de propietarios'
+            : 'Datos generales de la comunidad'
+        }}
+      </p>
     </div>
   </div>
 
@@ -39,14 +48,18 @@
 
       <div class="form-grid">
 
-        <div class="form-group">
-          <label>ID</label>
+        @if (!modoAlta) {
 
-          <input
-            type="text"
-            [value]="comunidad.id"
-            readonly>
-        </div>
+          <div class="form-group">
+            <label>ID</label>
+
+            <input
+              type="text"
+              [value]="comunidad.id"
+              readonly>
+          </div>
+
+        }
 
         <div class="form-group full">
           <label>Nombre</label>
@@ -181,7 +194,9 @@
 
       </section>
 
-      <section class="qr-card">
+      @if (!modoAlta && comunidad.id) {
+
+        <section class="qr-card">
 
         <div class="qr-card-header">
 
@@ -285,7 +300,9 @@
 
         }
 
-      </section>
+        </section>
+
+      }
 
       <div class="form-actions">
 
@@ -305,7 +322,11 @@
           {{
             guardando
               ? 'Guardando...'
-              : 'Guardar cambios'
+              : (
+                modoAlta
+                  ? 'Crear comunidad'
+                  : 'Guardar cambios'
+              )
           }}
 
         </button>

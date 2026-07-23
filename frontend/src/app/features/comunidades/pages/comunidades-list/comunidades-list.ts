@@ -116,6 +116,12 @@ export class ComunidadesList implements OnInit, OnDestroy {
     );
   }
 
+  nuevaComunidad(): void {
+    this.router.navigate([
+      '/comunidades/nueva'
+    ]);
+  }
+
   editarComunidad(
     id: number | undefined
   ): void {

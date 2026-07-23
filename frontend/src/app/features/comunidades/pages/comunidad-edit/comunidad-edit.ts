@@ -32,6 +32,7 @@ export class ComunidadEdit implements OnInit, OnDestroy {
   private componenteDestruido = false;
 
   comunidad?: Comunidad;
+  modoAlta = false;
 
   metodoReparto = 'COEFICIENTE';
 
@@ -45,16 +46,31 @@ export class ComunidadEdit implements OnInit, OnDestroy {
   visorQrAbierto = false;
 
   ngOnInit(): void {
-    const id = Number(
-      this.route.snapshot.paramMap.get('id')
-    );
+    const idTexto =
+      this.route.snapshot.paramMap.get('id');
+
+    if (idTexto === null) {
+      this.modoAlta = true;
+      this.metodoReparto = 'PARTES_IGUALES';
+
+      this.comunidad = {
+        nombre: '',
+        paiscod: 'ES',
+        sufijo: '000',
+        tipoReparto: 'PARTES_IGUALES'
+      };
+
+      return;
+    }
+
+    const id = Number(idTexto);
 
     if (!Number.isInteger(id) || id <= 0) {
       this.mensajeError =
         'El identificador de la comunidad no es válido.';
+
       return;
     }
-
 
     this.comunidadService
       .getComunidad(
@@ -79,13 +95,13 @@ export class ComunidadEdit implements OnInit, OnDestroy {
 
           this.mensajeError =
             error?.error?.message
+            || error?.error?.detail
             || 'No se pudo cargar la comunidad.';
 
           this.actualizarVista();
         }
       });
   }
-
   ngOnDestroy(): void {
     this.componenteDestruido = true;
     this.liberarQrTemporal();
@@ -378,7 +394,15 @@ export class ComunidadEdit implements OnInit, OnDestroy {
   }
 
   guardar(): void {
-    if (!this.comunidad?.id) {
+    if (!this.comunidad) {
+      return;
+    }
+
+    if (!this.comunidad.nombre?.trim()) {
+      this.mensajeError =
+        'El nombre de la comunidad es obligatorio.';
+
+      this.actualizarVista();
       return;
     }
 
@@ -386,13 +410,59 @@ export class ComunidadEdit implements OnInit, OnDestroy {
     this.mensajeExito = '';
     this.mensajeError = '';
 
+    if (this.modoAlta) {
+      this.comunidadService
+        .crearComunidad(
+          this.comunidad
+        )
+        .subscribe({
+          next: comunidadCreada => {
+            this.comunidad = {
+              ...comunidadCreada
+            };
+
+            this.guardarConfiguracionReparto();
+          },
+
+          error: error => {
+            console.error(
+              'Error al crear comunidad:',
+              error
+            );
+
+            this.guardando = false;
+            this.mensajeError =
+              error?.error?.message
+              || error?.error?.detail
+              || 'No se pudo crear la comunidad.';
+
+            this.actualizarVista();
+          }
+        });
+
+      return;
+    }
+
+    if (!this.comunidad.id) {
+      this.guardando = false;
+      this.mensajeError =
+        'La comunidad no tiene un identificador válido.';
+
+      this.actualizarVista();
+      return;
+    }
+
     this.comunidadService
       .actualizarComunidad(
         this.comunidad.id,
         this.comunidad
       )
       .subscribe({
-        next: () => {
+        next: comunidadActualizada => {
+          this.comunidad = {
+            ...comunidadActualizada
+          };
+
           this.guardarConfiguracionReparto();
         },
 
@@ -404,7 +474,9 @@ export class ComunidadEdit implements OnInit, OnDestroy {
 
           this.guardando = false;
           this.mensajeError =
-            'No se pudo guardar la comunidad.';
+            error?.error?.message
+            || error?.error?.detail
+            || 'No se pudo guardar la comunidad.';
 
           this.actualizarVista();
         }
@@ -429,13 +501,18 @@ export class ComunidadEdit implements OnInit, OnDestroy {
       .subscribe({
         next: () => {
           this.guardando = false;
+
           this.mensajeExito =
-            'Comunidad guardada correctamente.';
+            this.modoAlta
+              ? 'Comunidad creada correctamente.'
+              : 'Comunidad guardada correctamente.';
 
           this.actualizarVista();
 
           setTimeout(() => {
-            this.router.navigate(['/comunidades']);
+            this.router.navigate([
+              '/comunidades'
+            ]);
           }, 3000);
         },
 
@@ -446,15 +523,18 @@ export class ComunidadEdit implements OnInit, OnDestroy {
           );
 
           this.guardando = false;
+
           this.mensajeError =
-            'La comunidad se guardó, pero no se pudo guardar '
-            + 'el método de reparto.';
+            this.modoAlta
+              ? 'La comunidad se creó, pero no se pudo guardar '
+                + 'el método de reparto.'
+              : 'La comunidad se guardó, pero no se pudo guardar '
+                + 'el método de reparto.';
 
           this.actualizarVista();
         }
       });
   }
-
   private liberarQrTemporal(): void {
     if (this.qrUrlTemporal) {
       URL.revokeObjectURL(

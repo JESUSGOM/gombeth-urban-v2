@@ -55,6 +55,16 @@ export class ComunidadService {
     );
   }
 
+  crearComunidad(
+    comunidad: Comunidad
+  ): Observable<Comunidad> {
+
+    return this.http.post<Comunidad>(
+      this.apiUrl,
+      comunidad
+    );
+  }
+
   actualizarComunidad(
     id: number,
     comunidad: Comunidad

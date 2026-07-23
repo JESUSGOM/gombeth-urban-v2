@@ -3,6 +3,7 @@ package com.gombeth.urban.controller;
 import com.gombeth.urban.dto.CoeficienteVecinoDetalleResponse;
 import com.gombeth.urban.dto.CoeficientesResumenResponse;
 import com.gombeth.urban.entity.Comunidad;
+import com.gombeth.urban.entity.Usuario;
 import com.gombeth.urban.repository.ComunidadRepository;
 import com.gombeth.urban.repository.VecinoRepository;
 import com.gombeth.urban.service.AccesoComunidadService;
@@ -20,6 +21,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -102,6 +104,140 @@ public class ComunidadController {
                         authentication,
                         id
                 );
+    }
+
+    /**
+     * Crea una comunidad asignada directamente al usuario
+     * y al administrador obtenidos de la sesión autenticada.
+     *
+     * No se aceptan usuarioId, administradorId, tokenQr
+     * ni identificadores enviados por el navegador.
+     */
+    @PostMapping
+    public ResponseEntity<Comunidad> crear(
+            @RequestBody Comunidad datos,
+            Authentication authentication
+    ) {
+        if (datos == null) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Los datos de la comunidad son obligatorios."
+            );
+        }
+
+        if (datos.getId() != null) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "No se permite indicar un identificador "
+                            + "al crear una comunidad."
+            );
+        }
+
+        Usuario usuario =
+                accesoComunidadService
+                        .obtenerUsuarioAutenticado(
+                                authentication
+                        );
+
+        Comunidad nuevaComunidad =
+                new Comunidad();
+
+        nuevaComunidad.setNombre(
+                limpiarEspacios(
+                        datos.getNombre()
+                )
+        );
+
+        nuevaComunidad.setNifCif(
+                normalizarTextoSimple(
+                        datos.getNifCif()
+                )
+        );
+
+        nuevaComunidad.setDireccion(
+                limpiarEspacios(
+                        datos.getDireccion()
+                )
+        );
+
+        nuevaComunidad.setCodigoPostal(
+                limpiarEspacios(
+                        datos.getCodigoPostal()
+                )
+        );
+
+        nuevaComunidad.setPoblacion(
+                limpiarEspacios(
+                        datos.getPoblacion()
+                )
+        );
+
+        nuevaComunidad.setProvincia(
+                limpiarEspacios(
+                        datos.getProvincia()
+                )
+        );
+
+        String paisCod =
+                normalizarTextoSimple(
+                        datos.getPaiscod()
+                );
+
+        nuevaComunidad.setPaiscod(
+                paisCod != null
+                        ? paisCod
+                        : "ES"
+        );
+
+        nuevaComunidad.setIban(
+                normalizarIban(
+                        datos.getIban()
+                )
+        );
+
+        nuevaComunidad.setBic(
+                normalizarTextoSimple(
+                        datos.getBic()
+                )
+        );
+
+        nuevaComunidad.setIdentificadorAcreedor(
+                normalizarTextoSimple(
+                        datos.getIdentificadorAcreedor()
+                )
+        );
+
+        String sufijo =
+                normalizarTextoSimple(
+                        datos.getSufijo()
+                );
+
+        nuevaComunidad.setSufijo(
+                sufijo != null
+                        ? sufijo
+                        : "000"
+        );
+
+        nuevaComunidad.setUsuarioId(
+                usuario.getId()
+        );
+
+        nuevaComunidad.setAdministradorId(
+                usuario.getAdministradorId()
+        );
+
+        validarDatosComunidad(
+                nuevaComunidad
+        );
+
+        Comunidad comunidadGuardada =
+                repository.save(
+                        nuevaComunidad
+                );
+
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(comunidadGuardada);
     }
 
     @GetMapping(
