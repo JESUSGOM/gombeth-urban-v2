@@ -150,7 +150,7 @@ public class SepaCoreXmlService {
                     .append(esc(vecino.getReferenciaMandato()))
                     .append("</MndtId>\n");
             xml.append("            <DtOfSgntr>")
-                    .append(remesa.getFechaCreacion())
+                    .append(vecino.getFechaMandato())
                     .append("</DtOfSgntr>\n");
             xml.append("          </MndtRltdInf>\n");
             xml.append("        </DrctDbtTx>\n");

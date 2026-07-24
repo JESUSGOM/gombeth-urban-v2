@@ -194,7 +194,7 @@ public class SepaC19Service {
                                 + "RCUR"
                                 + "    "
                                 + formatearImporte(importeLinea, 11)
-                                + hoy
+                                + vecino.getFechaMandato().format(ISO_DATE)
                                 + completar(vecino.getBic(), 11)
                                 + completar(vecino.getNombre(), 70)
                                 + completar(direccionVecino(vecino, comunidad), 50)
