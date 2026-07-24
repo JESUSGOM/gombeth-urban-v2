@@ -29,6 +29,12 @@
   </div>
 
   <div
+    *ngIf="errorCuentasPresentador"
+    class="alert warning">
+    {{ errorCuentasPresentador }}
+  </div>
+
+  <div
     *ngIf="!cargando && recibos.length === 0"
     class="alert warning">
     No existen recibos para esta comunidad.
@@ -94,9 +100,39 @@
 
       &nbsp;&nbsp;
 
+      <label>
+        Cuenta presentadora:
+
+        <select
+          [(ngModel)]="cuentaPresentadorId"
+          [disabled]="cargandoCuentasPresentador">
+
+          <option [ngValue]="null">
+            Seleccione una cuenta
+          </option>
+
+          <option
+            *ngFor="let cuenta of cuentasPresentador"
+            [ngValue]="cuenta.id">
+
+            {{ cuenta.alias }}
+            <ng-container *ngIf="cuenta.banco">
+              - {{ cuenta.banco }}
+            </ng-container>
+
+          </option>
+
+        </select>
+      </label>
+
+      &nbsp;&nbsp;
+
       <button
         class="primary-button"
-        [disabled]="recibosSeleccionados.size === 0"
+        [disabled]="
+          recibosSeleccionados.size === 0 ||
+          cuentaPresentadorId === null
+        "
         (click)="generarRemesa()">
 
         Generar Remesa

@@ -95,6 +95,7 @@ a_documentaci*/
 ficheros/
 pruebas/
 *.sql
+!backend/src/main/resources/db/manual/*.sql
 
 # Fotografías y QR generados durante las pruebas
 backend/adjunto-incidencia-*.jpg

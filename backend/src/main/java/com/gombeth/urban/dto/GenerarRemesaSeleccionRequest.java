@@ -5,6 +5,7 @@ import java.util.List;
 
 public record GenerarRemesaSeleccionRequest(
         Long comunidadId,
+        Long cuentaPresentadorId,
         LocalDate fechaCobro,
         List<Long> reciboIds
 ) {

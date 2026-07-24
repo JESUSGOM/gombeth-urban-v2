@@ -11,6 +11,8 @@ import com.gombeth.urban.entity.ContabilidadRecibo;
 import com.gombeth.urban.entity.FicheroGenerado;
 import com.gombeth.urban.entity.RemesaLinea;
 import com.gombeth.urban.entity.Vecino;
+import com.gombeth.urban.entity.CuentaPresentador;
+import com.gombeth.urban.entity.Usuario;
 import com.gombeth.urban.repository.ComunidadRepository;
 import com.gombeth.urban.repository.ContabilidadReciboRepository;
 import com.gombeth.urban.repository.FicheroGeneradoRepository;
@@ -54,6 +56,7 @@ public class RemesaController {
     private final ProcesoRemesaService procesoRemesaService;
     private final RemesaLineaConceptoRepository remesaLineaConceptoRepository;
     private final AccesoComunidadService accesoComunidadService;
+    private final CuentaPresentadorService cuentaPresentadorService;
 
     public RemesaController(
             ContabilidadReciboRepository reciboRepository,
@@ -68,7 +71,8 @@ public class RemesaController {
             DocumentStorageService documentStorageService,
             ProcesoRemesaService procesoRemesaService,
             RemesaLineaConceptoRepository remesaLineaConceptoRepository,
-            AccesoComunidadService accesoComunidadService
+            AccesoComunidadService accesoComunidadService,
+            CuentaPresentadorService cuentaPresentadorService
     ) {
         this.reciboRepository = reciboRepository;
         this.ficheroGeneradoRepository = ficheroGeneradoRepository;
@@ -83,17 +87,25 @@ public class RemesaController {
         this.procesoRemesaService = procesoRemesaService;
         this.remesaLineaConceptoRepository = remesaLineaConceptoRepository;
         this.accesoComunidadService = accesoComunidadService;
+        this.cuentaPresentadorService = cuentaPresentadorService;
     }
 
     @PostMapping("/generar")
     public Map<String, Object> generarRemesa(
             @RequestParam Long comunidadId,
+            @RequestParam Long cuentaPresentadorId,
             @RequestParam String fechaCobro,
             @RequestParam String fechaDesde,
             @RequestParam String fechaHasta,
             Authentication authentication
     ) {
         accesoComunidadService.validarAcceso(authentication, comunidadId);
+
+        CuentaPresentador cuentaPresentador =
+                obtenerCuentaPresentadoraActiva(
+                        authentication,
+                        cuentaPresentadorId
+                );
 
         LocalDate fechaCobroDate = LocalDate.parse(fechaCobro);
         LocalDate fechaDesdeDate = LocalDate.parse(fechaDesde);
@@ -130,7 +142,8 @@ public class RemesaController {
                 fechaDesdeDate.getYear(),
                 fechaDesdeDate.getMonthValue(),
                 fechaCobroDate,
-                "recibos pendientes"
+                "recibos pendientes",
+                cuentaPresentador
         );
 
         for (ContabilidadRecibo recibo : recibosPendientes) {
@@ -201,6 +214,12 @@ public class RemesaController {
                 request.comunidadId()
         );
 
+        CuentaPresentador cuentaPresentador =
+                obtenerCuentaPresentadoraActiva(
+                        authentication,
+                        request.cuentaPresentadorId()
+                );
+
         List<ContabilidadRecibo> recibosSeleccionados =
                 reciboRepository.findByIdIn(
                         request.reciboIds()
@@ -226,7 +245,8 @@ public class RemesaController {
                 request.fechaCobro().getYear(),
                 request.fechaCobro().getMonthValue(),
                 request.fechaCobro(),
-                "recibos seleccionados"
+                "recibos seleccionados",
+                cuentaPresentador
         );
 
         for (ContabilidadRecibo recibo : recibosSeleccionados) {
@@ -535,6 +555,23 @@ public class RemesaController {
                 .body(bytes);
     }
 
+    private CuentaPresentador obtenerCuentaPresentadoraActiva(
+            Authentication authentication,
+            Long cuentaPresentadorId
+    ) {
+        Usuario usuario =
+                accesoComunidadService
+                        .obtenerUsuarioAutenticado(
+                                authentication
+                        );
+
+        return cuentaPresentadorService
+                .obtenerActivaPropia(
+                        usuario.getAdministradorId(),
+                        cuentaPresentadorId
+                );
+    }
+
     private List<Vecino> obtenerVecinosDeLineas(List<RemesaLinea> lineas) {
         return lineas.stream()
                 .map(RemesaLinea::getVecinoId)
@@ -560,7 +597,16 @@ public class RemesaController {
                 request.getComunidadId()
         );
 
-        return procesoRemesaService.ejecutar(request);
+        CuentaPresentador cuentaPresentador =
+                obtenerCuentaPresentadoraActiva(
+                        authentication,
+                        request.getCuentaPresentadorId()
+                );
+
+        return procesoRemesaService.ejecutar(
+                request,
+                cuentaPresentador
+        );
 
     }
 

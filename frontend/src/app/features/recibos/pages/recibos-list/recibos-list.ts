@@ -37,6 +37,14 @@ import {
 } from '../../../../core/services/remesa.service';
 
 import {
+  CuentaPresentador
+} from '../../../../core/models/cuenta-presentador.model';
+
+import {
+  CuentaPresentadorService
+} from '../../../../core/services/cuenta-presentador.service';
+
+import {
   ComunidadSeleccionada,
   ComunidadStateService
 } from '../../../../core/state/comunidad-state.service';
@@ -58,6 +66,9 @@ export class RecibosList implements OnInit {
 
   private remesaService =
     inject(RemesaService);
+
+  private cuentaPresentadorService =
+    inject(CuentaPresentadorService);
 
   private comunidadService =
     inject(ComunidadService);
@@ -96,6 +107,11 @@ export class RecibosList implements OnInit {
   comunidadId = 0;
   nombreComunidad = '';
 
+  cuentasPresentador: CuentaPresentador[] = [];
+  cuentaPresentadorId: number | null = null;
+  cargandoCuentasPresentador = false;
+  errorCuentasPresentador = '';
+
   campoOrden: keyof Recibo =
     'fechaEmision';
 
@@ -119,6 +135,8 @@ export class RecibosList implements OnInit {
   error = '';
 
   ngOnInit(): void {
+    this.cargarCuentasPresentador();
+
     const comunidadIdRuta =
       this.obtenerComunidadIdRuta();
 
@@ -168,6 +186,58 @@ export class RecibosList implements OnInit {
         comunidadIdRuta
       );
     }
+  }
+
+  private cargarCuentasPresentador(): void {
+    this.cargandoCuentasPresentador = true;
+    this.errorCuentasPresentador = '';
+
+    this.cuentaPresentadorService
+      .listarActivas()
+      .pipe(
+        takeUntilDestroyed(
+          this.destroyRef
+        )
+      )
+      .subscribe({
+        next: cuentas => {
+          this.cuentasPresentador =
+            cuentas ?? [];
+
+          if (
+            this.cuentasPresentador.length > 0
+          ) {
+            this.cuentaPresentadorId =
+              this.cuentasPresentador[0].id;
+          } else {
+            this.cuentaPresentadorId = null;
+
+            this.errorCuentasPresentador =
+              'No existen cuentas presentadoras activas.';
+          }
+
+          this.cargandoCuentasPresentador =
+            false;
+        },
+
+        error: error => {
+          console.error(
+            'Error cargando cuentas presentadoras:',
+            error
+          );
+
+          this.cuentasPresentador = [];
+          this.cuentaPresentadorId = null;
+
+          this.errorCuentasPresentador =
+            error?.error?.message ||
+            error?.error ||
+            'No se pudieron cargar las cuentas presentadoras.';
+
+          this.cargandoCuentasPresentador =
+            false;
+        }
+      });
   }
 
   /**
@@ -659,6 +729,16 @@ export class RecibosList implements OnInit {
       return;
     }
 
+    if (
+      this.cuentaPresentadorId === null
+    ) {
+      alert(
+        'Debe seleccionar una cuenta presentadora activa.'
+      );
+
+      return;
+    }
+
     const fechaCobro =
       new Date()
         .toISOString()
@@ -667,6 +747,7 @@ export class RecibosList implements OnInit {
     this.remesaService
       .generarRemesaSeleccion(
         this.comunidadId,
+        this.cuentaPresentadorId,
         fechaCobro,
         [
           ...this.recibosSeleccionados

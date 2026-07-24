@@ -1,9 +1,18 @@
-import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import {
+  Injectable
+} from '@angular/core';
+
+import {
+  HttpClient
+} from '@angular/common/http';
+
+import {
+  Observable
+} from 'rxjs';
 
 export interface ProcesoRemesaRequest {
   comunidadId: number;
+  cuentaPresentadorId: number;
   mes: number;
   anio: number;
   fechaCobro: string;
@@ -23,11 +32,21 @@ export interface ProcesoRemesaResponse {
 })
 export class ProcesoRemesaService {
 
-  private readonly apiUrl = '/api/remesas/proceso';
+  private readonly apiUrl =
+    '/api/remesas/proceso';
 
-  constructor(private http: HttpClient) {}
+  constructor(
+    private http: HttpClient
+  ) {
+  }
 
-  generarProceso(request: ProcesoRemesaRequest): Observable<ProcesoRemesaResponse> {
-    return this.http.post<ProcesoRemesaResponse>(this.apiUrl, request);
+  generarProceso(
+    request: ProcesoRemesaRequest
+  ): Observable<ProcesoRemesaResponse> {
+
+    return this.http.post<ProcesoRemesaResponse>(
+      this.apiUrl,
+      request
+    );
   }
 }

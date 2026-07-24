@@ -6,6 +6,8 @@ public class ProcesoRemesaRequest {
 
     private Long comunidadId;
 
+    private Long cuentaPresentadorId;
+
     private Integer mes;
 
     private Integer anio;
@@ -16,15 +18,30 @@ public class ProcesoRemesaRequest {
         return comunidadId;
     }
 
-    public void setComunidadId(Long comunidadId) {
+    public void setComunidadId(
+            Long comunidadId
+    ) {
         this.comunidadId = comunidadId;
+    }
+
+    public Long getCuentaPresentadorId() {
+        return cuentaPresentadorId;
+    }
+
+    public void setCuentaPresentadorId(
+            Long cuentaPresentadorId
+    ) {
+        this.cuentaPresentadorId =
+                cuentaPresentadorId;
     }
 
     public Integer getMes() {
         return mes;
     }
 
-    public void setMes(Integer mes) {
+    public void setMes(
+            Integer mes
+    ) {
         this.mes = mes;
     }
 
@@ -32,7 +49,9 @@ public class ProcesoRemesaRequest {
         return anio;
     }
 
-    public void setAnio(Integer anio) {
+    public void setAnio(
+            Integer anio
+    ) {
         this.anio = anio;
     }
 
@@ -40,7 +59,9 @@ public class ProcesoRemesaRequest {
         return fechaCobro;
     }
 
-    public void setFechaCobro(LocalDate fechaCobro) {
+    public void setFechaCobro(
+            LocalDate fechaCobro
+    ) {
         this.fechaCobro = fechaCobro;
     }
 }

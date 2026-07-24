@@ -67,13 +67,35 @@ public class SepaC19Service {
         String ibanComunidad =
                 safe(comunidad.getIban()).replace(" ", "");
 
+        String ibanPresentador =
+                safe(remesa.getPresentadorIban())
+                        .replace(" ", "");
+
+        String ibanParaEntidadOficina =
+                ibanPresentador.isBlank()
+                        ? ibanComunidad
+                        : ibanPresentador;
+
         String entidadOficina =
-                ibanComunidad.length() >= 12
-                        ? ibanComunidad.substring(4, 12)
+                ibanParaEntidadOficina.length() >= 12
+                        ? ibanParaEntidadOficina.substring(4, 12)
                         : "00000000";
 
-        String idPresentador = idAcreedor;
-        String nombrePresentador = comunidad.getNombre();
+        String idPresentador =
+                safe(
+                        remesa.getPresentadorIdentificador()
+                ).isBlank()
+                        ? idAcreedor
+                        : safe(
+                                remesa.getPresentadorIdentificador()
+                        );
+
+        String nombrePresentador =
+                safe(
+                        remesa.getPresentadorAlias()
+                ).isBlank()
+                        ? comunidad.getNombre()
+                        : remesa.getPresentadorAlias();
 
         String idFicheroRef =
                 "PRE"

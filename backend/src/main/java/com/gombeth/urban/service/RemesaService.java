@@ -1,6 +1,7 @@
 package com.gombeth.urban.service;
 
 import com.gombeth.urban.entity.ContabilidadRecibo;
+import com.gombeth.urban.entity.CuentaPresentador;
 import com.gombeth.urban.entity.FicheroGenerado;
 import com.gombeth.urban.entity.RemesaLinea;
 import com.gombeth.urban.entity.RemesaLineaConcepto;
@@ -53,34 +54,121 @@ public class RemesaService {
             LocalDate fechaCobro,
             String origen
     ) {
-        FicheroGenerado fichero = new FicheroGenerado();
+        return crearRemesaInicial(
+                comunidadId,
+                ejercicio,
+                mes,
+                fechaCobro,
+                origen,
+                null
+        );
+    }
+
+    public FicheroGenerado crearRemesaInicial(
+            Long comunidadId,
+            Integer ejercicio,
+            Integer mes,
+            LocalDate fechaCobro,
+            String origen,
+            CuentaPresentador cuentaPresentador
+    ) {
+        FicheroGenerado fichero =
+                new FicheroGenerado();
 
         fichero.setComunidadId(comunidadId);
+
+        copiarCuentaPresentadora(
+                fichero,
+                cuentaPresentador
+        );
+
         fichero.setFechaCreacion(LocalDate.now());
         fichero.setFechaCobro(fechaCobro);
         fichero.setEstado("GENERADA");
         fichero.setTipoRemesa("ORDINARIA");
         fichero.setEsquemaSepa("CORE");
+
         fichero.setIdentificadorFichero(
-                "REM-" + comunidadId + "-" + System.currentTimeMillis()
-        );
-        fichero.setNombreArchivo(
-                "remesa_" + comunidadId + "_" + fechaCobro + ".xml"
-        );
-        fichero.setTotalImporte(BigDecimal.ZERO);
-        fichero.setTotalDomiciliado(BigDecimal.ZERO);
-        fichero.setTotalNoDomiciliado(BigDecimal.ZERO);
-        fichero.setNumeroRecibos(0);
-        fichero.setObservaciones(
-                "Remesa ejercicio " + ejercicio +
-                        ", mes " + mes +
-                        ", generada desde " + origen +
-                        " el " + LocalDateTime.now()
+                "REM-"
+                        + comunidadId
+                        + "-"
+                        + System.currentTimeMillis()
         );
 
-        return ficheroGeneradoRepository.save(fichero);
+        fichero.setNombreArchivo(
+                "remesa_"
+                        + comunidadId
+                        + "_"
+                        + fechaCobro
+                        + ".xml"
+        );
+
+        fichero.setTotalImporte(
+                BigDecimal.ZERO
+        );
+
+        fichero.setTotalDomiciliado(
+                BigDecimal.ZERO
+        );
+
+        fichero.setTotalNoDomiciliado(
+                BigDecimal.ZERO
+        );
+
+        fichero.setNumeroRecibos(0);
+
+        fichero.setObservaciones(
+                "Remesa ejercicio "
+                        + ejercicio
+                        + ", mes "
+                        + mes
+                        + ", generada desde "
+                        + origen
+                        + " el "
+                        + LocalDateTime.now()
+        );
+
+        return ficheroGeneradoRepository.save(
+                fichero
+        );
     }
 
+    private void copiarCuentaPresentadora(
+            FicheroGenerado fichero,
+            CuentaPresentador cuenta
+    ) {
+        if (cuenta == null) {
+            return;
+        }
+
+        fichero.setCuentaPresentadorId(
+                cuenta.getId()
+        );
+
+        fichero.setPresentadorAlias(
+                cuenta.getAlias()
+        );
+
+        fichero.setPresentadorIdentificador(
+                cuenta.getIdentificadorPresentador()
+        );
+
+        fichero.setPresentadorNifCif(
+                cuenta.getNifCif()
+        );
+
+        fichero.setPresentadorSufijo(
+                cuenta.getSufijo()
+        );
+
+        fichero.setPresentadorIban(
+                cuenta.getIban()
+        );
+
+        fichero.setPresentadorBic(
+                cuenta.getBic()
+        );
+    }
     @Transactional
     public RemesaLinea crearLineaDesdeRecibo(
             FicheroGenerado fichero,

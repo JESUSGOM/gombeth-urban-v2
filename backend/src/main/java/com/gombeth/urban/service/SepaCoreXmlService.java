@@ -66,7 +66,15 @@ public class SepaCoreXmlService {
         xml.append("      <NbOfTxs>").append(numeroOperaciones).append("</NbOfTxs>\n");
         xml.append("      <CtrlSum>").append(total).append("</CtrlSum>\n");
         xml.append("      <InitgPty>\n");
-        xml.append("        <Nm>").append(esc(comunidad.getNombre())).append("</Nm>\n");
+        String nombreIniciador =
+                remesa.getPresentadorAlias() == null
+                        || remesa.getPresentadorAlias().isBlank()
+                        ? comunidad.getNombre()
+                        : remesa.getPresentadorAlias();
+
+        xml.append("        <Nm>")
+                .append(esc(nombreIniciador))
+                .append("</Nm>\n");
         xml.append("      </InitgPty>\n");
         xml.append("    </GrpHdr>\n");
 

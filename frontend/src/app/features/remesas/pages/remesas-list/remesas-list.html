@@ -67,11 +67,38 @@
 
       </div>
 
+      <div class="campo-generacion">
+
+        <label>🏦 Cuenta presentadora</label>
+
+        <select
+          [(ngModel)]="cuentaPresentadorId"
+          [disabled]="cargandoCuentasPresentador">
+
+          <option [ngValue]="null">
+            Seleccione una cuenta
+          </option>
+
+          <option
+            *ngFor="let cuenta of cuentasPresentador"
+            [ngValue]="cuenta.id">
+
+            {{ cuenta.alias }}
+            <ng-container *ngIf="cuenta.banco">
+              - {{ cuenta.banco }}
+            </ng-container>
+
+          </option>
+
+        </select>
+
+      </div>
+
       <div class="boton-generacion">
 
         <button
           class="btn-generar-remesa"
-          [disabled]="generando"
+          [disabled]="generando || cuentaPresentadorId === null"
           (click)="generarRemesa()">
 
           {{ generando ? '⏳ Generando remesa...' : '🏦 GENERAR REMESA COMPLETA' }}
@@ -82,6 +109,12 @@
 
     </div>
 
+  </div>
+
+  <div
+    *ngIf="errorCuentasPresentador"
+    class="alert warning">
+    {{ errorCuentasPresentador }}
   </div>
 
   <div

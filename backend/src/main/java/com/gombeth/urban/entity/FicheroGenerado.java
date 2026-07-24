@@ -1,6 +1,12 @@
 package com.gombeth.urban.entity;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Lob;
+import jakarta.persistence.Table;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -16,13 +22,43 @@ public class FicheroGenerado {
     @Column(name = "comunidad_id", nullable = false)
     private Long comunidadId;
 
-    @Column(name = "identificador_fichero", nullable = false, length = 35)
+    @Column(name = "cuenta_presentador_id")
+    private Long cuentaPresentadorId;
+
+    @Column(name = "presentador_alias", length = 100)
+    private String presentadorAlias;
+
+    @Column(name = "presentador_identificador", length = 35)
+    private String presentadorIdentificador;
+
+    @Column(name = "presentador_nif_cif", length = 20)
+    private String presentadorNifCif;
+
+    @Column(name = "presentador_sufijo", length = 3)
+    private String presentadorSufijo;
+
+    @Column(name = "presentador_iban", length = 34)
+    private String presentadorIban;
+
+    @Column(name = "presentador_bic", length = 11)
+    private String presentadorBic;
+
+    @Column(
+            name = "identificador_fichero",
+            nullable = false,
+            length = 35
+    )
     private String identificadorFichero;
 
     @Column(name = "fecha_creacion", nullable = false)
     private LocalDate fechaCreacion;
 
-    @Column(name = "total_importe", nullable = false, precision = 17, scale = 2)
+    @Column(
+            name = "total_importe",
+            nullable = false,
+            precision = 17,
+            scale = 2
+    )
     private BigDecimal totalImporte;
 
     @Column(name = "numero_recibos", nullable = false)
@@ -47,57 +83,247 @@ public class FicheroGenerado {
     @Column(name = "esquema_sepa", length = 10)
     private String esquemaSepa = "CORE";
 
-    @Column(name = "total_domiciliado", precision = 17, scale = 2)
-    private BigDecimal totalDomiciliado = BigDecimal.ZERO;
+    @Column(
+            name = "total_domiciliado",
+            precision = 17,
+            scale = 2
+    )
+    private BigDecimal totalDomiciliado =
+            BigDecimal.ZERO;
 
-    @Column(name = "total_no_domiciliado", precision = 17, scale = 2)
-    private BigDecimal totalNoDomiciliado = BigDecimal.ZERO;
+    @Column(
+            name = "total_no_domiciliado",
+            precision = 17,
+            scale = 2
+    )
+    private BigDecimal totalNoDomiciliado =
+            BigDecimal.ZERO;
 
     @Lob
     @Column(columnDefinition = "TEXT")
     private String observaciones;
 
-    public Long getId() { return id; }
+    public Long getId() {
+        return id;
+    }
 
-    public Long getComunidadId() { return comunidadId; }
-    public void setComunidadId(Long comunidadId) { this.comunidadId = comunidadId; }
+    public Long getComunidadId() {
+        return comunidadId;
+    }
 
-    public String getIdentificadorFichero() { return identificadorFichero; }
-    public void setIdentificadorFichero(String identificadorFichero) { this.identificadorFichero = identificadorFichero; }
+    public void setComunidadId(
+            Long comunidadId
+    ) {
+        this.comunidadId = comunidadId;
+    }
 
-    public LocalDate getFechaCreacion() { return fechaCreacion; }
-    public void setFechaCreacion(LocalDate fechaCreacion) { this.fechaCreacion = fechaCreacion; }
+    public Long getCuentaPresentadorId() {
+        return cuentaPresentadorId;
+    }
 
-    public BigDecimal getTotalImporte() { return totalImporte; }
-    public void setTotalImporte(BigDecimal totalImporte) { this.totalImporte = totalImporte; }
+    public void setCuentaPresentadorId(
+            Long cuentaPresentadorId
+    ) {
+        this.cuentaPresentadorId =
+                cuentaPresentadorId;
+    }
 
-    public Integer getNumeroRecibos() { return numeroRecibos; }
-    public void setNumeroRecibos(Integer numeroRecibos) { this.numeroRecibos = numeroRecibos; }
+    public String getPresentadorAlias() {
+        return presentadorAlias;
+    }
 
-    public String getNombreArchivo() { return nombreArchivo; }
-    public void setNombreArchivo(String nombreArchivo) { this.nombreArchivo = nombreArchivo; }
+    public void setPresentadorAlias(
+            String presentadorAlias
+    ) {
+        this.presentadorAlias =
+                presentadorAlias;
+    }
 
-    public String getContenido() { return contenido; }
-    public void setContenido(String contenido) { this.contenido = contenido; }
+    public String getPresentadorIdentificador() {
+        return presentadorIdentificador;
+    }
 
-    public String getEstado() { return estado; }
-    public void setEstado(String estado) { this.estado = estado; }
+    public void setPresentadorIdentificador(
+            String presentadorIdentificador
+    ) {
+        this.presentadorIdentificador =
+                presentadorIdentificador;
+    }
 
-    public String getTipoRemesa() { return tipoRemesa; }
-    public void setTipoRemesa(String tipoRemesa) { this.tipoRemesa = tipoRemesa; }
+    public String getPresentadorNifCif() {
+        return presentadorNifCif;
+    }
 
-    public LocalDate getFechaCobro() { return fechaCobro; }
-    public void setFechaCobro(LocalDate fechaCobro) { this.fechaCobro = fechaCobro; }
+    public void setPresentadorNifCif(
+            String presentadorNifCif
+    ) {
+        this.presentadorNifCif =
+                presentadorNifCif;
+    }
 
-    public String getEsquemaSepa() { return esquemaSepa; }
-    public void setEsquemaSepa(String esquemaSepa) { this.esquemaSepa = esquemaSepa; }
+    public String getPresentadorSufijo() {
+        return presentadorSufijo;
+    }
 
-    public BigDecimal getTotalDomiciliado() { return totalDomiciliado; }
-    public void setTotalDomiciliado(BigDecimal totalDomiciliado) { this.totalDomiciliado = totalDomiciliado; }
+    public void setPresentadorSufijo(
+            String presentadorSufijo
+    ) {
+        this.presentadorSufijo =
+                presentadorSufijo;
+    }
 
-    public BigDecimal getTotalNoDomiciliado() { return totalNoDomiciliado; }
-    public void setTotalNoDomiciliado(BigDecimal totalNoDomiciliado) { this.totalNoDomiciliado = totalNoDomiciliado; }
+    public String getPresentadorIban() {
+        return presentadorIban;
+    }
 
-    public String getObservaciones() { return observaciones; }
-    public void setObservaciones(String observaciones) { this.observaciones = observaciones; }
+    public void setPresentadorIban(
+            String presentadorIban
+    ) {
+        this.presentadorIban =
+                presentadorIban;
+    }
+
+    public String getPresentadorBic() {
+        return presentadorBic;
+    }
+
+    public void setPresentadorBic(
+            String presentadorBic
+    ) {
+        this.presentadorBic =
+                presentadorBic;
+    }
+
+    public String getIdentificadorFichero() {
+        return identificadorFichero;
+    }
+
+    public void setIdentificadorFichero(
+            String identificadorFichero
+    ) {
+        this.identificadorFichero =
+                identificadorFichero;
+    }
+
+    public LocalDate getFechaCreacion() {
+        return fechaCreacion;
+    }
+
+    public void setFechaCreacion(
+            LocalDate fechaCreacion
+    ) {
+        this.fechaCreacion = fechaCreacion;
+    }
+
+    public BigDecimal getTotalImporte() {
+        return totalImporte;
+    }
+
+    public void setTotalImporte(
+            BigDecimal totalImporte
+    ) {
+        this.totalImporte = totalImporte;
+    }
+
+    public Integer getNumeroRecibos() {
+        return numeroRecibos;
+    }
+
+    public void setNumeroRecibos(
+            Integer numeroRecibos
+    ) {
+        this.numeroRecibos = numeroRecibos;
+    }
+
+    public String getNombreArchivo() {
+        return nombreArchivo;
+    }
+
+    public void setNombreArchivo(
+            String nombreArchivo
+    ) {
+        this.nombreArchivo = nombreArchivo;
+    }
+
+    public String getContenido() {
+        return contenido;
+    }
+
+    public void setContenido(
+            String contenido
+    ) {
+        this.contenido = contenido;
+    }
+
+    public String getEstado() {
+        return estado;
+    }
+
+    public void setEstado(
+            String estado
+    ) {
+        this.estado = estado;
+    }
+
+    public String getTipoRemesa() {
+        return tipoRemesa;
+    }
+
+    public void setTipoRemesa(
+            String tipoRemesa
+    ) {
+        this.tipoRemesa = tipoRemesa;
+    }
+
+    public LocalDate getFechaCobro() {
+        return fechaCobro;
+    }
+
+    public void setFechaCobro(
+            LocalDate fechaCobro
+    ) {
+        this.fechaCobro = fechaCobro;
+    }
+
+    public String getEsquemaSepa() {
+        return esquemaSepa;
+    }
+
+    public void setEsquemaSepa(
+            String esquemaSepa
+    ) {
+        this.esquemaSepa = esquemaSepa;
+    }
+
+    public BigDecimal getTotalDomiciliado() {
+        return totalDomiciliado;
+    }
+
+    public void setTotalDomiciliado(
+            BigDecimal totalDomiciliado
+    ) {
+        this.totalDomiciliado =
+                totalDomiciliado;
+    }
+
+    public BigDecimal getTotalNoDomiciliado() {
+        return totalNoDomiciliado;
+    }
+
+    public void setTotalNoDomiciliado(
+            BigDecimal totalNoDomiciliado
+    ) {
+        this.totalNoDomiciliado =
+                totalNoDomiciliado;
+    }
+
+    public String getObservaciones() {
+        return observaciones;
+    }
+
+    public void setObservaciones(
+            String observaciones
+    ) {
+        this.observaciones = observaciones;
+    }
 }

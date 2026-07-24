@@ -62,6 +62,17 @@ public class ProcesoRemesaService {
     public ProcesoRemesaResponse ejecutar(
             ProcesoRemesaRequest request
     ) {
+        return ejecutar(
+                request,
+                null
+        );
+    }
+
+    @Transactional
+    public ProcesoRemesaResponse ejecutar(
+            ProcesoRemesaRequest request,
+            CuentaPresentador cuentaPresentador
+    ) {
         ProcesoRemesaResponse response = new ProcesoRemesaResponse();
 
         try {
@@ -103,7 +114,8 @@ public class ProcesoRemesaService {
             FicheroGenerado remesa =
                     crearRemesa(
                             request,
-                            recibosPendientes
+                            recibosPendientes,
+                            cuentaPresentador
                     );
 
             List<RemesaLinea> lineas =
@@ -284,7 +296,8 @@ public class ProcesoRemesaService {
 
     private FicheroGenerado crearRemesa(
             ProcesoRemesaRequest request,
-            List<ContabilidadRecibo> recibosPendientes
+            List<ContabilidadRecibo> recibosPendientes,
+            CuentaPresentador cuentaPresentador
     ) {
         BigDecimal total = BigDecimal.ZERO;
         BigDecimal totalDomiciliado = BigDecimal.ZERO;
@@ -298,7 +311,8 @@ public class ProcesoRemesaService {
                         request.getAnio(),
                         request.getMes(),
                         request.getFechaCobro(),
-                        "proceso completo"
+                        "proceso completo",
+                        cuentaPresentador
                 );
 
         for (ContabilidadRecibo recibo : recibosPendientes) {

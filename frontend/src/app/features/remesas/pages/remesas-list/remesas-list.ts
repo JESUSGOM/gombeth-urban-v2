@@ -35,6 +35,14 @@ import {
 } from '../../../../core/services/proceso-remesa.service';
 
 import {
+  CuentaPresentador
+} from '../../../../core/models/cuenta-presentador.model';
+
+import {
+  CuentaPresentadorService
+} from '../../../../core/services/cuenta-presentador.service';
+
+import {
   ComunidadService
 } from '../../../../core/services/comunidad';
 
@@ -60,6 +68,9 @@ export class RemesasList implements OnInit {
 
   private procesoRemesaService =
     inject(ProcesoRemesaService);
+
+  private cuentaPresentadorService =
+    inject(CuentaPresentadorService);
 
   private comunidadService =
     inject(ComunidadService);
@@ -95,6 +106,11 @@ export class RemesasList implements OnInit {
   mes = new Date().getMonth() + 1;
   fechaCobro = '';
 
+  cuentasPresentador: CuentaPresentador[] = [];
+  cuentaPresentadorId: number | null = null;
+  cargandoCuentasPresentador = false;
+  errorCuentasPresentador = '';
+
   generando = false;
   mensaje = '';
   error = '';
@@ -115,6 +131,7 @@ export class RemesasList implements OnInit {
 
   ngOnInit(): void {
     this.actualizarFechaCobro();
+    this.cargarCuentasPresentador();
 
     const comunidadIdRuta =
       this.obtenerComunidadIdRuta();
@@ -171,6 +188,58 @@ export class RemesasList implements OnInit {
 
     this.fechaCobro =
       `${this.anio}-${mesTexto}-05`;
+  }
+
+  private cargarCuentasPresentador(): void {
+    this.cargandoCuentasPresentador = true;
+    this.errorCuentasPresentador = '';
+
+    this.cuentaPresentadorService
+      .listarActivas()
+      .pipe(
+        takeUntilDestroyed(
+          this.destroyRef
+        )
+      )
+      .subscribe({
+        next: cuentas => {
+          this.cuentasPresentador =
+            cuentas ?? [];
+
+          if (
+            this.cuentasPresentador.length > 0
+          ) {
+            this.cuentaPresentadorId =
+              this.cuentasPresentador[0].id;
+          } else {
+            this.cuentaPresentadorId = null;
+
+            this.errorCuentasPresentador =
+              'No existen cuentas presentadoras activas.';
+          }
+
+          this.cargandoCuentasPresentador =
+            false;
+        },
+
+        error: error => {
+          console.error(
+            'Error cargando cuentas presentadoras:',
+            error
+          );
+
+          this.cuentasPresentador = [];
+          this.cuentaPresentadorId = null;
+
+          this.errorCuentasPresentador =
+            error?.error?.message ||
+            error?.error ||
+            'No se pudieron cargar las cuentas presentadoras.';
+
+          this.cargandoCuentasPresentador =
+            false;
+        }
+      });
   }
 
   /**
@@ -481,6 +550,15 @@ export class RemesasList implements OnInit {
     }
 
     if (
+      this.cuentaPresentadorId === null
+    ) {
+      this.mensaje =
+        'Debe seleccionar una cuenta presentadora activa.';
+
+      return;
+    }
+
+    if (
       !this.anio ||
       !this.mes ||
       !this.fechaCobro
@@ -504,6 +582,9 @@ export class RemesasList implements OnInit {
       .generarProceso({
         comunidadId:
         comunidadSolicitada,
+
+        cuentaPresentadorId:
+        this.cuentaPresentadorId,
 
         anio:
         this.anio,
