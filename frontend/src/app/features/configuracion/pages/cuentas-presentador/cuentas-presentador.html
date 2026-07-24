@@ -1,0 +1,427 @@
+<div class="cuentas-page">
+
+  <div class="page-header">
+
+    <div>
+      <h2>🏦 Cuentas presentadoras</h2>
+
+      <p>
+        Gestión de las cuentas utilizadas para presentar remesas SEPA
+      </p>
+    </div>
+
+    <button
+      type="button"
+      class="primary-button"
+      [disabled]="guardando"
+      (click)="nuevaCuenta()">
+      + Nueva cuenta
+    </button>
+
+  </div>
+
+  <div
+    *ngIf="mensaje"
+    class="success-card">
+    {{ mensaje }}
+  </div>
+
+  <div
+    *ngIf="error"
+    class="error-card">
+    {{ error }}
+  </div>
+
+  <div
+    *ngIf="cargando"
+    class="info-card">
+    Cargando cuentas presentadoras...
+  </div>
+
+  <div
+    *ngIf="!cargando"
+    class="table-card">
+
+    <div class="table-summary">
+      Total de cuentas: {{ cuentas.length }}
+    </div>
+
+    <div
+      *ngIf="cuentas.length === 0"
+      class="empty-card">
+
+      No existen cuentas presentadoras registradas.
+
+      <button
+        type="button"
+        class="empty-action"
+        (click)="nuevaCuenta()">
+        Crear la primera cuenta
+      </button>
+
+    </div>
+
+    <div
+      *ngIf="cuentas.length > 0"
+      class="table-scroll">
+
+      <table>
+
+        <thead>
+          <tr>
+            <th>Alias</th>
+            <th>Banco</th>
+            <th>Identificador SEPA</th>
+            <th>NIF/CIF</th>
+            <th>Sufijo</th>
+            <th>IBAN</th>
+            <th>BIC</th>
+            <th>Estado</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+
+        <tbody>
+
+          <tr
+            *ngFor="
+              let cuenta of cuentas;
+              trackBy: trackById
+            ">
+
+            <td class="alias-column">
+              {{ cuenta.alias }}
+            </td>
+
+            <td>
+              {{ cuenta.banco || '-' }}
+            </td>
+
+            <td class="codigo-column">
+              {{ cuenta.identificadorPresentador }}
+            </td>
+
+            <td>
+              {{ cuenta.nifCif || '-' }}
+            </td>
+
+            <td>
+              {{ cuenta.sufijo || '-' }}
+            </td>
+
+            <td class="codigo-column">
+              {{ cuenta.iban || '-' }}
+            </td>
+
+            <td class="codigo-column">
+              {{ cuenta.bic || '-' }}
+            </td>
+
+            <td>
+
+              <span
+                class="status-badge"
+                [class.status-active]="cuenta.activa"
+                [class.status-inactive]="!cuenta.activa">
+
+                {{
+                  cuenta.activa
+                    ? 'Activa'
+                    : 'Inactiva'
+                }}
+
+              </span>
+
+            </td>
+
+            <td class="actions">
+
+              <button
+                type="button"
+                class="action-button edit-button"
+                [disabled]="
+                  eliminandoId !== null
+                  || actualizandoEstadoId !== null
+                "
+                (click)="editarCuenta(cuenta)">
+                Editar
+              </button>
+
+              <button
+                type="button"
+                class="action-button state-button"
+                [disabled]="
+                  eliminandoId !== null
+                  || actualizandoEstadoId !== null
+                "
+                (click)="cambiarEstado(cuenta)">
+
+                {{
+                  actualizandoEstadoId === cuenta.id
+                    ? 'Guardando...'
+                    : cuenta.activa
+                      ? 'Desactivar'
+                      : 'Activar'
+                }}
+
+              </button>
+
+              <button
+                type="button"
+                class="action-button delete-button"
+                [disabled]="
+                  eliminandoId !== null
+                  || actualizandoEstadoId !== null
+                "
+                (click)="eliminarCuenta(cuenta)">
+
+                {{
+                  eliminandoId === cuenta.id
+                    ? 'Eliminando...'
+                    : 'Eliminar'
+                }}
+
+              </button>
+
+            </td>
+
+          </tr>
+
+        </tbody>
+
+      </table>
+
+    </div>
+
+  </div>
+
+</div>
+
+<div
+  *ngIf="formularioAbierto"
+  class="modal-backdrop"
+  role="presentation"
+  (click)="cerrarFormulario()">
+
+  <section
+    class="form-modal"
+    role="dialog"
+    aria-modal="true"
+    aria-label="Formulario de cuenta presentadora"
+    (click)="$event.stopPropagation()">
+
+    <header class="modal-header">
+
+      <div>
+        <h3>{{ tituloFormulario }}</h3>
+
+        <p>
+          Datos bancarios y de presentación de remesas SEPA
+        </p>
+      </div>
+
+      <button
+        type="button"
+        class="close-button"
+        aria-label="Cerrar"
+        [disabled]="guardando"
+        (click)="cerrarFormulario()">
+        ×
+      </button>
+
+    </header>
+
+    <div class="modal-content">
+
+      <div class="form-grid">
+
+        <div class="form-field field-wide">
+
+          <label for="alias">
+            Alias
+            <span class="required">*</span>
+          </label>
+
+          <input
+            id="alias"
+            type="text"
+            maxlength="100"
+            autocomplete="off"
+            [(ngModel)]="formulario.alias"
+            [disabled]="guardando">
+
+        </div>
+
+        <div class="form-field">
+
+          <label for="banco">
+            Banco
+          </label>
+
+          <input
+            id="banco"
+            type="text"
+            maxlength="100"
+            autocomplete="organization"
+            [(ngModel)]="formulario.banco"
+            [disabled]="guardando">
+
+        </div>
+
+        <div class="form-field">
+
+          <label for="identificadorPresentador">
+            Identificador SEPA
+            <span class="required">*</span>
+          </label>
+
+          <input
+            id="identificadorPresentador"
+            type="text"
+            maxlength="35"
+            autocomplete="off"
+            [(ngModel)]="
+              formulario.identificadorPresentador
+            "
+            [disabled]="guardando">
+
+        </div>
+
+        <div class="form-field">
+
+          <label for="nifCif">
+            NIF/CIF
+          </label>
+
+          <input
+            id="nifCif"
+            type="text"
+            maxlength="20"
+            autocomplete="off"
+            [(ngModel)]="formulario.nifCif"
+            [disabled]="guardando">
+
+        </div>
+
+        <div class="form-field">
+
+          <label for="sufijo">
+            Sufijo
+          </label>
+
+          <input
+            id="sufijo"
+            type="text"
+            maxlength="3"
+            autocomplete="off"
+            [(ngModel)]="formulario.sufijo"
+            [disabled]="guardando">
+
+          <small>
+            Debe contener exactamente 3 caracteres.
+          </small>
+
+        </div>
+
+        <div class="form-field field-wide">
+
+          <label for="iban">
+            IBAN
+          </label>
+
+          <input
+            id="iban"
+            type="text"
+            maxlength="34"
+            autocomplete="off"
+            [(ngModel)]="formulario.iban"
+            [disabled]="guardando">
+
+        </div>
+
+        <div class="form-field">
+
+          <label for="bic">
+            BIC
+          </label>
+
+          <input
+            id="bic"
+            type="text"
+            maxlength="11"
+            autocomplete="off"
+            [(ngModel)]="formulario.bic"
+            [disabled]="guardando">
+
+          <small>
+            Debe contener 8 u 11 caracteres.
+          </small>
+
+        </div>
+
+        <div class="form-field checkbox-field">
+
+          <label class="checkbox-label">
+
+            <input
+              type="checkbox"
+              [(ngModel)]="formulario.activa"
+              [disabled]="guardando">
+
+            <span>
+              Cuenta activa
+            </span>
+
+          </label>
+
+        </div>
+
+        <div class="form-field field-full">
+
+          <label for="observaciones">
+            Observaciones
+          </label>
+
+          <textarea
+            id="observaciones"
+            rows="4"
+            maxlength="2000"
+            [(ngModel)]="formulario.observaciones"
+            [disabled]="guardando">
+          </textarea>
+
+        </div>
+
+      </div>
+
+    </div>
+
+    <footer class="modal-footer">
+
+      <button
+        type="button"
+        class="secondary-button"
+        [disabled]="guardando"
+        (click)="cerrarFormulario()">
+        Cancelar
+      </button>
+
+      <button
+        type="button"
+        class="primary-button"
+        [disabled]="guardando"
+        (click)="guardar()">
+
+        {{
+          guardando
+            ? 'Guardando...'
+            : 'Guardar cuenta'
+        }}
+
+      </button>
+
+    </footer>
+
+  </section>
+
+</div>

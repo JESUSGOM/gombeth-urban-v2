@@ -159,6 +159,14 @@ export const routes: Routes = [
       },
 
       {
+        path: 'configuracion/cuentas-presentador',
+        loadComponent: () =>
+          import(
+            './features/configuracion/pages/cuentas-presentador/cuentas-presentador'
+          ).then(m => m.CuentasPresentador)
+      },
+
+      {
         path: 'incidencias',
         loadComponent: () =>
           import('./features/incidencias/pages/incidencias-list/incidencias-list')
