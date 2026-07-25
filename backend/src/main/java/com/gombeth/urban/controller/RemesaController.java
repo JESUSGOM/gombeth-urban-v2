@@ -50,6 +50,7 @@ public class RemesaController {
     private final ComunidadRepository comunidadRepository;
     private final SepaCoreXmlService sepaCoreXmlService;
     private final SepaC19Service sepaC19Service;
+    private final SepaC19ValidationService sepaC19ValidationService;
     private final RemesaService remesaService;
     private final SepaRemesaValidationService sepaRemesaValidationService;
     private final DocumentStorageService documentStorageService;
@@ -66,6 +67,7 @@ public class RemesaController {
             ComunidadRepository comunidadRepository,
             SepaCoreXmlService sepaCoreXmlService,
             SepaC19Service sepaC19Service,
+            SepaC19ValidationService sepaC19ValidationService,
             RemesaService remesaService,
             SepaRemesaValidationService sepaRemesaValidationService,
             DocumentStorageService documentStorageService,
@@ -81,6 +83,7 @@ public class RemesaController {
         this.comunidadRepository = comunidadRepository;
         this.sepaCoreXmlService = sepaCoreXmlService;
         this.sepaC19Service = sepaC19Service;
+        this.sepaC19ValidationService = sepaC19ValidationService;
         this.remesaService = remesaService;
         this.sepaRemesaValidationService = sepaRemesaValidationService;
         this.documentStorageService = documentStorageService;
@@ -370,7 +373,7 @@ public class RemesaController {
         try {
             rutaGuardada =
                     documentStorageService.guardarRemesaXml(
-                        comunidad,
+                            comunidad,
                             xml,
                             remesa.getFechaCreacion(),
                             remesa.getFechaCobro(),
@@ -516,6 +519,21 @@ public class RemesaController {
                 vecinos
         );
 
+        SepaValidacionResultado validacionEstructural =
+                sepaC19ValidationService.validar(
+                        contenido
+                );
+
+        if (!validacionEstructural.isValida()) {
+            throw new RuntimeException(
+                    "El fichero C19 generado no es válido: "
+                            + String.join(
+                            " | ",
+                            validacionEstructural.getErrores()
+                    )
+            );
+        }
+
         String nombreArchivo =
                 "REMESA_" + remesa.getId() + ".c19";
 
@@ -523,7 +541,7 @@ public class RemesaController {
         try {
             rutaGuardada =
                     documentStorageService.guardarRemesaC19(
-                        comunidad,
+                            comunidad,
                             contenido,
                             remesa.getFechaCreacion(),
                             remesa.getFechaCobro(),
