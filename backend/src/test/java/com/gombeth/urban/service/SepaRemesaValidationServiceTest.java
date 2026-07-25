@@ -17,6 +17,7 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -308,6 +309,209 @@ class SepaRemesaValidationServiceTest {
         );
     }
 
+    @Test
+    void rechazaIbanDeComunidadConControlMod97Incorrecto() {
+
+        Contexto contexto =
+                crearContextoValido(
+                        "BD:15"
+                );
+
+        when(
+                contexto.comunidad().getIban()
+        ).thenReturn(
+                "ES9021000418450200051332"
+        );
+
+        VecinoDocumento documento =
+                crearDocumento(
+                        15L,
+                        4L,
+                        "MANDATO_SEPA_FIRMADO",
+                        new byte[]{1}
+                );
+
+        when(
+                documentoRepository.findById(
+                        15L
+                )
+        ).thenReturn(
+                Optional.of(documento)
+        );
+
+        SepaValidacionResultado resultado =
+                validar(contexto);
+
+        assertContieneError(
+                resultado,
+                "IBAN de la comunidad"
+        );
+    }
+
+    @Test
+    void rechazaIbanDeVecinoConControlMod97Incorrecto() {
+
+        Contexto contexto =
+                crearContextoValido(
+                        "BD:15"
+                );
+
+        when(
+                contexto.vecino().getIban()
+        ).thenReturn(
+                "ES7821000813610123456789"
+        );
+
+        VecinoDocumento documento =
+                crearDocumento(
+                        15L,
+                        4L,
+                        "MANDATO_SEPA_FIRMADO",
+                        new byte[]{1}
+                );
+
+        when(
+                documentoRepository.findById(
+                        15L
+                )
+        ).thenReturn(
+                Optional.of(documento)
+        );
+
+        SepaValidacionResultado resultado =
+                validar(contexto);
+
+        assertContieneError(
+                resultado,
+                "IBAN del vecino"
+        );
+    }
+
+    @Test
+    void rechazaFechaDeMandatoFutura() {
+
+        Contexto contexto =
+                crearContextoValido(
+                        "BD:15"
+                );
+
+        when(
+                contexto.vecino().getFechaMandato()
+        ).thenReturn(
+                LocalDate.now().plusDays(1)
+        );
+
+        VecinoDocumento documento =
+                crearDocumento(
+                        15L,
+                        4L,
+                        "MANDATO_SEPA_FIRMADO",
+                        new byte[]{1}
+                );
+
+        when(
+                documentoRepository.findById(
+                        15L
+                )
+        ).thenReturn(
+                Optional.of(documento)
+        );
+
+        SepaValidacionResultado resultado =
+                validar(contexto);
+
+        assertContieneError(
+                resultado,
+                "fecha de mandato futura"
+        );
+    }
+
+    @Test
+    void noDuplicaErroresDelMismoVecinoEnVariasLineas() {
+
+        Contexto contexto =
+                crearContextoValido(
+                        null
+                );
+
+        when(
+                contexto.vecino().getFechaMandato()
+        ).thenReturn(
+                null
+        );
+
+        RemesaLinea segundaLinea =
+                mock(RemesaLinea.class);
+
+//        when(
+//                segundaLinea.getId()
+//        ).thenReturn(
+//                200L
+//        );
+
+        when(
+                segundaLinea.getVecinoId()
+        ).thenReturn(
+                4L
+        );
+
+        when(
+                segundaLinea.getImporte()
+        ).thenReturn(
+                new BigDecimal("10.00")
+        );
+
+        when(
+                segundaLinea.getConcepto()
+        ).thenReturn(
+                "Cuota extraordinaria"
+        );
+
+        when(
+                segundaLinea.getIncluidoSepa()
+        ).thenReturn(
+                true
+        );
+
+        SepaValidacionResultado resultado =
+                service.validarRemesaSepa(
+                        contexto.comunidad(),
+                        List.of(
+                                contexto.linea(),
+                                segundaLinea
+                        ),
+                        List.of(
+                                contexto.vecino()
+                        )
+                );
+
+        long erroresFecha =
+                contarErroresQueContienen(
+                        resultado,
+                        "no tiene fecha de mandato"
+                );
+
+        long erroresDocumento =
+                contarErroresQueContienen(
+                        resultado,
+                        "no tiene mandato firmado"
+                );
+
+        assertEquals(
+                1L,
+                erroresFecha,
+                () -> "La fecha de mandato se informó repetida: "
+                        + resultado.getErrores()
+        );
+
+        assertEquals(
+                1L,
+                erroresDocumento,
+                () -> "El mandato firmado se informó repetido: "
+                        + resultado.getErrores()
+        );
+    }
+
     private SepaValidacionResultado validar(
             Contexto contexto
     ) {
@@ -488,6 +692,22 @@ class SepaRemesaValidationServiceTest {
                         + "' en los errores: "
                         + resultado.getErrores()
         );
+    }
+
+    private long contarErroresQueContienen(
+            SepaValidacionResultado resultado,
+            String fragmento
+    ) {
+
+        return resultado.getErrores()
+                .stream()
+                .filter(error ->
+                        error.toLowerCase()
+                                .contains(
+                                        fragmento.toLowerCase()
+                                )
+                )
+                .count();
     }
 
     private record Contexto(

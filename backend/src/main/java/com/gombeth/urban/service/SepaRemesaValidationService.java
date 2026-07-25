@@ -9,10 +9,13 @@ import com.gombeth.urban.repository.VecinoDocumentoRepository;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -61,7 +64,8 @@ public class SepaRemesaValidationService {
         List<RemesaLinea> lineasSepa =
                 lineas.stream()
                         .filter(linea ->
-                                Boolean.TRUE.equals(
+                                linea != null
+                                        && Boolean.TRUE.equals(
                                         linea.getIncluidoSepa()
                                 )
                         )
@@ -98,14 +102,28 @@ public class SepaRemesaValidationService {
                                 )
                         );
 
+        Set<Long> vecinosValidados =
+                new HashSet<>();
+
         for (RemesaLinea linea : lineasSepa) {
-            validarLinea(
+            validarDatosLinea(
                     linea,
-                    linea == null
-                            ? null
-                            : vecinosPorId.get(
-                                    linea.getVecinoId()
-                            ),
+                    resultado
+            );
+
+            Long vecinoId =
+                    linea.getVecinoId();
+
+            if (
+                    vecinoId == null
+                            || !vecinosValidados.add(vecinoId)
+            ) {
+                continue;
+            }
+
+            validarVecino(
+                    linea,
+                    vecinosPorId.get(vecinoId),
                     resultado
             );
         }
@@ -143,12 +161,12 @@ public class SepaRemesaValidationService {
             );
 
         } else if (
-                !pareceIbanValido(
+                !esIbanValido(
                         comunidad.getIban()
                 )
         ) {
-            resultado.addAdvertencia(
-                    "El IBAN de la comunidad tiene formato dudoso."
+            resultado.addError(
+                    "El IBAN de la comunidad no es válido."
             );
         }
 
@@ -174,9 +192,8 @@ public class SepaRemesaValidationService {
         }
     }
 
-    private void validarLinea(
+    private void validarDatosLinea(
             RemesaLinea linea,
-            Vecino vecino,
             SepaValidacionResultado resultado
     ) {
         if (linea == null) {
@@ -220,7 +237,13 @@ public class SepaRemesaValidationService {
                             + " tiene un concepto demasiado largo."
             );
         }
+    }
 
+    private void validarVecino(
+            RemesaLinea linea,
+            Vecino vecino,
+            SepaValidacionResultado resultado
+    ) {
         if (vecino == null) {
             resultado.addError(
                     "No existe el vecino asociado a la línea "
@@ -272,14 +295,14 @@ public class SepaRemesaValidationService {
             );
 
         } else if (
-                !pareceIbanValido(
+                !esIbanValido(
                         vecino.getIban()
                 )
         ) {
-            resultado.addAdvertencia(
+            resultado.addError(
                     "El IBAN del vecino "
                             + vecino.getId()
-                            + " tiene formato dudoso."
+                            + " no es válido."
             );
         }
 
@@ -300,6 +323,16 @@ public class SepaRemesaValidationService {
                     "El vecino "
                             + vecino.getId()
                             + " no tiene fecha de mandato."
+            );
+
+        } else if (
+                vecino.getFechaMandato()
+                        .isAfter(LocalDate.now())
+        ) {
+            resultado.addError(
+                    "El vecino "
+                            + vecino.getId()
+                            + " tiene una fecha de mandato futura."
             );
         }
 
@@ -436,8 +469,8 @@ public class SepaRemesaValidationService {
 
         String identificador =
                 referenciaLimpia.substring(
-                        PREFIJO_DOCUMENTO_BD.length()
-                )
+                                PREFIJO_DOCUMENTO_BD.length()
+                        )
                         .trim();
 
         if (
@@ -462,21 +495,64 @@ public class SepaRemesaValidationService {
         }
     }
 
-    private boolean pareceIbanValido(
+    private boolean esIbanValido(
             String iban
     ) {
+        if (iban == null) {
+            return false;
+        }
+
         String limpio =
-                iban.replace(" ", "")
+                iban.replaceAll("\\s+", "")
                         .trim()
                         .toUpperCase(
                                 Locale.ROOT
                         );
 
-        return limpio.length() >= 15
-                && limpio.length() <= 34
-                && limpio.matches(
+        if (
+                limpio.length() < 15
+                        || limpio.length() > 34
+                        || !limpio.matches(
                         "^[A-Z]{2}[0-9]{2}[A-Z0-9]+$"
-                );
+                )
+        ) {
+            return false;
+        }
+
+        String reorganizado =
+                limpio.substring(4)
+                        + limpio.substring(0, 4);
+
+        int resto = 0;
+
+        for (int i = 0; i < reorganizado.length(); i++) {
+            char caracter =
+                    reorganizado.charAt(i);
+
+            if (Character.isDigit(caracter)) {
+                resto =
+                        (resto * 10
+                                + Character.digit(
+                                caracter,
+                                10
+                        )) % 97;
+
+            } else if (
+                    caracter >= 'A'
+                            && caracter <= 'Z'
+            ) {
+                int valor =
+                        caracter - 'A' + 10;
+
+                resto =
+                        (resto * 100 + valor) % 97;
+
+            } else {
+                return false;
+            }
+        }
+
+        return resto == 1;
     }
 
     private boolean pareceIdentificadorAcreedorValido(
@@ -492,7 +568,7 @@ public class SepaRemesaValidationService {
         return limpio.length() >= 8
                 && limpio.length() <= 35
                 && limpio.matches(
-                        "^[A-Z]{2}[0-9A-Z]+$"
-                );
+                "^[A-Z]{2}[0-9A-Z]+$"
+        );
     }
 }
