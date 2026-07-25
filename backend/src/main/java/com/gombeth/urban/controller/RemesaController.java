@@ -49,6 +49,7 @@ public class RemesaController {
     private final VecinoRepository vecinoRepository;
     private final ComunidadRepository comunidadRepository;
     private final SepaCoreXmlService sepaCoreXmlService;
+    private final SepaXmlValidationService sepaXmlValidationService;
     private final SepaC19Service sepaC19Service;
     private final SepaC19ValidationService sepaC19ValidationService;
     private final RemesaService remesaService;
@@ -66,6 +67,7 @@ public class RemesaController {
             VecinoRepository vecinoRepository,
             ComunidadRepository comunidadRepository,
             SepaCoreXmlService sepaCoreXmlService,
+            SepaXmlValidationService sepaXmlValidationService,
             SepaC19Service sepaC19Service,
             SepaC19ValidationService sepaC19ValidationService,
             RemesaService remesaService,
@@ -82,6 +84,7 @@ public class RemesaController {
         this.vecinoRepository = vecinoRepository;
         this.comunidadRepository = comunidadRepository;
         this.sepaCoreXmlService = sepaCoreXmlService;
+        this.sepaXmlValidationService = sepaXmlValidationService;
         this.sepaC19Service = sepaC19Service;
         this.sepaC19ValidationService = sepaC19ValidationService;
         this.remesaService = remesaService;
@@ -366,6 +369,21 @@ public class RemesaController {
                 lineas,
                 vecinos
         );
+
+        SepaValidacionResultado validacionXml =
+                sepaXmlValidationService.validar(
+                        xml
+                );
+
+        if (!validacionXml.isValida()) {
+            throw new RuntimeException(
+                    "El XML SEPA generado no es válido: "
+                            + String.join(
+                            " | ",
+                            validacionXml.getErrores()
+                    )
+            );
+        }
 
         String nombreArchivo;
 
