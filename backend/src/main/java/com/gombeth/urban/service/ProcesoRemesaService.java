@@ -21,6 +21,7 @@ public class ProcesoRemesaService {
     private final CuotaPresupuestoRepository cuotaPresupuestoRepository;
     private final ContabilidadReciboRepository reciboRepository;
     private final GeneracionReciboConceptosService generacionReciboConceptosService;
+    private final ContabilidadAutomaticaService contabilidadAutomaticaService;
     private final RemesaService remesaService;
     private final RemesaLineaRepository remesaLineaRepository;
     private final VecinoRepository vecinoRepository;
@@ -35,6 +36,7 @@ public class ProcesoRemesaService {
             CuotaPresupuestoRepository cuotaPresupuestoRepository,
             ContabilidadReciboRepository reciboRepository,
             GeneracionReciboConceptosService generacionReciboConceptosService,
+            ContabilidadAutomaticaService contabilidadAutomaticaService,
             RemesaService remesaService,
             RemesaLineaRepository remesaLineaRepository,
             VecinoRepository vecinoRepository,
@@ -48,6 +50,7 @@ public class ProcesoRemesaService {
         this.cuotaPresupuestoRepository = cuotaPresupuestoRepository;
         this.reciboRepository = reciboRepository;
         this.generacionReciboConceptosService = generacionReciboConceptosService;
+        this.contabilidadAutomaticaService = contabilidadAutomaticaService;
         this.remesaService = remesaService;
         this.remesaLineaRepository = remesaLineaRepository;
         this.vecinoRepository = vecinoRepository;
@@ -286,6 +289,10 @@ public class ProcesoRemesaService {
                     reciboGuardado,
                     cuota,
                     mes
+            );
+
+            contabilidadAutomaticaService.registrarDevengoRecibo(
+                    reciboGuardado
             );
 
             generados++;
