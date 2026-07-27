@@ -253,6 +253,10 @@ public class ProcesoRemesaService {
 
         for (CuotaPresupuesto cuota : cuotas) {
 
+            if (!cuotaAplicaAlMes(cuota, mes)) {
+                continue;
+            }
+
             boolean yaExiste =
                     reciboRepository.existsByCuotaPresupuestoIdAndFechaEmision(
                             cuota.getId(),
@@ -299,6 +303,24 @@ public class ProcesoRemesaService {
         }
 
         return generados;
+    }
+
+    private boolean cuotaAplicaAlMes(
+            CuotaPresupuesto cuota,
+            Integer mes
+    ) {
+        int mesInicio =
+                cuota.getMesInicio() == null
+                        ? 1
+                        : cuota.getMesInicio();
+
+        int mesFin =
+                cuota.getMesFin() == null
+                        ? 12
+                        : cuota.getMesFin();
+
+        return mes >= mesInicio
+                && mes <= mesFin;
     }
 
     private FicheroGenerado crearRemesa(

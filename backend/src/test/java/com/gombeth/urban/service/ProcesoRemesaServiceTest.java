@@ -98,6 +98,8 @@ class ProcesoRemesaServiceTest {
                 );
 
         when(cuota.getId()).thenReturn(101L);
+        when(cuota.getMesInicio()).thenReturn(1);
+        when(cuota.getMesFin()).thenReturn(12);
         when(cuota.getVecinoId()).thenReturn(196L);
         when(cuota.getDescripcion()).thenReturn("Cuota ordinaria");
         when(cuota.getImporteMensual())
@@ -233,6 +235,8 @@ class ProcesoRemesaServiceTest {
                 );
 
         when(cuota.getId()).thenReturn(101L);
+        when(cuota.getMesInicio()).thenReturn(1);
+        when(cuota.getMesFin()).thenReturn(12);
 
         when(comunidadRepository.findById(comunidadId))
                 .thenReturn(Optional.of(comunidad));
@@ -268,6 +272,88 @@ class ProcesoRemesaServiceTest {
         ).thenReturn(List.of());
 
         service.ejecutar(request);
+
+        verify(
+                reciboRepository,
+                never()
+        ).save(
+                any(ContabilidadRecibo.class)
+        );
+
+        verify(
+                generacionReciboConceptosService,
+                never()
+        ).generarConceptosDesdeCuota(
+                any(ContabilidadRecibo.class),
+                any(CuotaPresupuesto.class),
+                any(Integer.class)
+        );
+
+        verify(
+                contabilidadAutomaticaService,
+                never()
+        ).registrarDevengoRecibo(
+                any(ContabilidadRecibo.class)
+        );
+    }
+
+    @Test
+    void cuotaFueraDelPeriodoNoGeneraReciboNiDevengo() {
+        Long comunidadId = 18L;
+        LocalDate fechaEmision = LocalDate.of(2026, 8, 1);
+
+        ProcesoRemesaRequest request =
+                crearRequest(
+                        comunidadId,
+                        2026,
+                        8
+                );
+
+        Comunidad comunidad = new Comunidad();
+        comunidad.setId(comunidadId);
+
+        CuotaPresupuesto cuota =
+                org.mockito.Mockito.mock(
+                        CuotaPresupuesto.class
+                );
+
+        when(cuota.getMesInicio()).thenReturn(9);
+        when(cuota.getMesFin()).thenReturn(12);
+
+        when(comunidadRepository.findById(comunidadId))
+                .thenReturn(Optional.of(comunidad));
+
+        when(
+                cuotaPresupuestoRepository
+                        .findByComunidadIdAndAnioAndEstadoOrderByIdAsc(
+                                comunidadId,
+                                2026,
+                                "APROBADA"
+                        )
+        ).thenReturn(List.of(cuota));
+
+        when(
+                remesaService.obtenerRecibosParaRemesa(
+                        comunidadId,
+                        fechaEmision
+                )
+        ).thenReturn(List.of());
+
+        when(
+                remesaService.eliminarRecibosYaIncluidos(
+                        anyList()
+                )
+        ).thenReturn(List.of());
+
+        service.ejecutar(request);
+
+        verify(
+                reciboRepository,
+                never()
+        ).existsByCuotaPresupuestoIdAndFechaEmision(
+                any(),
+                any(LocalDate.class)
+        );
 
         verify(
                 reciboRepository,

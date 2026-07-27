@@ -18,6 +18,7 @@ import com.gombeth.urban.repository.PresupuestoRepository;
 import com.gombeth.urban.repository.PresupuestoRevisionRepository;
 import com.gombeth.urban.repository.VecinoRepository;
 import com.gombeth.urban.service.AccesoComunidadService;
+import com.gombeth.urban.service.ContabilidadAutomaticaService;
 import com.gombeth.urban.service.GeneracionReciboConceptosService;
 import com.gombeth.urban.service.RegeneracionRecibosService;
 import org.springframework.security.core.Authentication;
@@ -58,6 +59,9 @@ public class PresupuestoController {
     private final GeneracionReciboConceptosService
             generacionReciboConceptosService;
 
+    private final ContabilidadAutomaticaService
+            contabilidadAutomaticaService;
+
     private final RegeneracionRecibosService
             regeneracionRecibosService;
 
@@ -76,6 +80,8 @@ public class PresupuestoController {
                     contabilidadReciboRepository,
             GeneracionReciboConceptosService
                     generacionReciboConceptosService,
+            ContabilidadAutomaticaService
+                    contabilidadAutomaticaService,
             RegeneracionRecibosService
                     regeneracionRecibosService,
             AccesoComunidadService accesoComunidadService
@@ -100,6 +106,9 @@ public class PresupuestoController {
 
         this.generacionReciboConceptosService =
                 generacionReciboConceptosService;
+
+        this.contabilidadAutomaticaService =
+                contabilidadAutomaticaService;
 
         this.regeneracionRecibosService =
                 regeneracionRecibosService;
@@ -222,6 +231,10 @@ public class PresupuestoController {
 
         for (CuotaPresupuesto cuota : cuotas) {
 
+            if (!cuotaAplicaAlMes(cuota, mes)) {
+                continue;
+            }
+
             if (
                     contabilidadReciboRepository
                             .existsByCuotaPresupuestoIdAndFechaEmision(
@@ -284,6 +297,11 @@ public class PresupuestoController {
                             reciboGuardado,
                             cuota,
                             mes
+                    );
+
+            contabilidadAutomaticaService
+                    .registrarDevengoRecibo(
+                            reciboGuardado
                     );
 
             generados++;
@@ -881,6 +899,24 @@ public class PresupuestoController {
                     );
                 })
                 .toList();
+    }
+
+    private boolean cuotaAplicaAlMes(
+            CuotaPresupuesto cuota,
+            Integer mes
+    ) {
+        int mesInicio =
+                cuota.getMesInicio() == null
+                        ? 1
+                        : cuota.getMesInicio();
+
+        int mesFin =
+                cuota.getMesFin() == null
+                        ? 12
+                        : cuota.getMesFin();
+
+        return mes >= mesInicio
+                && mes <= mesFin;
     }
 
     private PresupuestoRevision obtenerRevision(
