@@ -1,4 +1,5 @@
 import {
+  ChangeDetectorRef,
   Component,
   DestroyRef,
   OnInit,
@@ -7,6 +8,11 @@ import {
 
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+
+import {
+  HttpClient,
+  HttpErrorResponse
+} from '@angular/common/http';
 
 import {
   ActivatedRoute,
@@ -63,6 +69,9 @@ import {
 })
 export class RemesasList implements OnInit {
 
+  private http =
+    inject(HttpClient);
+
   private remesaService =
     inject(RemesaService);
 
@@ -86,6 +95,9 @@ export class RemesasList implements OnInit {
 
   private destroyRef =
     inject(DestroyRef);
+
+  private changeDetectorRef =
+    inject(ChangeDetectorRef);
 
   private cargaRemesasActual?: Subscription;
   private cargaComunidadActual?: Subscription;
@@ -686,13 +698,10 @@ export class RemesasList implements OnInit {
     remesa: Remesa
   ): void {
 
-    if (!remesa.id) {
-      return;
-    }
-
-    window.open(
-      `/api/remesas/${remesa.id}/xml`,
-      '_blank'
+    this.descargarFichero(
+      remesa,
+      'xml',
+      'XML'
     );
   }
 
@@ -700,14 +709,192 @@ export class RemesasList implements OnInit {
     remesa: Remesa
   ): void {
 
+    this.descargarFichero(
+      remesa,
+      'c19',
+      'C19'
+    );
+  }
+
+  private descargarFichero(
+    remesa: Remesa,
+    extension: 'xml' | 'c19',
+    tipo: 'XML' | 'C19'
+  ): void {
+
     if (!remesa.id) {
       return;
     }
 
-    window.open(
-      `/api/remesas/${remesa.id}/c19`,
-      '_blank'
+    const remesaId =
+      remesa.id;
+
+    this.resultadoValidacion = '';
+    this.erroresValidacion = [];
+
+    this.http
+      .get(
+        `/api/remesas/${remesaId}/${extension}`,
+        {
+          observe: 'response',
+          responseType: 'blob'
+        }
+      )
+      .pipe(
+        takeUntilDestroyed(
+          this.destroyRef
+        )
+      )
+      .subscribe({
+        next: response => {
+
+          if (!response.body || response.body.size === 0) {
+            this.resultadoValidacion =
+              `No se pudo descargar el fichero ${tipo} de la remesa ${remesaId}.`;
+
+            this.erroresValidacion = [
+              'El servidor devolvió un fichero vacío.'
+            ];
+
+            return;
+          }
+
+          const nombreArchivo =
+            this.obtenerNombreArchivo(
+              response.headers.get(
+                'Content-Disposition'
+              ),
+              `REMESA_${remesaId}.${extension}`
+            );
+
+          const url =
+            URL.createObjectURL(
+              response.body
+            );
+
+          const enlace =
+            document.createElement('a');
+
+          enlace.href = url;
+          enlace.download = nombreArchivo;
+          enlace.style.display = 'none';
+
+          document.body.appendChild(
+            enlace
+          );
+
+          enlace.click();
+          enlace.remove();
+
+          setTimeout(
+            () => URL.revokeObjectURL(url),
+            0
+          );
+
+          this.resultadoValidacion =
+            `Fichero ${tipo} de la remesa ${remesaId} descargado correctamente.`;
+        },
+
+        error: error => {
+          void this.mostrarErrorDescarga(
+            error,
+            remesaId,
+            tipo
+          );
+        }
+      });
+  }
+
+  private async mostrarErrorDescarga(
+    error: unknown,
+    remesaId: number,
+    tipo: 'XML' | 'C19'
+  ): Promise<void> {
+
+    console.error(
+      `Error descargando ${tipo}:`,
+      error
     );
+
+    let mensaje =
+      `No se pudo generar el fichero ${tipo}.`;
+
+    if (error instanceof HttpErrorResponse) {
+
+      if (error.error instanceof Blob) {
+        const texto =
+          (await error.error.text())
+            .trim();
+
+        if (texto) {
+          mensaje = texto;
+        }
+
+      } else if (
+        typeof error.error === 'string' &&
+        error.error.trim() !== ''
+      ) {
+        mensaje =
+          error.error.trim();
+
+      } else if (
+        error.error?.message
+      ) {
+        mensaje =
+          String(error.error.message);
+
+      } else if (
+        error.message
+      ) {
+        mensaje =
+          error.message;
+      }
+    }
+
+    this.resultadoValidacion =
+      `No se pudo descargar el fichero ${tipo} de la remesa ${remesaId}.`;
+
+    this.erroresValidacion = [
+      mensaje
+    ];
+
+    this.changeDetectorRef.detectChanges();
+  }
+
+  private obtenerNombreArchivo(
+    contentDisposition: string | null,
+    nombreAlternativo: string
+  ): string {
+
+    if (!contentDisposition) {
+      return nombreAlternativo;
+    }
+
+    const coincidenciaUtf8 =
+      /filename\*=UTF-8''([^;]+)/i
+        .exec(contentDisposition);
+
+    if (coincidenciaUtf8?.[1]) {
+      try {
+        return decodeURIComponent(
+          coincidenciaUtf8[1]
+            .replace(/"/g, '')
+            .trim()
+        );
+      } catch {
+        return coincidenciaUtf8[1]
+          .replace(/"/g, '')
+          .trim();
+      }
+    }
+
+    const coincidenciaNormal =
+      /filename="?([^";]+)"?/i
+        .exec(contentDisposition);
+
+    return coincidenciaNormal?.[1]
+        ?.trim() ||
+      nombreAlternativo;
   }
 
   validarRemesa(
