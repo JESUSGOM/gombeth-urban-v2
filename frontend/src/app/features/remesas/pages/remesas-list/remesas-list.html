@@ -1,15 +1,14 @@
 <div class="remesas-page">
 
   <div class="page-header">
-    <div>
+    <div class="page-header-text">
       <h2>Remesas SEPA</h2>
-      <p>
-        {{ nombreComunidad }}
-      </p>
+      <p>{{ nombreComunidad }}</p>
     </div>
 
     <button
       class="primary-button"
+      type="button"
       (click)="cargarRemesas()">
       Actualizar
     </button>
@@ -21,19 +20,16 @@
 
     <div class="fila-generacion">
 
-      <div class="campo-generacion">
-
+      <div class="campo-generacion campo-inline campo-ejercicio">
         <label>📅 Ejercicio</label>
 
         <input
           type="number"
           [(ngModel)]="anio"
           (change)="actualizarFechaCobro()">
-
       </div>
 
-      <div class="campo-generacion">
-
+      <div class="campo-generacion campo-inline campo-mes">
         <label>🗓 Mes</label>
 
         <select
@@ -54,21 +50,17 @@
           <option [ngValue]="12">Diciembre</option>
 
         </select>
-
       </div>
 
-      <div class="campo-generacion">
-
+      <div class="campo-generacion campo-inline campo-fecha">
         <label>💳 Fecha de cobro</label>
 
         <input
           type="date"
           [(ngModel)]="fechaCobro">
-
       </div>
 
-      <div class="campo-generacion">
-
+      <div class="campo-generacion campo-inline campo-cuenta">
         <label>🏦 Cuenta presentadora</label>
 
         <select
@@ -91,20 +83,18 @@
           </option>
 
         </select>
-
       </div>
 
       <div class="boton-generacion">
-
         <button
           class="btn-generar-remesa"
+          type="button"
           [disabled]="generando || cuentaPresentadorId === null"
           (click)="generarRemesa()">
 
           {{ generando ? '⏳ Generando remesa...' : '🏦 GENERAR REMESA COMPLETA' }}
 
         </button>
-
       </div>
 
     </div>

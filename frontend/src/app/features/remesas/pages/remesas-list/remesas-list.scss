@@ -1,51 +1,71 @@
 .remesas-page {
-  padding: 24px;
+  padding: 14px 16px 16px;
 }
 
 .page-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 24px;
+  gap: 12px;
+  margin-bottom: 12px;
+  padding: 4px 0 2px;
+}
+
+.page-header-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .page-header h2 {
   margin: 0;
+  font-size: 18px;
+  line-height: 1.15;
 }
 
 .page-header p {
-  margin-top: 6px;
+  margin: 0;
   color: #666;
+  font-size: 14px;
+  line-height: 1.15;
 }
 
 .primary-button {
-  padding: 10px 18px;
+  padding: 8px 14px;
   border: none;
   border-radius: 6px;
   cursor: pointer;
+  font-size: 13px;
+  line-height: 1.1;
 }
 
 .card {
   background: #fff;
   border-radius: 10px;
-  padding: 16px;
-  box-shadow: 0 2px 10px rgba(0,0,0,.08);
+  padding: 10px 12px 12px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, .08);
+  overflow-x: auto;
 }
 
 .remesas-table {
   width: 100%;
   border-collapse: collapse;
+  font-size: 13px;
 }
 
 .remesas-table th {
   text-align: left;
-  padding: 12px;
+  padding: 8px 10px;
   border-bottom: 1px solid #ddd;
+  white-space: nowrap;
+  line-height: 1.15;
 }
 
 .remesas-table td {
-  padding: 12px;
+  padding: 8px 10px;
   border-bottom: 1px solid #eee;
+  vertical-align: middle;
+  line-height: 1.15;
 }
 
 .remesas-table tr:hover {
@@ -55,13 +75,15 @@
 .amount {
   text-align: right;
   font-weight: 600;
+  white-space: nowrap;
 }
 
 .badge {
   display: inline-block;
-  padding: 4px 10px;
+  padding: 3px 8px;
   border-radius: 12px;
-  font-size: 12px;
+  font-size: 11px;
+  line-height: 1.1;
 }
 
 .scheme {
@@ -73,26 +95,33 @@
 }
 
 .xml-button {
-  padding: 6px 12px;
+  padding: 5px 10px;
   cursor: pointer;
   border-radius: 6px;
+  font-size: 12px;
+  line-height: 1.1;
 }
 
 .pagination {
   display: flex;
   justify-content: center;
+  align-items: center;
   gap: 12px;
-  margin-top: 20px;
+  margin-top: 12px;
+  font-size: 13px;
 }
 
 .pagination button {
-  padding: 8px 16px;
+  padding: 6px 12px;
+  font-size: 12px;
+  line-height: 1.1;
 }
 
 .alert {
-  padding: 12px;
+  padding: 10px 12px;
   border-radius: 6px;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
+  font-size: 13px;
 }
 
 .error {
@@ -112,120 +141,134 @@
 -----------------------------------------------------*/
 
 .generacion-remesa {
-
   background: #ffffff;
-
   border: 2px solid #dbe5f1;
-
   border-radius: 12px;
-
-  padding: 22px;
-
-  margin-bottom: 20px;
-
-  box-shadow: 0 2px 8px rgba(0,0,0,.08);
+  padding: 12px 14px;
+  margin-bottom: 14px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .08);
 }
 
-.generacion-remesa h2{
-
-  margin:0 0 18px 0;
-
-  font-size:24px;
-
-  font-weight:700;
-
-  color:#1f4e79;
-
+.generacion-remesa h2 {
+  margin: 0 0 10px 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: #1f4e79;
+  line-height: 1.15;
 }
 
-.fila-generacion{
-
-  display:flex;
-
-  align-items:flex-end;
-
-  gap:20px;
-
-  flex-wrap:nowrap;
-
+.fila-generacion {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
 }
 
-.campo-generacion{
-
-  display:flex;
-
-  flex-direction:column;
-
+.campo-generacion {
+  display: flex;
 }
 
-.campo-generacion label{
+.campo-inline {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
 
-  font-weight:600;
-
-  font-size:14px;
-
-  margin-bottom:6px;
-
-  color:#555;
-
+.campo-generacion label {
+  font-weight: 600;
+  font-size: 13px;
+  color: #555;
+  margin: 0;
+  white-space: nowrap;
+  line-height: 1.1;
 }
 
 .campo-generacion input,
-
-.campo-generacion select{
-
-  width:130px;
-
-  height:40px;
-
-  border:1px solid #ced4da;
-
-  border-radius:6px;
-
-  padding:0 10px;
-
-  font-size:14px;
-
+.campo-generacion select {
+  height: 34px;
+  border: 1px solid #ced4da;
+  border-radius: 6px;
+  padding: 0 10px;
+  font-size: 13px;
+  line-height: 1.1;
 }
 
-.boton-generacion{
-
-  display:flex;
-
-  align-items:flex-end;
-
+.campo-ejercicio input {
+  width: 88px;
 }
 
-.btn-generar-remesa{
-
-  height:40px;
-
-  padding:0 30px;
-
-  border:none;
-
-  border-radius:8px;
-
-  background:#0d6efd;
-
-  color:white;
-
-  font-size:15px;
-
-  font-weight:700;
-
-  cursor:pointer;
-
-  white-space:nowrap;
-
-  transition:.20s;
-
+.campo-mes select {
+  width: 120px;
 }
 
-.btn-generar-remesa:hover{
+.campo-fecha input {
+  width: 130px;
+}
 
-  background:#0b5ed7;
+.campo-cuenta select {
+  width: 280px;
+  min-width: 280px;
+}
 
-  transform:translateY(-1px);
+.boton-generacion {
+  display: flex;
+  align-items: center;
+  margin-left: auto;
+}
 
+.btn-generar-remesa {
+  height: 36px;
+  padding: 0 20px;
+  border: none;
+  border-radius: 8px;
+  background: #0d6efd;
+  color: white;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: .20s;
+}
+
+.btn-generar-remesa:hover {
+  background: #0b5ed7;
+  transform: translateY(-1px);
+}
+
+.btn-generar-remesa:disabled {
+  opacity: .65;
+  cursor: not-allowed;
+  transform: none;
+}
+
+@media (max-width: 1400px) {
+  .campo-cuenta select {
+    width: 240px;
+    min-width: 240px;
+  }
+}
+
+@media (max-width: 1100px) {
+  .fila-generacion {
+    align-items: flex-start;
+  }
+
+  .campo-inline {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+
+  .campo-ejercicio input,
+  .campo-mes select,
+  .campo-fecha input,
+  .campo-cuenta select {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .boton-generacion {
+    margin-left: 0;
+  }
 }
