@@ -195,11 +195,32 @@ public class ProcesoRemesaService {
             response.setRecibos(lineas.size());
             response.setFicheroC19(rutaC19.getFileName().toString());
             response.setFicheroXml(rutaXml.getFileName().toString());
+            int recibosDomiciliados =
+                    lineasSepa.size();
+
+            int recibosNoDomiciliados =
+                    lineas.size() - recibosDomiciliados;
+
+            String importeEnviadoBanco =
+                    remesa.getTotalDomiciliado() == null
+                            ? "0,00"
+                            : remesa.getTotalDomiciliado()
+                                    .toPlainString()
+                                    .replace('.', ',');
+
             response.setMensaje(
-                    "Proceso finalizado correctamente. Recibos generados: "
+                    "Proceso finalizado correctamente. "
+                            + "Recibos nuevos generados: "
                             + recibosGenerados
-                            + ". Líneas de remesa: "
+                            + ". Recibos totales incluidos: "
                             + lineas.size()
+                            + ". Domiciliados enviados al banco: "
+                            + recibosDomiciliados
+                            + ". No domiciliados excluidos del fichero bancario: "
+                            + recibosNoDomiciliados
+                            + ". Importe enviado al banco: "
+                            + importeEnviadoBanco
+                            + " €"
             );
 
             return response;
