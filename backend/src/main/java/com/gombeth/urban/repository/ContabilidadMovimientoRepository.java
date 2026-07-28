@@ -3,12 +3,13 @@ package com.gombeth.urban.repository;
 import com.gombeth.urban.dto.BalanceSumaSaldoDTO;
 import com.gombeth.urban.entity.ContabilidadMovimiento;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
-import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 
 public interface ContabilidadMovimientoRepository
@@ -31,6 +32,14 @@ public interface ContabilidadMovimientoRepository
     List<ContabilidadMovimiento> findByComunidadIdAndCuentaIdOrderByFechaAscIdAsc(
             Long comunidadId,
             Long cuentaId
+    );
+
+    List<ContabilidadMovimiento>
+    findByComunidadIdAndCuentaIdAndFechaBetweenOrderByFechaAscIdAsc(
+            Long comunidadId,
+            Long cuentaId,
+            LocalDate fechaDesde,
+            LocalDate fechaHasta
     );
 
     @Query("""

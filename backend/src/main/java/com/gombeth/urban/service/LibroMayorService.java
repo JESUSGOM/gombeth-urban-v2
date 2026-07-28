@@ -7,6 +7,7 @@ import com.gombeth.urban.repository.ContabilidadMovimientoRepository;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -23,12 +24,14 @@ public class LibroMayorService {
 
     public LibroMayorDTO obtenerMayor(
             Long comunidadId,
-            Long cuentaId
+            Long cuentaId,
+            Integer ejercicio
     ) {
         List<ContabilidadMovimiento> movimientos =
-                movimientoRepository.findByComunidadIdAndCuentaIdOrderByFechaAscIdAsc(
+                obtenerMovimientos(
                         comunidadId,
-                        cuentaId
+                        cuentaId,
+                        ejercicio
                 );
 
         BigDecimal totalDebe = BigDecimal.ZERO;
@@ -37,14 +40,14 @@ public class LibroMayorService {
 
         List<LibroMayorLineaDTO> lineas = new ArrayList<>();
 
-        for (ContabilidadMovimiento m : movimientos) {
+        for (ContabilidadMovimiento movimiento : movimientos) {
 
-            BigDecimal debe = m.getDebe() != null
-                    ? m.getDebe()
+            BigDecimal debe = movimiento.getDebe() != null
+                    ? movimiento.getDebe()
                     : BigDecimal.ZERO;
 
-            BigDecimal haber = m.getHaber() != null
-                    ? m.getHaber()
+            BigDecimal haber = movimiento.getHaber() != null
+                    ? movimiento.getHaber()
                     : BigDecimal.ZERO;
 
             totalDebe = totalDebe.add(debe);
@@ -54,10 +57,10 @@ public class LibroMayorService {
 
             lineas.add(
                     new LibroMayorLineaDTO(
-                            m.getId(),
-                            m.getFecha(),
-                            m.getConcepto(),
-                            m.getNumeroAsiento(),
+                            movimiento.getId(),
+                            movimiento.getFecha(),
+                            movimiento.getConcepto(),
+                            movimiento.getNumeroAsiento(),
                             debe,
                             haber,
                             saldo
@@ -73,5 +76,33 @@ public class LibroMayorService {
                 saldo,
                 lineas
         );
+    }
+
+    private List<ContabilidadMovimiento> obtenerMovimientos(
+            Long comunidadId,
+            Long cuentaId,
+            Integer ejercicio
+    ) {
+        if (ejercicio == null) {
+            return movimientoRepository
+                    .findByComunidadIdAndCuentaIdOrderByFechaAscIdAsc(
+                            comunidadId,
+                            cuentaId
+                    );
+        }
+
+        LocalDate fechaDesde =
+                LocalDate.of(ejercicio, 1, 1);
+
+        LocalDate fechaHasta =
+                LocalDate.of(ejercicio, 12, 31);
+
+        return movimientoRepository
+                .findByComunidadIdAndCuentaIdAndFechaBetweenOrderByFechaAscIdAsc(
+                        comunidadId,
+                        cuentaId,
+                        fechaDesde,
+                        fechaHasta
+                );
     }
 }

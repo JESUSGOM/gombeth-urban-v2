@@ -62,7 +62,8 @@ public class LibroMayorController {
 
         return libroMayorService.obtenerMayor(
                 comunidadId,
-                cuentaId
+                cuentaId,
+                ejercicio
         );
     }
 

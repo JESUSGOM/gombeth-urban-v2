@@ -1,8 +1,59 @@
-<app-comunidad-activa-bar></app-comunidad-activa-bar>
-
 <div class="contenedor">
 
   <h2>📘 Libro Mayor</h2>
+
+  <div class="filtros">
+
+    <div class="campo-ejercicio">
+      <label for="ejercicio">
+        Ejercicio
+      </label>
+
+      <input
+        id="ejercicio"
+        type="number"
+        min="1900"
+        max="2100"
+        [(ngModel)]="ejercicio"
+        (change)="cargar()">
+    </div>
+
+    <div class="campo-cuenta">
+      <label for="cuentaContable">
+        Cuenta contable
+      </label>
+
+      <select
+        id="cuentaContable"
+        [(ngModel)]="cuentaId"
+        (change)="cargar()"
+        [disabled]="cargando || cuentas.length === 0">
+
+        <option [ngValue]="null">
+          Seleccione una cuenta
+        </option>
+
+        <option
+          *ngFor="let cuenta of cuentas"
+          [ngValue]="cuenta.id">
+
+          {{ cuenta.codigo }} - {{ cuenta.nombre }}
+
+        </option>
+
+      </select>
+    </div>
+
+    <button
+      type="button"
+      (click)="cargar()"
+      [disabled]="cargando || !cuentaId">
+
+      Consultar
+
+    </button>
+
+  </div>
 
   <div *ngIf="cargando" class="mensaje">
     📘 Calculando Libro Mayor...
@@ -12,74 +63,164 @@
     {{ error }}
   </div>
 
-  <!-- RESUMEN -->
+  <div
+    class="cabecera-cuenta"
+    *ngIf="cuentaSeleccionada">
+
+    <h3>
+      {{ cuentaSeleccionada.codigo }} -
+      {{ cuentaSeleccionada.nombre }}
+    </h3>
+
+    <span>
+      Ejercicio {{ ejercicio }}
+    </span>
+
+  </div>
+
   <div class="resumen" *ngIf="data">
 
     <div>
       <span>Total Debe</span>
-      <strong>{{ data.totalDebe | number:'1.2-2' }}</strong>
+      <strong>
+        {{ data.totalDebe | number:'1.2-2' }} €
+      </strong>
     </div>
 
     <div>
       <span>Total Haber</span>
-      <strong>{{ data.totalHaber | number:'1.2-2' }}</strong>
-
+      <strong>
+        {{ data.totalHaber | number:'1.2-2' }} €
+      </strong>
     </div>
 
     <div>
       <span>Saldo Final</span>
-      <strong>{{ data.saldoFinal | number:'1.2-2' }}</strong>
+      <strong>
+        {{ data.saldoFinal | number:'1.2-2' }} €
+      </strong>
     </div>
 
   </div>
 
-  <!-- TABLA -->
-  <table
+  <div
     *ngIf="data && data.lineas.length > 0"
-    class="tabla">
+    class="grid-mayor">
 
-    <thead>
-    <tr>
-      <th>Fecha</th>
-      <th>Concepto</th>
-      <th>Asiento</th>
-      <th class="numero">Debe</th>
-      <th class="numero">Haber</th>
-      <th class="numero">Saldo</th>
-    </tr>
-    </thead>
+    <div class="tabla-contenedor">
+      <table class="tabla">
 
-    <tbody>
+        <thead>
+        <tr>
+          <th>Fecha</th>
+          <th>Concepto</th>
+          <th>Asiento</th>
+          <th class="numero">Debe</th>
+          <th class="numero">Haber</th>
+          <th class="numero">Saldo</th>
+        </tr>
+        </thead>
 
-    <tr *ngFor="let l of data.lineas">
+        <tbody>
 
-      <td>{{ l.fecha }}</td>
-      <td>{{ l.concepto }}</td>
-      <td>{{ l.numeroAsiento }}</td>
+        <tr *ngFor="let linea of lineasPaginadas">
 
-      <td class="numero debe">
-        {{ l.debe | number:'1.2-2' }}
-      </td>
+          <td class="fecha">
+            {{ linea.fecha }}
+          </td>
 
-      <td class="numero haber">
-        {{ l.haber | number:'1.2-2' }}
-      </td>
+          <td class="concepto">
+            {{ linea.concepto }}
+          </td>
 
-      <td class="numero saldo">
-        {{ l.saldo | number:'1.2-2' }}
-      </td>
+          <td class="asiento">
+            {{ linea.numeroAsiento }}
+          </td>
 
-    </tr>
+          <td class="numero debe">
+            {{ linea.debe | number:'1.2-2' }} €
+          </td>
 
-    </tbody>
+          <td class="numero haber">
+            {{ linea.haber | number:'1.2-2' }} €
+          </td>
 
-  </table>
+          <td class="numero saldo">
+            {{ linea.saldo | number:'1.2-2' }} €
+          </td>
+
+        </tr>
+
+        </tbody>
+
+      </table>
+    </div>
+
+    <div class="paginacion">
+
+      <div class="registros-pagina">
+        <label for="tamanioPagina">
+          Filas por página
+        </label>
+
+        <select
+          id="tamanioPagina"
+          [(ngModel)]="tamanioPagina"
+          (change)="cambiarTamanioPagina()">
+
+          <option
+            *ngFor="let tamanio of tamaniosPagina"
+            [ngValue]="tamanio">
+
+            {{ tamanio }}
+
+          </option>
+
+        </select>
+      </div>
+
+      <div class="estado-pagina">
+        Mostrando
+        {{ primerRegistroVisible }}-{{ ultimoRegistroVisible }}
+        de {{ totalLineas }} movimientos
+      </div>
+
+      <div class="botones-paginacion">
+        <button
+          type="button"
+          class="boton-secundario"
+          (click)="paginaAnterior()"
+          [disabled]="paginaActual === 1">
+
+          Anterior
+
+        </button>
+
+        <span>
+          Página {{ paginaActual }} de {{ totalPaginas }}
+        </span>
+
+        <button
+          type="button"
+          class="boton-secundario"
+          (click)="paginaSiguiente()"
+          [disabled]="paginaActual === totalPaginas">
+
+          Siguiente
+
+        </button>
+      </div>
+
+    </div>
+
+  </div>
 
   <div
     *ngIf="data && (!data.lineas || data.lineas.length === 0)"
     class="sin-datos">
 
-    No existen movimientos para la comunidad seleccionada.
+    No existen movimientos para la cuenta seleccionada
+    en el ejercicio {{ ejercicio }}.
 
   </div>
 
