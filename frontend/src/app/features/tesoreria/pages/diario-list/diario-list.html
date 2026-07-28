@@ -1,16 +1,24 @@
 <div class="contenedor-diario">
 
-  <h2>📒 Diario Contable</h2>
+  <div class="cabecera-diario">
 
-  <div class="barra-superior">
+    <h2>
+      <span aria-hidden="true">&#128210;</span>
+      Diario Contable
+    </h2>
 
-    <div>
-      <label>Ejercicio</label>
+    <div class="filtro-ejercicio">
+
+      <label for="ejercicio-diario">
+        Ejercicio
+      </label>
 
       <input
+        id="ejercicio-diario"
         type="number"
         [(ngModel)]="ejercicio"
         (change)="cargarDiario()">
+
     </div>
 
   </div>
@@ -31,34 +39,117 @@
 
   </div>
 
-  <table
+  <div
     *ngIf="!cargando && diarios.length > 0"
-    class="tabla">
+    class="tabla-card">
 
-    <thead>
-    <tr>
-      <th>Nº</th>
-      <th>Fecha</th>
-      <th>Concepto</th>
-      <th>Origen</th>
-      <th>Estado</th>
-    </tr>
-    </thead>
+    <div class="tabla-scroll">
 
-    <tbody>
-    <tr *ngFor="let d of diarios">
-      <td>{{ d.numeroAsiento }}</td>
-      <td>{{ d.fecha }}</td>
-      <td>{{ d.concepto }}</td>
-      <td>{{ d.origen }}</td>
-      <td>{{ d.estado }}</td>
-    </tr>
-    </tbody>
+      <table class="tabla">
 
-  </table>
+        <thead>
+
+        <tr>
+          <th class="columna-numero">N.º</th>
+          <th class="columna-fecha">Fecha</th>
+          <th class="columna-concepto">Concepto</th>
+          <th class="columna-origen">Origen</th>
+          <th class="columna-estado">Estado</th>
+        </tr>
+
+        </thead>
+
+        <tbody>
+
+        <tr *ngFor="let d of diariosPaginados">
+
+          <td>{{ d.numeroAsiento }}</td>
+
+          <td>{{ d.fecha }}</td>
+
+          <td
+            class="celda-concepto"
+            [title]="d.concepto">
+            {{ d.concepto }}
+          </td>
+
+          <td>{{ d.origen }}</td>
+
+          <td>{{ d.estado }}</td>
+
+        </tr>
+
+        </tbody>
+
+      </table>
+
+    </div>
+
+    <div class="paginacion">
+
+      <div class="resumen-paginacion">
+
+        Mostrando
+        {{ primerRegistroMostrado }}-{{ ultimoRegistroMostrado }}
+        de {{ diarios.length }} asientos
+
+      </div>
+
+      <div class="selector-pagina">
+
+        <label for="elementos-pagina-diario">
+          Filas por página
+        </label>
+
+        <select
+          id="elementos-pagina-diario"
+          [(ngModel)]="elementosPorPagina"
+          (ngModelChange)="cambiarElementosPorPagina()">
+
+          <option
+            *ngFor="let opcion of opcionesElementosPorPagina"
+            [ngValue]="opcion">
+
+            {{ opcion }}
+
+          </option>
+
+        </select>
+
+      </div>
+
+      <div class="controles-paginacion">
+
+        <button
+          type="button"
+          (click)="cambiarPagina(paginaActual - 1)"
+          [disabled]="paginaActual === 1">
+
+          Anterior
+
+        </button>
+
+        <span>
+          Página {{ paginaActual }} de {{ totalPaginas }}
+        </span>
+
+        <button
+          type="button"
+          (click)="cambiarPagina(paginaActual + 1)"
+          [disabled]="paginaActual === totalPaginas">
+
+          Siguiente
+
+        </button>
+
+      </div>
+
+    </div>
+
+  </div>
 
   <div
-    *ngIf="!cargando && diarios.length === 0"
+    *ngIf="!cargando && diarios.length === 0 && !error"
     class="sin-datos">
 
     No hay asientos para la comunidad seleccionada.

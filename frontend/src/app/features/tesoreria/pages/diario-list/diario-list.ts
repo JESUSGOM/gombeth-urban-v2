@@ -18,8 +18,11 @@ import { ComunidadStateService } from '../../../../core/state/comunidad-state.se
 })
 export class DiarioListComponent implements OnInit {
 
-  private diarioService = inject(DiarioService);
-  private comunidadState = inject(ComunidadStateService);
+  private diarioService =
+    inject(DiarioService);
+
+  private comunidadState =
+    inject(ComunidadStateService);
 
   diarios: Diario[] = [];
 
@@ -29,39 +32,159 @@ export class DiarioListComponent implements OnInit {
   cargando = false;
   error = '';
 
+  paginaActual = 1;
+  elementosPorPagina = 10;
+
+  readonly opcionesElementosPorPagina: number[] = [
+    10,
+    25,
+    50
+  ];
+
+  get diariosPaginados(): Diario[] {
+
+    const indiceInicio =
+      (this.paginaActual - 1) *
+      this.elementosPorPagina;
+
+    const indiceFin =
+      indiceInicio +
+      this.elementosPorPagina;
+
+    return this.diarios.slice(
+      indiceInicio,
+      indiceFin
+    );
+  }
+
+  get totalPaginas(): number {
+
+    return Math.max(
+      1,
+      Math.ceil(
+        this.diarios.length /
+        this.elementosPorPagina
+      )
+    );
+  }
+
+  get primerRegistroMostrado(): number {
+
+    if (this.diarios.length === 0) {
+      return 0;
+    }
+
+    return (
+      (this.paginaActual - 1) *
+      this.elementosPorPagina
+    ) + 1;
+  }
+
+  get ultimoRegistroMostrado(): number {
+
+    return Math.min(
+      this.paginaActual *
+      this.elementosPorPagina,
+      this.diarios.length
+    );
+  }
+
   ngOnInit(): void {
+
     this.comunidadState.init();
 
-    this.comunidadState.comunidad$.subscribe(comunidad => {
-      if (!comunidad?.id) {
-        return;
-      }
+    this.comunidadState
+      .comunidad$
+      .subscribe(comunidad => {
 
-      this.comunidadId = comunidad.id;
-      this.cargarDiario();
-    });
+        if (!comunidad?.id) {
+          return;
+        }
+
+        this.comunidadId =
+          comunidad.id;
+
+        this.cargarDiario();
+      });
   }
 
   cargarDiario(): void {
+
     if (!this.comunidadId) {
       return;
     }
 
+    this.paginaActual = 1;
     this.cargando = true;
     this.error = '';
 
     this.diarioService
-      .listar(this.comunidadId, this.ejercicio)
+      .listar(
+        this.comunidadId,
+        this.ejercicio
+      )
       .subscribe({
         next: (data: Diario[]) => {
-          this.diarios = data;
+
+          this.diarios =
+            data ?? [];
+
+          this.ajustarPaginaActual();
+
           this.cargando = false;
         },
+
         error: (err: unknown) => {
-          console.error(err);
-          this.error = 'No se pudo cargar el diario contable.';
+
+          console.error(
+            'Error cargando el diario contable:',
+            err
+          );
+
+          this.diarios = [];
+          this.paginaActual = 1;
+
+          this.error =
+            'No se pudo cargar el diario contable.';
+
           this.cargando = false;
         }
       });
+  }
+
+  cambiarPagina(
+    nuevaPagina: number
+  ): void {
+
+    if (
+      nuevaPagina < 1 ||
+      nuevaPagina > this.totalPaginas
+    ) {
+      return;
+    }
+
+    this.paginaActual =
+      nuevaPagina;
+  }
+
+  cambiarElementosPorPagina(): void {
+
+    this.paginaActual = 1;
+    this.ajustarPaginaActual();
+  }
+
+  private ajustarPaginaActual(): void {
+
+    if (
+      this.paginaActual >
+      this.totalPaginas
+    ) {
+      this.paginaActual =
+        this.totalPaginas;
+    }
+
+    if (this.paginaActual < 1) {
+      this.paginaActual = 1;
+    }
   }
 }
