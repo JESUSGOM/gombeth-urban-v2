@@ -55,29 +55,283 @@
           <th class="columna-concepto">Concepto</th>
           <th class="columna-origen">Origen</th>
           <th class="columna-estado">Estado</th>
+          <th class="columna-acciones">Acciones</th>
         </tr>
 
         </thead>
 
         <tbody>
 
-        <tr *ngFor="let d of diariosPaginados">
+        <ng-container
+          *ngFor="let d of diariosPaginados">
 
-          <td>{{ d.numeroAsiento }}</td>
+          <tr
+            class="fila-asiento"
+            [class.fila-seleccionada]="
+              asientoSeleccionadoId === d.id
+            ">
 
-          <td>{{ d.fecha }}</td>
+            <td>
+              {{ d.numeroAsiento }}
+            </td>
 
-          <td
-            class="celda-concepto"
-            [title]="d.concepto">
-            {{ d.concepto }}
-          </td>
+            <td>
+              {{ d.fecha }}
+            </td>
 
-          <td>{{ d.origen }}</td>
+            <td
+              class="celda-concepto"
+              [title]="d.concepto">
 
-          <td>{{ d.estado }}</td>
+              {{ d.concepto }}
 
-        </tr>
+            </td>
+
+            <td>
+              {{ d.origen }}
+            </td>
+
+            <td>
+
+              <span
+                class="estado-asiento"
+                [class.estado-confirmado]="
+                  d.estado === 'CONFIRMADO'
+                ">
+
+                {{ d.estado }}
+
+              </span>
+
+            </td>
+
+            <td class="celda-acciones">
+
+              <button
+                type="button"
+                class="boton-detalle"
+                (click)="
+                  asientoSeleccionadoId === d.id
+                    ? cerrarDetalle()
+                    : abrirDetalle(d)
+                ">
+
+                {{
+                  asientoSeleccionadoId === d.id
+                    ? 'Ocultar'
+                    : 'Ver asiento'
+                }}
+
+              </button>
+
+            </td>
+
+          </tr>
+
+          <tr
+            *ngIf="asientoSeleccionadoId === d.id"
+            class="fila-detalle">
+
+            <td colspan="6">
+
+              <div class="detalle-asiento">
+
+                <div class="detalle-cabecera">
+
+                  <div>
+
+                    <h3>
+                      Asiento n.º
+                      {{ d.numeroAsiento }}
+                    </h3>
+
+                    <p>
+                      {{ d.fecha }}
+                      ·
+                      {{ d.concepto }}
+                    </p>
+
+                  </div>
+
+                  <button
+                    type="button"
+                    class="boton-cerrar-detalle"
+                    aria-label="Cerrar detalle del asiento"
+                    title="Cerrar detalle"
+                    (click)="cerrarDetalle()">
+
+                    ×
+
+                  </button>
+
+                </div>
+
+                <div
+                  *ngIf="cargandoDetalle"
+                  class="mensaje-detalle">
+
+                  Cargando líneas del asiento...
+
+                </div>
+
+                <div
+                  *ngIf="errorDetalle"
+                  class="error-detalle">
+
+                  {{ errorDetalle }}
+
+                </div>
+
+                <ng-container
+                  *ngIf="
+                    !cargandoDetalle &&
+                    detalleSeleccionado
+                  ">
+
+                  <div class="tabla-detalle-scroll">
+
+                    <table class="tabla-detalle">
+
+                      <thead>
+
+                      <tr>
+                        <th>Cuenta</th>
+                        <th>Nombre de la cuenta</th>
+                        <th>Concepto</th>
+                        <th class="importe">Debe</th>
+                        <th class="importe">Haber</th>
+                      </tr>
+
+                      </thead>
+
+                      <tbody>
+
+                      <tr
+                        *ngFor="
+                          let movimiento of
+                          detalleSeleccionado.movimientos
+                        ">
+
+                        <td class="codigo-cuenta">
+
+                          {{
+                            movimiento.codigoCuenta
+                            || movimiento.cuentaId
+                          }}
+
+                        </td>
+
+                        <td>
+
+                          {{
+                            movimiento.nombreCuenta
+                            || 'Cuenta contable'
+                          }}
+
+                        </td>
+
+                        <td
+                          [title]="movimiento.concepto">
+
+                          {{ movimiento.concepto }}
+
+                        </td>
+
+                        <td class="importe importe-debe">
+
+                          {{
+                            movimiento.debe
+                              | number:'1.2-2'
+                          }}
+                          €
+
+                        </td>
+
+                        <td class="importe importe-haber">
+
+                          {{
+                            movimiento.haber
+                              | number:'1.2-2'
+                          }}
+                          €
+
+                        </td>
+
+                      </tr>
+
+                      </tbody>
+
+                      <tfoot>
+
+                      <tr>
+                        <td colspan="3">
+                          Totales del asiento
+                        </td>
+
+                        <td class="importe total-debe">
+
+                          {{
+                            detalleSeleccionado.totalDebe
+                              | number:'1.2-2'
+                          }}
+                          €
+
+                        </td>
+
+                        <td class="importe total-haber">
+
+                          {{
+                            detalleSeleccionado.totalHaber
+                              | number:'1.2-2'
+                          }}
+                          €
+
+                        </td>
+                      </tr>
+
+                      </tfoot>
+
+                    </table>
+
+                  </div>
+
+                  <div class="resumen-asiento">
+
+                    <span>
+                      Líneas:
+                      {{
+                        detalleSeleccionado.movimientos.length
+                      }}
+                    </span>
+
+                    <span
+                      class="estado-cuadre"
+                      [class.cuadrado]="
+                        detalleSeleccionado.cuadrado
+                      "
+                      [class.descuadrado]="
+                        !detalleSeleccionado.cuadrado
+                      ">
+
+                      {{
+                        detalleSeleccionado.cuadrado
+                          ? '✓ Asiento cuadrado'
+                          : '⚠ Asiento descuadrado'
+                      }}
+
+                    </span>
+
+                  </div>
+
+                </ng-container>
+
+              </div>
+
+            </td>
+
+          </tr>
+
+        </ng-container>
 
         </tbody>
 
@@ -107,7 +361,10 @@
           (ngModelChange)="cambiarElementosPorPagina()">
 
           <option
-            *ngFor="let opcion of opcionesElementosPorPagina"
+            *ngFor="
+              let opcion of
+              opcionesElementosPorPagina
+            "
             [ngValue]="opcion">
 
             {{ opcion }}
@@ -130,13 +387,16 @@
         </button>
 
         <span>
-          Página {{ paginaActual }} de {{ totalPaginas }}
+          Página {{ paginaActual }}
+          de {{ totalPaginas }}
         </span>
 
         <button
           type="button"
           (click)="cambiarPagina(paginaActual + 1)"
-          [disabled]="paginaActual === totalPaginas">
+          [disabled]="
+            paginaActual === totalPaginas
+          ">
 
           Siguiente
 
@@ -149,7 +409,11 @@
   </div>
 
   <div
-    *ngIf="!cargando && diarios.length === 0 && !error"
+    *ngIf="
+      !cargando &&
+      diarios.length === 0 &&
+      !error
+    "
     class="sin-datos">
 
     No hay asientos para la comunidad seleccionada.

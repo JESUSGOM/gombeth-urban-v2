@@ -1,10 +1,29 @@
-import { Component, OnInit, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
+import {
+  Component,
+  OnInit,
+  inject
+} from '@angular/core';
 
-import { DiarioService } from '../../../../core/services/diario.service';
-import { Diario } from '../../../../core/models/diario.model';
-import { ComunidadStateService } from '../../../../core/state/comunidad-state.service';
+import {
+  CommonModule
+} from '@angular/common';
+
+import {
+  FormsModule
+} from '@angular/forms';
+
+import {
+  DiarioService
+} from '../../../../core/services/diario.service';
+
+import {
+  Diario,
+  DiarioDetalle
+} from '../../../../core/models/diario.model';
+
+import {
+  ComunidadStateService
+} from '../../../../core/state/comunidad-state.service';
 
 @Component({
   selector: 'app-diario-list',
@@ -27,12 +46,15 @@ export class DiarioListComponent implements OnInit {
   diarios: Diario[] = [];
 
   comunidadId: number | null = null;
+
   ejercicio = 2026;
 
   cargando = false;
+
   error = '';
 
   paginaActual = 1;
+
   elementosPorPagina = 10;
 
   readonly opcionesElementosPorPagina: number[] = [
@@ -40,6 +62,14 @@ export class DiarioListComponent implements OnInit {
     25,
     50
   ];
+
+  asientoSeleccionadoId: number | null = null;
+
+  detalleSeleccionado: DiarioDetalle | null = null;
+
+  cargandoDetalle = false;
+
+  errorDetalle = '';
 
   get diariosPaginados(): Diario[] {
 
@@ -89,6 +119,11 @@ export class DiarioListComponent implements OnInit {
     );
   }
 
+  get detalleAbierto(): boolean {
+
+    return this.asientoSeleccionadoId !== null;
+  }
+
   ngOnInit(): void {
 
     this.comunidadState.init();
@@ -114,8 +149,12 @@ export class DiarioListComponent implements OnInit {
       return;
     }
 
+    this.cerrarDetalle();
+
     this.paginaActual = 1;
+
     this.cargando = true;
+
     this.error = '';
 
     this.diarioService
@@ -124,6 +163,7 @@ export class DiarioListComponent implements OnInit {
         this.ejercicio
       )
       .subscribe({
+
         next: (data: Diario[]) => {
 
           this.diarios =
@@ -142,6 +182,7 @@ export class DiarioListComponent implements OnInit {
           );
 
           this.diarios = [];
+
           this.paginaActual = 1;
 
           this.error =
@@ -150,6 +191,68 @@ export class DiarioListComponent implements OnInit {
           this.cargando = false;
         }
       });
+  }
+
+  abrirDetalle(
+    diario: Diario
+  ): void {
+
+    if (
+      !diario ||
+      !diario.id
+    ) {
+      return;
+    }
+
+    this.asientoSeleccionadoId =
+      diario.id;
+
+    this.detalleSeleccionado = null;
+
+    this.cargandoDetalle = true;
+
+    this.errorDetalle = '';
+
+    this.diarioService
+      .detalle(diario.id)
+      .subscribe({
+
+        next: (
+          detalle: DiarioDetalle
+        ) => {
+
+          this.detalleSeleccionado =
+            detalle;
+
+          this.cargandoDetalle = false;
+        },
+
+        error: (err: unknown) => {
+
+          console.error(
+            'Error cargando el detalle del asiento:',
+            err
+          );
+
+          this.detalleSeleccionado = null;
+
+          this.errorDetalle =
+            'No se pudo cargar el detalle del asiento contable.';
+
+          this.cargandoDetalle = false;
+        }
+      });
+  }
+
+  cerrarDetalle(): void {
+
+    this.asientoSeleccionadoId = null;
+
+    this.detalleSeleccionado = null;
+
+    this.cargandoDetalle = false;
+
+    this.errorDetalle = '';
   }
 
   cambiarPagina(
@@ -165,12 +268,17 @@ export class DiarioListComponent implements OnInit {
 
     this.paginaActual =
       nuevaPagina;
+
+    this.cerrarDetalle();
   }
 
   cambiarElementosPorPagina(): void {
 
     this.paginaActual = 1;
+
     this.ajustarPaginaActual();
+
+    this.cerrarDetalle();
   }
 
   private ajustarPaginaActual(): void {
