@@ -108,7 +108,8 @@ export class MovimientosList implements OnInit {
 
     this.movimientoService
       .getNombreComunidad(
-        comunidad
+        comunidad,
+        this.getUsuarioId()
       )
       .subscribe({
         next: (data) => {
@@ -122,7 +123,8 @@ export class MovimientosList implements OnInit {
 
     this.movimientoService
       .getMovimientos(
-        comunidad
+        comunidad,
+        this.getUsuarioId()
       )
       .subscribe({
         next: (data) => {
@@ -255,7 +257,8 @@ export class MovimientosList implements OnInit {
 
     this.movimientoService
       .getContextoMovimiento(
-        movimiento.id
+        movimiento.id,
+        this.getUsuarioId()
       )
       .subscribe({
         next: (data) => {
@@ -269,7 +272,8 @@ export class MovimientosList implements OnInit {
 
     this.movimientoService
       .getRecibosPendientes(
-        movimiento.id
+        movimiento.id,
+        this.getUsuarioId()
       )
       .subscribe({
         next: (data) => {
@@ -375,7 +379,8 @@ export class MovimientosList implements OnInit {
     this.movimientoService
       .conciliarMovimiento(
         this.movimientoSeleccionado.id,
-        reciboIds
+        reciboIds,
+        this.getUsuarioId()
       )
       .subscribe({
         next: () => {
@@ -429,7 +434,8 @@ export class MovimientosList implements OnInit {
 
     this.movimientoService
       .getResumenTesoreria(
-        this.comunidadId
+        this.comunidadId,
+        this.getUsuarioId()
       )
       .subscribe({
         next: (data) => {
@@ -458,7 +464,8 @@ export class MovimientosList implements OnInit {
 
     this.movimientoService
       .getCandidatosConciliacion(
-        this.movimientoSeleccionado.id
+        this.movimientoSeleccionado.id,
+        this.getUsuarioId()
       )
       .subscribe({
         next: (candidatos) => {

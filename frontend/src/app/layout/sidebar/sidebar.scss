@@ -1,62 +1,94 @@
 .sidebar-container {
   width: 260px;
+  height: 100vh;
   min-height: 100vh;
+  position: sticky;
+  top: 0;
+  overflow: hidden;
   background: #1f2937;
   color: white;
   display: flex;
   flex-direction: column;
+  flex-shrink: 0;
   box-shadow: 2px 0 8px rgba(0, 0, 0, 0.15);
 }
 
 .logo-section {
-  padding: 24px;
+  padding: 12px 16px 10px;
   text-align: center;
   border-bottom: 1px solid #374151;
+  flex-shrink: 0;
 }
 
 .logo-circle {
-  width: 90px;
-  height: 90px;
-  margin: 0 auto 12px auto;
+  width: 72px;
+  height: 72px;
+  margin: 0 auto 4px;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .logo-image {
-  width: 90px;
-  height: 90px;
+  width: 72px;
+  height: 72px;
   object-fit: contain;
 }
 
 .logo-section h2 {
-  margin: 10px 0 0 0;
-  font-size: 24px;
+  margin: 4px 0 0;
+  font-size: 20px;
   font-weight: 700;
   color: white;
 }
 
 .version {
   display: block;
-  margin-top: 4px;
+  margin-top: 2px;
   color: #9ca3af;
-  font-size: 13px;
+  font-size: 12px;
   letter-spacing: 1px;
 }
 
 .menu {
+  flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
-  padding: 16px 0;
+  padding: 6px 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: #4b5563 #1f2937;
+}
+
+.menu::-webkit-scrollbar {
+  width: 6px;
+}
+
+.menu::-webkit-scrollbar-track {
+  background: #1f2937;
+}
+
+.menu::-webkit-scrollbar-thumb {
+  background: #4b5563;
+  border-radius: 3px;
 }
 
 .menu-item {
+  min-height: 34px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
   color: white;
   text-decoration: none;
-  padding: 14px 24px;
-  transition: all 0.2s ease;
+  padding: 8px 20px;
+  line-height: 1.15;
+  white-space: nowrap;
+  transition: background-color 0.2s ease;
   cursor: pointer;
-  font-size: 15px;
+  font-size: 14px;
 }
 
 .menu-item:hover {
@@ -68,21 +100,52 @@
   font-weight: 600;
 }
 
-.menu-separador{
-
-  margin:20px 10px;
-  border:none;
-  border-top:1px solid rgba(255,255,255,.15);
-
+.menu-separador {
+  flex-shrink: 0;
+  width: calc(100% - 24px);
+  margin: 6px 12px;
+  border: none;
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
 }
 
-.salir{
-  margin-top:auto;
-  color:#ffb5b5;
-  cursor:pointer;
+.salir {
+  margin-top: auto;
+  color: #ffb5b5;
+  cursor: pointer;
 }
 
-.salir:hover{
-  background:#b71c1c;
-  color:white;
+.salir:hover {
+  background: #b71c1c;
+  color: white;
+}
+
+@media (max-height: 760px) {
+  .logo-section {
+    padding: 8px 14px 6px;
+  }
+
+  .logo-circle,
+  .logo-image {
+    width: 58px;
+    height: 58px;
+  }
+
+  .logo-section h2 {
+    font-size: 18px;
+  }
+
+  .menu {
+    padding: 3px 0;
+  }
+
+  .menu-item {
+    min-height: 30px;
+    padding: 6px 18px;
+    font-size: 13px;
+  }
+
+  .menu-separador {
+    margin-top: 4px;
+    margin-bottom: 4px;
+  }
 }
