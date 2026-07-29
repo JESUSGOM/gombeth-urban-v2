@@ -55,12 +55,20 @@
 
   </div>
 
-  <div *ngIf="cargando" class="mensaje">
+  <div
+    *ngIf="cargando"
+    class="mensaje">
+
     📘 Calculando Libro Mayor...
+
   </div>
 
-  <div *ngIf="error" class="error">
+  <div
+    *ngIf="error"
+    class="error">
+
     {{ error }}
+
   </div>
 
   <div
@@ -78,10 +86,13 @@
 
   </div>
 
-  <div class="resumen" *ngIf="data">
+  <div
+    class="resumen"
+    *ngIf="data">
 
     <div>
       <span>Total Debe</span>
+
       <strong>
         {{ data.totalDebe | number:'1.2-2' }} €
       </strong>
@@ -89,13 +100,15 @@
 
     <div>
       <span>Total Haber</span>
+
       <strong>
         {{ data.totalHaber | number:'1.2-2' }} €
       </strong>
     </div>
 
     <div>
-      <span>Saldo Final</span>
+      <span>Saldo final</span>
+
       <strong>
         {{ data.saldoFinal | number:'1.2-2' }} €
       </strong>
@@ -108,6 +121,7 @@
     class="grid-mayor">
 
     <div class="tabla-contenedor">
+
       <table class="tabla">
 
         <thead>
@@ -115,6 +129,7 @@
           <th>Fecha</th>
           <th>Concepto</th>
           <th>Asiento</th>
+          <th>Contrapartida</th>
           <th class="numero">Debe</th>
           <th class="numero">Haber</th>
           <th class="numero">Saldo</th>
@@ -137,6 +152,86 @@
             {{ linea.numeroAsiento }}
           </td>
 
+          <td class="contrapartidas">
+
+            <ng-container
+              *ngIf="
+                linea.contrapartidas &&
+                linea.contrapartidas.length > 0;
+                else sinContrapartida
+              ">
+
+              <div
+                class="contrapartida-item"
+                *ngFor="
+                  let contrapartida
+                  of linea.contrapartidas
+                ">
+
+                <div class="contrapartida-cuenta">
+
+                  <strong>
+                    {{
+                      contrapartida.codigoCuenta
+                      || contrapartida.cuentaId
+                    }}
+                  </strong>
+
+                  <span>
+                    {{
+                      contrapartida.nombreCuenta
+                      || 'Cuenta contable'
+                    }}
+                  </span>
+
+                </div>
+
+                <div class="contrapartida-importe">
+
+                  <span
+                    *ngIf="
+                      contrapartida.debe &&
+                      contrapartida.debe !== 0
+                    ">
+
+                    Debe:
+                    {{
+                      contrapartida.debe
+                        | number:'1.2-2'
+                    }} €
+
+                  </span>
+
+                  <span
+                    *ngIf="
+                      contrapartida.haber &&
+                      contrapartida.haber !== 0
+                    ">
+
+                    Haber:
+                    {{
+                      contrapartida.haber
+                        | number:'1.2-2'
+                    }} €
+
+                  </span>
+
+                </div>
+
+              </div>
+
+            </ng-container>
+
+            <ng-template #sinContrapartida>
+
+              <span class="sin-contrapartida">
+                Sin contrapartida disponible
+              </span>
+
+            </ng-template>
+
+          </td>
+
           <td class="numero debe">
             {{ linea.debe | number:'1.2-2' }} €
           </td>
@@ -154,11 +249,13 @@
         </tbody>
 
       </table>
+
     </div>
 
     <div class="paginacion">
 
       <div class="registros-pagina">
+
         <label for="tamanioPagina">
           Filas por página
         </label>
@@ -177,15 +274,19 @@
           </option>
 
         </select>
+
       </div>
 
       <div class="estado-pagina">
+
         Mostrando
         {{ primerRegistroVisible }}-{{ ultimoRegistroVisible }}
         de {{ totalLineas }} movimientos
+
       </div>
 
       <div class="botones-paginacion">
+
         <button
           type="button"
           class="boton-secundario"
@@ -209,6 +310,7 @@
           Siguiente
 
         </button>
+
       </div>
 
     </div>
@@ -216,7 +318,10 @@
   </div>
 
   <div
-    *ngIf="data && (!data.lineas || data.lineas.length === 0)"
+    *ngIf="
+      data &&
+      (!data.lineas || data.lineas.length === 0)
+    "
     class="sin-datos">
 
     No existen movimientos para la cuenta seleccionada

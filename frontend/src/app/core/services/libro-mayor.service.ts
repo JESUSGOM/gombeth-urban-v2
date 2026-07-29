@@ -1,23 +1,60 @@
-import { inject, Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import {
+  inject,
+  Injectable
+} from '@angular/core';
+
+import {
+  HttpClient
+} from '@angular/common/http';
+
+import {
+  Observable
+} from 'rxjs';
+
+export interface LibroMayorContrapartida {
+
+  cuentaId: number;
+
+  codigoCuenta: string | null;
+
+  nombreCuenta: string | null;
+
+  debe: number;
+
+  haber: number;
+}
 
 export interface LibroMayorLinea {
+
   movimientoId: number;
+
   fecha: string;
+
   concepto: string;
+
   numeroAsiento: string;
+
   debe: number;
+
   haber: number;
+
   saldo: number;
+
+  contrapartidas: LibroMayorContrapartida[];
 }
 
 export interface LibroMayor {
+
   comunidadId: number;
+
   cuentaId: number;
+
   totalDebe: number;
+
   totalHaber: number;
+
   saldoFinal: number;
+
   lineas: LibroMayorLinea[];
 }
 
@@ -26,7 +63,8 @@ export interface LibroMayor {
 })
 export class LibroMayorService {
 
-  private http = inject(HttpClient);
+  private http =
+    inject(HttpClient);
 
   private readonly api =
     '/api/mayor';
