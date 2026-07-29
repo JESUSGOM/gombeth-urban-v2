@@ -1,0 +1,333 @@
+<section class="norma43-page">
+
+  <header class="page-header">
+    <div>
+      <h2>Importar extracto Norma 43</h2>
+      <p>Previsualice y revise el fichero antes de confirmar la importación.</p>
+    </div>
+
+    <button
+      type="button"
+      class="secondary-button"
+      (click)="verMovimientos()">
+      Ver movimientos
+    </button>
+  </header>
+
+  <div *ngIf="comunidad; else sinComunidad" class="comunidad-card">
+    <span>Comunidad activa</span>
+    <strong>{{ comunidad.nombre }}</strong>
+    <small>ID {{ comunidad.id }}</small>
+  </div>
+
+  <ng-template #sinComunidad>
+    <div class="alert warning">
+      Seleccione una comunidad en la barra superior antes de importar un extracto.
+    </div>
+  </ng-template>
+
+  <div class="alert info">
+    <strong>Previsualización segura:</strong>
+    analizar el fichero no guarda movimientos,
+    no modifica recibos y no ejecuta conciliaciones.
+  </div>
+
+  <div *ngIf="mensajeError" class="alert error">
+    {{ mensajeError }}
+  </div>
+
+  <div *ngIf="mensajeExito" class="alert success">
+    {{ mensajeExito }}
+  </div>
+
+  <section class="card selector-card">
+
+    <label class="file-field">
+      <span>Fichero Norma 43</span>
+
+      <input
+        type="file"
+        accept=".txt,.n43,.csb,text/plain"
+        [disabled]="
+          !comunidad ||
+          cargandoPrevisualizacion ||
+          importando
+        "
+        (change)="seleccionarFichero($event)">
+
+      <small *ngIf="ficheroSeleccionado">
+        {{ ficheroSeleccionado.name }}
+        ·
+        {{
+          ficheroSeleccionado.size / 1024
+            | number:'1.0-1'
+        }}
+        KB
+      </small>
+    </label>
+
+    <div class="selector-actions">
+
+      <button
+        type="button"
+        class="primary-button"
+        [disabled]="!puedePrevisualizar"
+        (click)="previsualizar()">
+        {{
+          cargandoPrevisualizacion
+            ? 'Analizando…'
+            : 'Previsualizar'
+        }}
+      </button>
+
+      <button
+        type="button"
+        class="secondary-button"
+        [disabled]="
+          cargandoPrevisualizacion ||
+          importando
+        "
+        (click)="limpiar()">
+        Limpiar
+      </button>
+
+    </div>
+
+  </section>
+
+  <ng-container *ngIf="previsualizacion as vista">
+
+    <section class="summary-grid">
+
+      <article class="summary-card">
+        <span>Fichero</span>
+        <strong>{{ vista.nombreFichero }}</strong>
+      </article>
+
+      <article class="summary-card">
+        <span>Movimientos</span>
+        <strong>{{ vista.numeroMovimientos }}</strong>
+      </article>
+
+      <article class="summary-card debe">
+        <span>Total debe</span>
+        <strong>
+          {{ vista.totalDebe | number:'1.2-2' }} €
+        </strong>
+      </article>
+
+      <article class="summary-card haber">
+        <span>Total haber</span>
+        <strong>
+          {{ vista.totalHaber | number:'1.2-2' }} €
+        </strong>
+      </article>
+
+      <article class="summary-card">
+        <span>Periodo</span>
+
+        <strong>
+          {{
+            vista.fechaInicial
+              ? (vista.fechaInicial | date:'dd/MM/yyyy')
+              : '-'
+          }}
+          —
+          {{
+            vista.fechaFinal
+              ? (vista.fechaFinal | date:'dd/MM/yyyy')
+              : '-'
+          }}
+        </strong>
+      </article>
+
+    </section>
+
+    <section class="card preview-card">
+
+      <div class="table-toolbar">
+
+        <div>
+          <h3>Movimientos detectados</h3>
+          <p>
+            Revise fechas, importes y conceptos antes de importar.
+          </p>
+        </div>
+
+        <label>
+          Mostrar
+
+          <select
+            [(ngModel)]="elementosPorPagina"
+            (change)="cambiarElementosPorPagina()">
+
+            <option [ngValue]="10">10</option>
+            <option [ngValue]="25">25</option>
+            <option [ngValue]="50">50</option>
+
+          </select>
+        </label>
+
+      </div>
+
+      <div class="table-scroll">
+
+        <table>
+
+          <thead>
+          <tr>
+            <th>Fecha operación</th>
+            <th>Fecha valor</th>
+            <th>Tipo</th>
+            <th class="importe">Importe</th>
+            <th>Concepto</th>
+            <th>Documento</th>
+          </tr>
+          </thead>
+
+          <tbody>
+
+          <tr
+            *ngFor="
+              let movimiento
+              of movimientosPaginados
+            ">
+
+            <td>
+              {{
+                movimiento.fechaOperacion
+                  ? (
+                    movimiento.fechaOperacion
+                      | date:'dd/MM/yyyy'
+                  )
+                  : '-'
+              }}
+            </td>
+
+            <td>
+              {{
+                movimiento.fechaValor
+                  ? (
+                    movimiento.fechaValor
+                      | date:'dd/MM/yyyy'
+                  )
+                  : '-'
+              }}
+            </td>
+
+            <td>
+              <span
+                class="tipo-badge"
+                [class.debe]="
+                  movimiento.tipo === 'DEBE'
+                "
+                [class.haber]="
+                  movimiento.tipo === 'HABER'
+                ">
+                {{ movimiento.tipo }}
+              </span>
+            </td>
+
+            <td
+              class="importe"
+              [class.importe-debe]="
+                movimiento.tipo === 'DEBE'
+              "
+              [class.importe-haber]="
+                movimiento.tipo === 'HABER'
+              ">
+              {{ movimiento.importe | number:'1.2-2' }} €
+            </td>
+
+            <td
+              class="concepto"
+              [title]="
+                movimiento.conceptoCompleto ||
+                movimiento.concepto
+              ">
+              {{
+                movimiento.conceptoCompleto ||
+                movimiento.concepto
+              }}
+            </td>
+
+            <td>
+              {{ movimiento.documentoExtra || '-' }}
+            </td>
+
+          </tr>
+
+          </tbody>
+
+        </table>
+
+      </div>
+
+      <div
+        class="pagination"
+        *ngIf="vista.numeroMovimientos > 0">
+
+        <button
+          type="button"
+          class="secondary-button"
+          [disabled]="paginaActual === 1"
+          (click)="cambiarPagina(
+            paginaActual - 1
+          )">
+          Anterior
+        </button>
+
+        <span>
+          Página {{ paginaActual }}
+          de {{ totalPaginas }}
+        </span>
+
+        <button
+          type="button"
+          class="secondary-button"
+          [disabled]="
+            paginaActual === totalPaginas
+          "
+          (click)="cambiarPagina(
+            paginaActual + 1
+          )">
+          Siguiente
+        </button>
+
+      </div>
+
+    </section>
+
+    <section class="confirm-card">
+
+      <div>
+        <h3>Confirmar importación</h3>
+
+        <p>
+          Se guardarán únicamente movimientos nuevos en
+          <strong>{{ comunidad?.nombre }}</strong>.
+          La conciliación seguirá siendo un paso separado.
+        </p>
+      </div>
+
+      <button
+        type="button"
+        class="confirm-button"
+        [disabled]="!puedeImportar"
+        (click)="confirmarImportacion()">
+
+        {{
+          importando
+            ? 'Importando…'
+            : importacionConfirmada
+              ? 'Importación realizada'
+              : 'Confirmar importación'
+        }}
+
+      </button>
+
+    </section>
+
+  </ng-container>
+
+</section>
