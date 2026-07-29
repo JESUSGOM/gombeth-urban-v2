@@ -5,12 +5,16 @@ import com.gombeth.urban.repository.MovimientoBancarioRepository;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.time.DateTimeException;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
 @Service
 public class Norma43Service {
+
+    private static final int LONGITUD_MINIMA_REGISTRO_22 = 42;
+    private static final int LONGITUD_MAXIMA_CONCEPTO = 500;
 
     private final MovimientoBancarioRepository movimientoBancarioRepository;
 
@@ -20,49 +24,152 @@ public class Norma43Service {
         this.movimientoBancarioRepository = movimientoBancarioRepository;
     }
 
-    public List<MovimientoBancario> importarContenido(
+    /**
+     * Analiza un contenido Norma 43 sin guardar datos en la base de datos.
+     *
+     * Se procesan los registros:
+     * - 22: movimiento principal.
+     * - 23: ampliación multilínea del concepto del movimiento anterior.
+     * - 33: cierre de la cuenta y finalización del último movimiento.
+     */
+    public List<MovimientoBancario> previsualizarContenido(
             Long comunidadId,
             String contenido
     ) {
-        if (comunidadId == null) {
-            throw new IllegalArgumentException("La comunidad es obligatoria.");
-        }
-
-        if (contenido == null || contenido.isBlank()) {
-            throw new IllegalArgumentException("El contenido del fichero Norma 43 está vacío.");
-        }
+        validarEntrada(comunidadId, contenido);
 
         List<MovimientoBancario> movimientos = new ArrayList<>();
 
-        String[] lineas = contenido.split("\\R");
+        MovimientoBancario movimientoActual = null;
+        String registro22Actual = null;
+        StringBuilder conceptoAcumulado = new StringBuilder();
 
-        for (String linea : lineas) {
+        String[] lineas = contenido.split("\\R", -1);
+
+        for (int indice = 0; indice < lineas.length; indice++) {
+            String linea = lineas[indice];
+            int numeroLinea = indice + 1;
+
             if (linea == null || linea.isBlank()) {
                 continue;
             }
 
             String tipoRegistro = obtenerTipoRegistro(linea);
 
-            if ("22".equals(tipoRegistro)) {
-                MovimientoBancario movimiento = parsearRegistroMovimiento(
-                        comunidadId,
-                        linea
-                );
+            switch (tipoRegistro) {
+                case "22" -> {
+                    if (movimientoActual != null) {
+                        finalizarMovimiento(
+                                movimientos,
+                                movimientoActual,
+                                registro22Actual,
+                                conceptoAcumulado
+                        );
+                    }
 
-                if (!existeMovimiento(movimiento)) {
-                    movimientos.add(movimiento);
+                    movimientoActual = parsearRegistroMovimiento(
+                            comunidadId,
+                            linea,
+                            numeroLinea
+                    );
+
+                    registro22Actual = linea;
+                    conceptoAcumulado = new StringBuilder();
+
+                    agregarFragmentoConcepto(
+                            conceptoAcumulado,
+                            extraerSeguro(linea, 52, 80)
+                    );
+                }
+
+                case "23" -> {
+                    if (movimientoActual != null) {
+                        agregarFragmentoConcepto(
+                                conceptoAcumulado,
+                                extraerSeguro(linea, 4, linea.length())
+                        );
+                    }
+                }
+
+                case "33" -> {
+                    if (movimientoActual != null) {
+                        finalizarMovimiento(
+                                movimientos,
+                                movimientoActual,
+                                registro22Actual,
+                                conceptoAcumulado
+                        );
+
+                        movimientoActual = null;
+                        registro22Actual = null;
+                        conceptoAcumulado = new StringBuilder();
+                    }
+                }
+
+                default -> {
+                    // Los demás registros no forman movimientos en esta fase.
                 }
             }
         }
 
-        if (movimientos.isEmpty()) {
+        if (movimientoActual != null) {
+            finalizarMovimiento(
+                    movimientos,
+                    movimientoActual,
+                    registro22Actual,
+                    conceptoAcumulado
+            );
+        }
+
+        return movimientos;
+    }
+
+    /**
+     * Conserva el endpoint de importación existente, pero utiliza el parser
+     * sin persistencia como única fuente de movimientos.
+     */
+    public List<MovimientoBancario> importarContenido(
+            Long comunidadId,
+            String contenido
+    ) {
+        List<MovimientoBancario> movimientosAnalizados =
+                previsualizarContenido(
+                        comunidadId,
+                        contenido
+                );
+
+        List<MovimientoBancario> movimientosNuevos =
+                movimientosAnalizados.stream()
+                        .filter(movimiento -> !existeMovimiento(movimiento))
+                        .toList();
+
+        if (movimientosNuevos.isEmpty()) {
             return List.of();
         }
 
-        return movimientoBancarioRepository.saveAll(movimientos);
+        return movimientoBancarioRepository.saveAll(movimientosNuevos);
     }
 
-    private boolean existeMovimiento(MovimientoBancario movimiento) {
+    private void validarEntrada(
+            Long comunidadId,
+            String contenido
+    ) {
+        if (comunidadId == null) {
+            throw new IllegalArgumentException(
+                    "La comunidad es obligatoria."
+            );
+        }
+
+        if (contenido == null || contenido.isBlank()) {
+            throw new IllegalArgumentException(
+                    "El contenido del fichero Norma 43 está vacío."
+            );
+        }
+    }
+
+    private boolean existeMovimiento(
+            MovimientoBancario movimiento
+    ) {
         return movimientoBancarioRepository
                 .existsByComunidadIdAndFechaOperacionAndFechaValorAndImporteAndSignoAndReferenciaBancaria(
                         movimiento.getComunidadId(),
@@ -76,28 +183,102 @@ public class Norma43Service {
 
     private MovimientoBancario parsearRegistroMovimiento(
             Long comunidadId,
-            String linea
+            String linea,
+            int numeroLinea
     ) {
+        if (linea.length() < LONGITUD_MINIMA_REGISTRO_22) {
+            throw new IllegalArgumentException(
+                    "El registro 22 de la línea "
+                            + numeroLinea
+                            + " es demasiado corto."
+            );
+        }
+
         MovimientoBancario movimiento = new MovimientoBancario();
 
         movimiento.setComunidadId(comunidadId);
         movimiento.setProcesado(false);
         movimiento.setConciliado(false);
 
-        LocalDate fechaOperacion = extraerFechaOperacion(linea);
-        LocalDate fechaValor = extraerFechaValor(linea);
+        movimiento.setFechaOperacion(
+                parsearFechaAaMmDd(
+                        extraerSeguro(linea, 10, 16),
+                        numeroLinea,
+                        "operación"
+                )
+        );
 
-        movimiento.setFechaOperacion(fechaOperacion);
-        movimiento.setFechaValor(fechaValor);
+        movimiento.setFechaValor(
+                parsearFechaAaMmDd(
+                        extraerSeguro(linea, 16, 22),
+                        numeroLinea,
+                        "valor"
+                )
+        );
 
-        movimiento.setSigno(extraerSigno(linea));
-        movimiento.setImporte(extraerImporte(linea));
+        movimiento.setSigno(
+                extraerSigno(
+                        linea,
+                        numeroLinea
+                )
+        );
 
-        movimiento.setConcepto(extraerConcepto(linea));
-        movimiento.setConceptoCompleto(linea);
-        movimiento.setReferenciaBancaria(generarReferenciaTemporal(linea));
+        movimiento.setImporte(
+                extraerImporte(
+                        linea,
+                        numeroLinea
+                )
+        );
+
+        movimiento.setDocumentoExtra(
+                limpiarTexto(
+                        extraerSeguro(linea, 42, 52)
+                )
+        );
 
         return movimiento;
+    }
+
+    private void finalizarMovimiento(
+            List<MovimientoBancario> movimientos,
+            MovimientoBancario movimiento,
+            String registro22,
+            StringBuilder conceptoAcumulado
+    ) {
+        String concepto = limpiarConcepto(
+                conceptoAcumulado == null
+                        ? ""
+                        : conceptoAcumulado.toString()
+        );
+
+        if (concepto.isBlank()) {
+            concepto = "Movimiento importado Norma 43";
+        }
+
+        movimiento.setConcepto(concepto);
+        movimiento.setConceptoCompleto(concepto);
+        movimiento.setReferenciaBancaria(
+                generarReferenciaTemporal(registro22)
+        );
+
+        movimientos.add(movimiento);
+    }
+
+    private void agregarFragmentoConcepto(
+            StringBuilder acumulado,
+            String fragmento
+    ) {
+        String limpio = limpiarTexto(fragmento);
+
+        if (limpio.isBlank()) {
+            return;
+        }
+
+        if (!acumulado.isEmpty()) {
+            acumulado.append(' ');
+        }
+
+        acumulado.append(limpio);
     }
 
     private String obtenerTipoRegistro(String linea) {
@@ -108,83 +289,113 @@ public class Norma43Service {
         return linea.substring(0, 2);
     }
 
-    private LocalDate extraerFechaOperacion(String linea) {
-        String fecha = extraerSeguro(linea, 2, 8);
+    private LocalDate parsearFechaAaMmDd(
+            String fecha,
+            int numeroLinea,
+            String tipoFecha
+    ) {
+        if (fecha == null || !fecha.matches("\\d{6}")) {
+            throw new IllegalArgumentException(
+                    "La fecha de "
+                            + tipoFecha
+                            + " del registro 22 de la línea "
+                            + numeroLinea
+                            + " no tiene formato AAMMDD."
+            );
+        }
 
-        return parseFechaAaMmDd(fecha);
-    }
+        int anio = Integer.parseInt(fecha.substring(0, 2));
+        int mes = Integer.parseInt(fecha.substring(2, 4));
+        int dia = Integer.parseInt(fecha.substring(4, 6));
 
-    private LocalDate extraerFechaValor(String linea) {
-        String fecha = extraerSeguro(linea, 8, 14);
+        int anioCompleto =
+                anio >= 70
+                        ? 1900 + anio
+                        : 2000 + anio;
 
-        return parseFechaAaMmDd(fecha);
-    }
-
-    private LocalDate parseFechaAaMmDd(String fecha) {
         try {
-            if (fecha == null || fecha.length() != 6 || !fecha.matches("\\d{6}")) {
-                return LocalDate.now();
-            }
-
-            int anio = Integer.parseInt(fecha.substring(0, 2));
-            int mes = Integer.parseInt(fecha.substring(2, 4));
-            int dia = Integer.parseInt(fecha.substring(4, 6));
-
-            int anioCompleto = anio >= 70 ? 1900 + anio : 2000 + anio;
-
-            return LocalDate.of(anioCompleto, mes, dia);
-
-        } catch (Exception e) {
-            return LocalDate.now();
+            return LocalDate.of(
+                    anioCompleto,
+                    mes,
+                    dia
+            );
+        } catch (DateTimeException e) {
+            throw new IllegalArgumentException(
+                    "La fecha de "
+                            + tipoFecha
+                            + " del registro 22 de la línea "
+                            + numeroLinea
+                            + " no es válida: "
+                            + fecha
+                            + ".",
+                    e
+            );
         }
     }
 
-    private String extraerSigno(String linea) {
-        String signo = extraerSeguro(linea, 30, 31);
+    private String extraerSigno(
+            String linea,
+            int numeroLinea
+    ) {
+        String signo = limpiarTexto(
+                extraerSeguro(linea, 27, 28)
+        );
 
-        if ("H".equalsIgnoreCase(signo)) {
-            return "1";
+        if ("1".equals(signo) || "2".equals(signo)) {
+            return signo;
         }
 
-        if ("D".equalsIgnoreCase(signo)) {
-            return "2";
-        }
-
-        if ("N".equalsIgnoreCase(signo)) {
-            return "2";
-        }
-
-        return "2";
+        throw new IllegalArgumentException(
+                "El signo del registro 22 de la línea "
+                        + numeroLinea
+                        + " debe ser 1 o 2."
+        );
     }
 
-    private BigDecimal extraerImporte(String linea) {
-        String importeTexto = extraerSeguro(linea, 31, 45)
-                .replaceAll("[^0-9]", "");
+    private BigDecimal extraerImporte(
+            String linea,
+            int numeroLinea
+    ) {
+        String importeTexto =
+                extraerSeguro(linea, 28, 42);
 
-        if (importeTexto.isBlank()) {
-            return BigDecimal.ZERO;
+        if (!importeTexto.matches("\\d{14}")) {
+            throw new IllegalArgumentException(
+                    "El importe del registro 22 de la línea "
+                            + numeroLinea
+                            + " debe contener 14 dígitos."
+            );
         }
 
         return new BigDecimal(importeTexto)
                 .movePointLeft(2);
     }
 
-    private String extraerConcepto(String linea) {
-        String concepto = extraerSeguro(linea, 43, linea.length()).trim();
+    private String limpiarConcepto(String texto) {
+        String limpio = limpiarTexto(texto);
 
-        if (concepto.isBlank()) {
-            return "Movimiento importado Norma 43";
+        if (limpio.length() <= LONGITUD_MAXIMA_CONCEPTO) {
+            return limpio;
         }
 
-        if (concepto.length() > 500) {
-            return concepto.substring(0, 500);
+        return limpio.substring(
+                0,
+                LONGITUD_MAXIMA_CONCEPTO - 3
+        ) + "...";
+    }
+
+    private String limpiarTexto(String texto) {
+        if (texto == null) {
+            return "";
         }
 
-        return concepto;
+        return texto
+                .replaceAll("\\s+", " ")
+                .trim();
     }
 
     private String generarReferenciaTemporal(String linea) {
-        String limpia = linea.trim();
+        String limpia = limpiarTexto(linea);
 
         if (limpia.length() <= 50) {
             return limpia;
