@@ -120,6 +120,14 @@ export const routes: Routes = [
       },
 
       {
+        path: 'tesoreria/norma43',
+        loadComponent: () =>
+          import(
+            './features/tesoreria/pages/norma43-import/norma43-import'
+          ).then(m => m.Norma43Import)
+      },
+
+      {
         path: 'tesoreria/diario',
         component: DiarioListComponent
       },

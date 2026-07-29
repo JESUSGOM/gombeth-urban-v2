@@ -1,16 +1,29 @@
+import { provideHttpClient } from '@angular/common/http';
+import {
+  provideHttpClientTesting
+} from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 
-import { Comunidad } from './comunidad';
+import { ComunidadService } from './comunidad';
 
-describe('Comunidad', () => {
-  let service: Comunidad;
+describe('ComunidadService', () => {
+
+  let service: ComunidadService;
 
   beforeEach(() => {
-    TestBed.configureTestingModule({});
-    service = TestBed.inject(Comunidad);
+    TestBed.configureTestingModule({
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting()
+      ]
+    });
+
+    service = TestBed.inject(
+      ComunidadService
+    );
   });
 
-  it('should be created', () => {
+  it('debe crear el servicio', () => {
     expect(service).toBeTruthy();
   });
 });
