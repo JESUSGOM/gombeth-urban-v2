@@ -5,45 +5,83 @@ import com.gombeth.urban.entity.MovimientoBancario;
 import com.gombeth.urban.repository.ContabilidadReciboRepository;
 import com.gombeth.urban.repository.MovimientoBancarioRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 @Service
 public class ConciliacionBancariaService {
 
-    private final MovimientoBancarioRepository movimientoBancarioRepository;
-    private final ContabilidadReciboRepository reciboRepository;
-    private final ContabilidadAutomaticaService contabilidadAutomaticaService;
+    private static final String ESTADO_PENDIENTE =
+            "PENDIENTE";
+
+    private static final String ESTADO_COBRADO =
+            "COBRADO";
+
+    private static final String SIGNO_HABER =
+            "2";
+
+    private final MovimientoBancarioRepository
+            movimientoBancarioRepository;
+
+    private final ContabilidadReciboRepository
+            reciboRepository;
+
+    private final ContabilidadAutomaticaService
+            contabilidadAutomaticaService;
 
     public ConciliacionBancariaService(
-            MovimientoBancarioRepository movimientoBancarioRepository,
-            ContabilidadReciboRepository reciboRepository,
-            ContabilidadAutomaticaService contabilidadAutomaticaService
+            MovimientoBancarioRepository
+                    movimientoBancarioRepository,
+            ContabilidadReciboRepository
+                    reciboRepository,
+            ContabilidadAutomaticaService
+                    contabilidadAutomaticaService
     ) {
-        this.movimientoBancarioRepository = movimientoBancarioRepository;
-        this.reciboRepository = reciboRepository;
-        this.contabilidadAutomaticaService = contabilidadAutomaticaService;
+        this.movimientoBancarioRepository =
+                movimientoBancarioRepository;
+
+        this.reciboRepository =
+                reciboRepository;
+
+        this.contabilidadAutomaticaService =
+                contabilidadAutomaticaService;
     }
 
-    public int conciliarAutomaticamenteComunidad(Long comunidadId) {
+    /**
+     * Ejecuta la conciliación automática de una comunidad.
+     *
+     * Solo se concilian movimientos de abono cuyo importe
+     * coincide exactamente con un único recibo pendiente.
+     *
+     * El cambio del recibo, el movimiento bancario y el
+     * asiento contable se realizan dentro de la misma
+     * transacción.
+     */
+    @Transactional
+    public int conciliarAutomaticamenteComunidad(
+            Long comunidadId
+    ) {
+        if (comunidadId == null) {
+            throw new IllegalArgumentException(
+                    "La comunidad es obligatoria."
+            );
+        }
 
         List<MovimientoBancario> movimientos =
-                movimientoBancarioRepository.findByComunidadIdOrderByFechaOperacionAscIdAsc(
-                        comunidadId
-                );
+                movimientoBancarioRepository
+                        .findByComunidadIdOrderByFechaOperacionAscIdAsc(
+                                comunidadId
+                        );
 
         int conciliados = 0;
 
         for (MovimientoBancario movimiento : movimientos) {
 
-            if (Boolean.TRUE.equals(movimiento.getConciliado())) {
-                continue;
-            }
-
-            boolean conciliado = intentarConciliarMovimiento(movimiento);
-
-            if (conciliado) {
+            if (intentarConciliarMovimiento(movimiento)) {
                 conciliados++;
             }
         }
@@ -51,56 +89,350 @@ public class ConciliacionBancariaService {
         return conciliados;
     }
 
-    public boolean intentarConciliarMovimiento(MovimientoBancario movimiento) {
-
-        if (movimiento == null || movimiento.getComunidadId() == null) {
-            return false;
-        }
-
-        if (Boolean.TRUE.equals(movimiento.getConciliado())) {
-            return false;
-        }
-
-        if (movimiento.getImporte() == null ||
-                movimiento.getImporte().compareTo(BigDecimal.ZERO) <= 0) {
+    /**
+     * Intenta conciliar automáticamente un movimiento con
+     * un único recibo pendiente del mismo importe.
+     */
+    @Transactional
+    public boolean intentarConciliarMovimiento(
+            MovimientoBancario movimiento
+    ) {
+        if (!esMovimientoConciliable(movimiento)) {
             return false;
         }
 
         List<ContabilidadRecibo> candidatos =
-                reciboRepository.findByComunidadIdAndEstado(
-                        movimiento.getComunidadId(),
-                        "PENDIENTE"
-                );
+                reciboRepository
+                        .findByComunidadIdAndEstado(
+                                movimiento.getComunidadId(),
+                                ESTADO_PENDIENTE
+                        );
 
         List<ContabilidadRecibo> mismoImporte =
                 candidatos.stream()
-                        .filter(recibo -> recibo.getImporte() != null)
-                        .filter(recibo -> recibo.getImporte().compareTo(movimiento.getImporte()) == 0)
+                        .filter(this::esReciboPendienteValido)
+                        .filter(recibo ->
+                                recibo.getImporte().compareTo(
+                                        movimiento.getImporte()
+                                ) == 0
+                        )
                         .toList();
 
         if (mismoImporte.size() != 1) {
             return false;
         }
 
-        ContabilidadRecibo recibo = mismoImporte.get(0);
+        aplicarConciliacion(
+                movimiento,
+                mismoImporte
+        );
 
-        recibo.setEstado("COBRADO");
-        recibo.setFechaCobroBanco(movimiento.getFechaOperacion());
-        recibo.setMovimientoBancarioId(movimiento.getId());
-        recibo.setPagadoAcumulado(recibo.getImporte());
+        return true;
+    }
 
-        reciboRepository.save(recibo);
+    /**
+     * Concilia manualmente un movimiento bancario con uno
+     * o varios recibos seleccionados.
+     *
+     * La operación es atómica:
+     *
+     * - actualiza los recibos;
+     * - registra los asientos contables de cobro;
+     * - marca el movimiento como conciliado y procesado.
+     *
+     * Si falla cualquiera de estas operaciones, se revierte
+     * la transacción completa.
+     */
+    @Transactional
+    public MovimientoBancario conciliarMovimientoConRecibos(
+            Long movimientoId,
+            List<Long> reciboIds
+    ) {
+        if (movimientoId == null) {
+            throw new IllegalArgumentException(
+                    "El movimiento bancario es obligatorio."
+            );
+        }
 
-        contabilidadAutomaticaService.registrarCobroRecibo(
-                recibo,
+        List<Long> idsNormalizados =
+                normalizarIdsRecibos(reciboIds);
+
+        MovimientoBancario movimiento =
+                movimientoBancarioRepository
+                        .findById(movimientoId)
+                        .orElseThrow(() ->
+                                new IllegalArgumentException(
+                                        "No existe el movimiento bancario "
+                                                + movimientoId
+                                                + "."
+                                )
+                        );
+
+        validarMovimientoParaConciliacion(
                 movimiento
+        );
+
+        List<ContabilidadRecibo> recibos =
+                reciboRepository.findByIdIn(
+                        idsNormalizados
+                );
+
+        if (recibos.size() != idsNormalizados.size()) {
+            throw new IllegalArgumentException(
+                    "No se han encontrado todos los recibos "
+                            + "seleccionados."
+            );
+        }
+
+        validarRecibos(
+                movimiento,
+                recibos
+        );
+
+        validarImporteTotal(
+                movimiento,
+                recibos
+        );
+
+        aplicarConciliacion(
+                movimiento,
+                recibos
+        );
+
+        return movimiento;
+    }
+
+    private void aplicarConciliacion(
+            MovimientoBancario movimiento,
+            List<ContabilidadRecibo> recibos
+    ) {
+        for (ContabilidadRecibo recibo : recibos) {
+
+            recibo.setEstado(
+                    ESTADO_COBRADO
+            );
+
+            recibo.setFechaCobroBanco(
+                    movimiento.getFechaOperacion()
+            );
+
+            recibo.setMovimientoBancarioId(
+                    movimiento.getId()
+            );
+
+            recibo.setPagadoAcumulado(
+                    recibo.getImporte()
+            );
+
+            contabilidadAutomaticaService
+                    .registrarCobroRecibo(
+                            recibo,
+                            movimiento
+                    );
+        }
+
+        reciboRepository.saveAll(
+                recibos
         );
 
         movimiento.setConciliado(true);
         movimiento.setProcesado(true);
 
-        movimientoBancarioRepository.save(movimiento);
+        movimientoBancarioRepository.save(
+                movimiento
+        );
+    }
 
-        return true;
+    private void validarMovimientoParaConciliacion(
+            MovimientoBancario movimiento
+    ) {
+        if (movimiento.getComunidadId() == null) {
+            throw new IllegalStateException(
+                    "El movimiento no tiene comunidad asociada."
+            );
+        }
+
+        if (Boolean.TRUE.equals(
+                movimiento.getConciliado()
+        )) {
+            throw new IllegalStateException(
+                    "El movimiento ya está conciliado."
+            );
+        }
+
+        if (Boolean.TRUE.equals(
+                movimiento.getProcesado()
+        )) {
+            throw new IllegalStateException(
+                    "El movimiento ya está procesado."
+            );
+        }
+
+        if (
+                movimiento.getImporte() == null
+                        || movimiento.getImporte()
+                        .compareTo(BigDecimal.ZERO) <= 0
+        ) {
+            throw new IllegalStateException(
+                    "El movimiento no tiene un importe válido."
+            );
+        }
+
+        if (!SIGNO_HABER.equals(
+                movimiento.getSigno()
+        )) {
+            throw new IllegalStateException(
+                    "Solo pueden conciliarse como cobros "
+                            + "los movimientos de haber."
+            );
+        }
+    }
+
+    private void validarRecibos(
+            MovimientoBancario movimiento,
+            List<ContabilidadRecibo> recibos
+    ) {
+        for (ContabilidadRecibo recibo : recibos) {
+
+            if (recibo.getComunidadId() == null) {
+                throw new IllegalStateException(
+                        "El recibo "
+                                + recibo.getId()
+                                + " no tiene comunidad asociada."
+                );
+            }
+
+            if (!recibo.getComunidadId().equals(
+                    movimiento.getComunidadId()
+            )) {
+                throw new IllegalArgumentException(
+                        "El recibo "
+                                + recibo.getId()
+                                + " no pertenece a la comunidad "
+                                + "del movimiento."
+                );
+            }
+
+            if (!ESTADO_PENDIENTE.equals(
+                    recibo.getEstado()
+            )) {
+                throw new IllegalStateException(
+                        "El recibo "
+                                + recibo.getId()
+                                + " ya no está pendiente."
+                );
+            }
+
+            if (
+                    recibo.getMovimientoBancarioId()
+                            != null
+            ) {
+                throw new IllegalStateException(
+                        "El recibo "
+                                + recibo.getId()
+                                + " ya está asociado a otro "
+                                + "movimiento bancario."
+                );
+            }
+
+            if (!esReciboPendienteValido(recibo)) {
+                throw new IllegalStateException(
+                        "El recibo "
+                                + recibo.getId()
+                                + " no tiene un importe válido."
+                );
+            }
+        }
+    }
+
+    private void validarImporteTotal(
+            MovimientoBancario movimiento,
+            List<ContabilidadRecibo> recibos
+    ) {
+        BigDecimal totalSeleccionado =
+                recibos.stream()
+                        .map(
+                                ContabilidadRecibo::getImporte
+                        )
+                        .reduce(
+                                BigDecimal.ZERO,
+                                BigDecimal::add
+                        );
+
+        if (totalSeleccionado.compareTo(
+                movimiento.getImporte()
+        ) != 0) {
+            throw new IllegalArgumentException(
+                    "El total seleccionado no coincide "
+                            + "con el importe del movimiento "
+                            + "bancario."
+            );
+        }
+    }
+
+    private List<Long> normalizarIdsRecibos(
+            List<Long> reciboIds
+    ) {
+        if (
+                reciboIds == null
+                        || reciboIds.isEmpty()
+        ) {
+            throw new IllegalArgumentException(
+                    "Debe seleccionar al menos un recibo."
+            );
+        }
+
+        Set<Long> idsUnicos =
+                new LinkedHashSet<>();
+
+        for (Long reciboId : reciboIds) {
+
+            if (
+                    reciboId == null
+                            || reciboId <= 0
+            ) {
+                throw new IllegalArgumentException(
+                        "Hay identificadores de recibo "
+                                + "no válidos."
+                );
+            }
+
+            idsUnicos.add(reciboId);
+        }
+
+        return List.copyOf(idsUnicos);
+    }
+
+    private boolean esMovimientoConciliable(
+            MovimientoBancario movimiento
+    ) {
+        return movimiento != null
+                && movimiento.getId() != null
+                && movimiento.getComunidadId() != null
+                && !Boolean.TRUE.equals(
+                movimiento.getConciliado()
+        )
+                && !Boolean.TRUE.equals(
+                movimiento.getProcesado()
+        )
+                && movimiento.getImporte() != null
+                && movimiento.getImporte()
+                .compareTo(BigDecimal.ZERO) > 0
+                && SIGNO_HABER.equals(
+                movimiento.getSigno()
+        );
+    }
+
+    private boolean esReciboPendienteValido(
+            ContabilidadRecibo recibo
+    ) {
+        return recibo != null
+                && recibo.getId() != null
+                && ESTADO_PENDIENTE.equals(
+                recibo.getEstado()
+        )
+                && recibo.getImporte() != null
+                && recibo.getImporte()
+                .compareTo(BigDecimal.ZERO) > 0;
     }
 }
