@@ -1,18 +1,19 @@
 package com.gombeth.urban.service;
 
 import com.gombeth.urban.entity.ContabilidadAsiento;
+import com.gombeth.urban.entity.ContabilidadGasto;
 import com.gombeth.urban.entity.ContabilidadMovimiento;
 import com.gombeth.urban.entity.ContabilidadRecibo;
 import com.gombeth.urban.entity.CuentaContable;
 import com.gombeth.urban.entity.MovimientoBancario;
+import com.gombeth.urban.repository.ContabilidadAsientoRepository;
+import com.gombeth.urban.repository.ContabilidadGastoRepository;
 import com.gombeth.urban.repository.ContabilidadMovimientoRepository;
 import com.gombeth.urban.repository.ContabilidadReciboRepository;
 import com.gombeth.urban.repository.CuentaContableRepository;
 import com.gombeth.urban.repository.MovimientoBancarioRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import com.gombeth.urban.entity.ContabilidadGasto;
-import com.gombeth.urban.repository.ContabilidadGastoRepository;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -22,12 +23,25 @@ import java.util.Optional;
 @Service
 public class ContabilidadAutomaticaService {
 
+    private static final String ESTADO_ANULADO =
+            "ANULADO";
+
+    private static final String ORIGEN_COBRO_RECIBO =
+            "RECIBO_COBRADO";
+
+    private static final String PREFIJO_ASIENTO =
+            "ASIENTO-";
+
+    private static final String PREFIJO_COBRO_HISTORICO =
+            "COBRO-RECIBO-";
+
     private final ContabilidadMovimientoRepository movimientoRepository;
     private final CuentaContableRepository cuentaRepository;
     private final ContabilidadReciboRepository reciboRepository;
     private final MovimientoBancarioRepository movimientoBancarioRepository;
     private final ContabilidadAsientoService asientoService;
     private final ContabilidadGastoRepository gastoRepository;
+    private final ContabilidadAsientoRepository asientoRepository;
 
     public ContabilidadAutomaticaService(
             ContabilidadMovimientoRepository movimientoRepository,
@@ -35,7 +49,8 @@ public class ContabilidadAutomaticaService {
             ContabilidadReciboRepository reciboRepository,
             MovimientoBancarioRepository movimientoBancarioRepository,
             ContabilidadAsientoService asientoService,
-            ContabilidadGastoRepository gastoRepository
+            ContabilidadGastoRepository gastoRepository,
+            ContabilidadAsientoRepository asientoRepository
     ) {
         this.movimientoRepository = movimientoRepository;
         this.cuentaRepository = cuentaRepository;
@@ -43,6 +58,7 @@ public class ContabilidadAutomaticaService {
         this.movimientoBancarioRepository = movimientoBancarioRepository;
         this.asientoService = asientoService;
         this.gastoRepository = gastoRepository;
+        this.asientoRepository = asientoRepository;
     }
 
     @Transactional
@@ -50,19 +66,85 @@ public class ContabilidadAutomaticaService {
             ContabilidadRecibo recibo,
             MovimientoBancario movimiento
     ) {
-        if (recibo == null || movimiento == null) {
-            return;
+        registrarCobroReciboSiNecesario(
+                recibo,
+                movimiento
+        );
+    }
+
+    private boolean registrarCobroReciboSiNecesario(
+            ContabilidadRecibo recibo,
+            MovimientoBancario movimiento
+    ) {
+        if (
+                recibo == null
+                        || recibo.getId() == null
+                        || recibo.getComunidadId() == null
+                        || movimiento == null
+        ) {
+            return false;
         }
 
-        String numeroAsientoControl = "COBRO-RECIBO-" + recibo.getId();
+        BigDecimal importe = recibo.getImporte();
 
-        boolean yaExiste = movimientoRepository.existsByComunidadIdAndNumeroAsiento(
-                recibo.getComunidadId(),
-                numeroAsientoControl
-        );
+        if (
+                importe == null
+                        || importe.compareTo(BigDecimal.ZERO) <= 0
+        ) {
+            return false;
+        }
 
-        if (yaExiste) {
-            return;
+        Optional<ContabilidadAsiento> ultimoAsientoCobro =
+                asientoRepository
+                        .findTopByComunidadIdAndOrigenAndOrigenIdOrderByIdDesc(
+                                recibo.getComunidadId(),
+                                ORIGEN_COBRO_RECIBO,
+                                recibo.getId()
+                        );
+
+        if (
+                ultimoAsientoCobro.isPresent()
+                        && !ESTADO_ANULADO.equals(
+                        ultimoAsientoCobro.get().getEstado()
+                )
+        ) {
+            ContabilidadAsiento asientoExistente =
+                    ultimoAsientoCobro.get();
+
+            validarIdentificadorAsiento(
+                    asientoExistente,
+                    recibo.getId()
+            );
+
+            String referenciaAsientoExistente =
+                    PREFIJO_ASIENTO
+                            + asientoExistente.getId();
+
+            boolean yaExisteReferenciaNueva =
+                    movimientoRepository
+                            .existsByComunidadIdAndNumeroAsiento(
+                                    recibo.getComunidadId(),
+                                    referenciaAsientoExistente
+                            );
+
+            if (yaExisteReferenciaNueva) {
+                return false;
+            }
+
+            String referenciaHistorica =
+                    PREFIJO_COBRO_HISTORICO
+                            + recibo.getId();
+
+            boolean yaExisteReferenciaHistorica =
+                    movimientoRepository
+                            .existsByComunidadIdAndNumeroAsiento(
+                                    recibo.getComunidadId(),
+                                    referenciaHistorica
+                            );
+
+            if (yaExisteReferenciaHistorica) {
+                return false;
+            }
         }
 
         CuentaContable cuentaBanco = buscarCuentaPorPrefijo(
@@ -78,12 +160,6 @@ public class ContabilidadAutomaticaService {
                 "No existe cuenta de deudores 447 ni 430 para la comunidad "
         );
 
-        BigDecimal importe = recibo.getImporte();
-
-        if (importe == null || importe.compareTo(BigDecimal.ZERO) <= 0) {
-            return;
-        }
-
         LocalDate fecha = movimiento.getFechaOperacion() != null
                 ? movimiento.getFechaOperacion()
                 : LocalDate.now();
@@ -92,10 +168,30 @@ public class ContabilidadAutomaticaService {
                 recibo.getComunidadId(),
                 fecha,
                 "Cobro recibo " + recibo.getId(),
-                "RECIBO_COBRADO",
+                ORIGEN_COBRO_RECIBO,
                 recibo.getId(),
                 null
         );
+
+        validarIdentificadorAsiento(
+                asiento,
+                recibo.getId()
+        );
+
+        String numeroAsientoControl =
+                PREFIJO_ASIENTO
+                        + asiento.getId();
+
+        boolean yaExiste =
+                movimientoRepository
+                        .existsByComunidadIdAndNumeroAsiento(
+                                recibo.getComunidadId(),
+                                numeroAsientoControl
+                        );
+
+        if (yaExiste) {
+            return false;
+        }
 
         String concepto = "Cobro recibo " + recibo.getId()
                 + " - asiento " + asiento.getNumeroAsiento();
@@ -120,6 +216,8 @@ public class ContabilidadAutomaticaService {
 
         movimientoRepository.save(debeBanco);
         movimientoRepository.save(haberDeudores);
+
+        return true;
     }
 
     @Transactional
@@ -223,19 +321,15 @@ public class ContabilidadAutomaticaService {
                 continue;
             }
 
-            String numeroAsientoControl = "COBRO-RECIBO-" + recibo.getId();
+            boolean generado =
+                    registrarCobroReciboSiNecesario(
+                            recibo,
+                            movimiento
+                    );
 
-            boolean yaExiste = movimientoRepository.existsByComunidadIdAndNumeroAsiento(
-                    recibo.getComunidadId(),
-                    numeroAsientoControl
-            );
-
-            if (yaExiste) {
-                continue;
+            if (generado) {
+                generados++;
             }
-
-            registrarCobroRecibo(recibo, movimiento);
-            generados++;
         }
 
         return generados;
@@ -312,6 +406,22 @@ public class ContabilidadAutomaticaService {
         gastoRepository.save(gasto);
     }
 
+    private void validarIdentificadorAsiento(
+            ContabilidadAsiento asiento,
+            Long reciboId
+    ) {
+        if (
+                asiento == null
+                        || asiento.getId() == null
+        ) {
+            throw new IllegalStateException(
+                    "El asiento del cobro del recibo "
+                            + reciboId
+                            + " no tiene identificador."
+            );
+        }
+    }
+
     private CuentaContable buscarCuentaPorPrefijo(
             Long comunidadId,
             String prefijo,
@@ -348,6 +458,4 @@ public class ContabilidadAutomaticaService {
                 )
                 .orElseThrow(() -> new IllegalStateException(mensajeError + comunidadId));
     }
-
-
 }

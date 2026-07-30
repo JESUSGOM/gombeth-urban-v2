@@ -37,13 +37,24 @@ export class MovimientoBancarioService {
     movimientoId: number,
     reciboIds: number[],
     usuarioId: number
-  ): Observable<any> {
+  ): Observable<MovimientoBancario> {
 
-    return this.http.post<any>(
+    return this.http.post<MovimientoBancario>(
       `${this.apiUrl}/${movimientoId}/conciliar?usuarioId=${usuarioId}`,
       {
         reciboIds
       }
+    );
+  }
+
+  desconciliarMovimiento(
+    movimientoId: number,
+    usuarioId: number
+  ): Observable<MovimientoBancario> {
+
+    return this.http.post<MovimientoBancario>(
+      `${this.apiUrl}/${movimientoId}/desconciliar?usuarioId=${usuarioId}`,
+      null
     );
   }
 

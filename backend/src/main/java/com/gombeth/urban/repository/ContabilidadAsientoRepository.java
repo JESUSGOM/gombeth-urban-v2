@@ -11,12 +11,14 @@ import java.util.Optional;
 public interface ContabilidadAsientoRepository
         extends JpaRepository<ContabilidadAsiento, Long> {
 
-    List<ContabilidadAsiento> findByComunidadIdAndEjercicioOrderByNumeroAsientoAsc(
+    List<ContabilidadAsiento>
+    findByComunidadIdAndEjercicioOrderByNumeroAsientoAsc(
             Long comunidadId,
             Integer ejercicio
     );
 
-    Optional<ContabilidadAsiento> findTopByComunidadIdAndEjercicioOrderByNumeroAsientoDesc(
+    Optional<ContabilidadAsiento>
+    findTopByComunidadIdAndEjercicioOrderByNumeroAsientoDesc(
             Long comunidadId,
             Integer ejercicio
     );
@@ -27,7 +29,15 @@ public interface ContabilidadAsientoRepository
             Long numeroAsiento
     );
 
-    Optional<ContabilidadAsiento> findByComunidadIdAndOrigenAndOrigenId(
+    Optional<ContabilidadAsiento>
+    findByComunidadIdAndOrigenAndOrigenId(
+            Long comunidadId,
+            String origen,
+            Long origenId
+    );
+
+    Optional<ContabilidadAsiento>
+    findTopByComunidadIdAndOrigenAndOrigenIdOrderByIdDesc(
             Long comunidadId,
             String origen,
             Long origenId

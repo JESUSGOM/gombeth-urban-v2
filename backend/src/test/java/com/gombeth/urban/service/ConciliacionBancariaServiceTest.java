@@ -18,7 +18,6 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyList;
@@ -42,6 +41,10 @@ class ConciliacionBancariaServiceTest {
     @Mock
     private ContabilidadAutomaticaService
             contabilidadAutomaticaService;
+
+    @Mock
+    private AnulacionCobroContableService
+            anulacionCobroContableService;
 
     @Mock
     private MovimientoBancario movimiento;
@@ -371,6 +374,151 @@ class ConciliacionBancariaServiceTest {
         );
     }
 
+    @Test
+    void desconciliacionAnulaContabilidadYRestauraReciboYMovimiento() {
+        LocalDate fechaAnulacion =
+                LocalDate.of(
+                        2026,
+                        7,
+                        30
+                );
+
+        prepararMovimientoConciliado(
+                328L,
+                33L
+        );
+
+        prepararReciboCobrado(
+                1554L,
+                33L,
+                328L
+        );
+
+        when(
+                movimientoBancarioRepository.findById(
+                        328L
+                )
+        ).thenReturn(
+                Optional.of(movimiento)
+        );
+
+        when(
+                reciboRepository
+                        .findByComunidadIdAndMovimientoBancarioIdOrderByIdAsc(
+                                33L,
+                                328L
+                        )
+        ).thenReturn(
+                List.of(recibo)
+        );
+
+        MovimientoBancario resultado =
+                service.desconciliarMovimiento(
+                        328L,
+                        4L,
+                        fechaAnulacion
+                );
+
+        assertEquals(
+                movimiento,
+                resultado
+        );
+
+        verify(anulacionCobroContableService)
+                .anularCobroRecibo(
+                        recibo,
+                        4L,
+                        fechaAnulacion
+                );
+
+        verify(recibo).setEstado(
+                "PENDIENTE"
+        );
+
+        verify(recibo).setFechaCobroBanco(
+                null
+        );
+
+        verify(recibo).setMovimientoBancarioId(
+                null
+        );
+
+        verify(recibo).setPagadoAcumulado(
+                BigDecimal.ZERO
+        );
+
+        verify(reciboRepository).saveAll(
+                List.of(recibo)
+        );
+
+        verify(movimiento).setConciliado(
+                false
+        );
+
+        verify(movimiento).setProcesado(
+                false
+        );
+
+        verify(movimientoBancarioRepository).save(
+                movimiento
+        );
+    }
+
+    @Test
+    void desconciliacionRechazaMovimientoNoConciliado() {
+        when(
+                movimientoBancarioRepository.findById(
+                        328L
+                )
+        ).thenReturn(
+                Optional.of(movimiento)
+        );
+
+        when(movimiento.getComunidadId())
+                .thenReturn(33L);
+
+        when(movimiento.getConciliado())
+                .thenReturn(false);
+
+        IllegalStateException excepcion =
+                assertThrows(
+                        IllegalStateException.class,
+                        () ->
+                                service.desconciliarMovimiento(
+                                        328L,
+                                        4L,
+                                        LocalDate.of(
+                                                2026,
+                                                7,
+                                                30
+                                        )
+                                )
+                );
+
+        assertTrue(
+                excepcion.getMessage().contains(
+                        "no está conciliado"
+                )
+        );
+
+        verify(
+                reciboRepository,
+                never()
+        ).findByComunidadIdAndMovimientoBancarioIdOrderByIdAsc(
+                33L,
+                328L
+        );
+
+        verifyNoInteractions(
+                anulacionCobroContableService
+        );
+
+        verify(
+                movimientoBancarioRepository,
+                never()
+        ).save(movimiento);
+    }
+
     private void prepararMovimientoHaber(
             Long movimientoId,
             Long comunidadId,
@@ -400,6 +548,41 @@ class ConciliacionBancariaServiceTest {
                 .thenReturn(
                         LocalDate.of(2026, 7, 4)
                 );
+    }
+
+    private void prepararMovimientoConciliado(
+            Long movimientoId,
+            Long comunidadId
+    ) {
+        when(movimiento.getId())
+                .thenReturn(movimientoId);
+
+        when(movimiento.getComunidadId())
+                .thenReturn(comunidadId);
+
+        when(movimiento.getConciliado())
+                .thenReturn(true);
+
+        when(movimiento.getProcesado())
+                .thenReturn(true);
+    }
+
+    private void prepararReciboCobrado(
+            Long reciboId,
+            Long comunidadId,
+            Long movimientoId
+    ) {
+        when(recibo.getId())
+                .thenReturn(reciboId);
+
+        when(recibo.getComunidadId())
+                .thenReturn(comunidadId);
+
+        when(recibo.getEstado())
+                .thenReturn("COBRADO");
+
+        when(recibo.getMovimientoBancarioId())
+                .thenReturn(movimientoId);
     }
 
     private void prepararReciboPendiente(

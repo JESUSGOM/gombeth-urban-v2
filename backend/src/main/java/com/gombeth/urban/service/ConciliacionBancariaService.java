@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -33,13 +34,18 @@ public class ConciliacionBancariaService {
     private final ContabilidadAutomaticaService
             contabilidadAutomaticaService;
 
+    private final AnulacionCobroContableService
+            anulacionCobroContableService;
+
     public ConciliacionBancariaService(
             MovimientoBancarioRepository
                     movimientoBancarioRepository,
             ContabilidadReciboRepository
                     reciboRepository,
             ContabilidadAutomaticaService
-                    contabilidadAutomaticaService
+                    contabilidadAutomaticaService,
+            AnulacionCobroContableService
+                    anulacionCobroContableService
     ) {
         this.movimientoBancarioRepository =
                 movimientoBancarioRepository;
@@ -49,6 +55,9 @@ public class ConciliacionBancariaService {
 
         this.contabilidadAutomaticaService =
                 contabilidadAutomaticaService;
+
+        this.anulacionCobroContableService =
+                anulacionCobroContableService;
     }
 
     /**
@@ -202,6 +211,121 @@ public class ConciliacionBancariaService {
         return movimiento;
     }
 
+    /**
+     * Deshace una conciliación conservando la trazabilidad
+     * contable mediante un contrasiento.
+     *
+     * La operación es atómica:
+     *
+     * - anula contablemente cada cobro;
+     * - devuelve los recibos a pendiente;
+     * - libera su movimiento bancario;
+     * - marca el movimiento como no conciliado y no procesado.
+     */
+    @Transactional
+    public MovimientoBancario desconciliarMovimiento(
+            Long movimientoId,
+            Long usuarioId,
+            LocalDate fechaAnulacion
+    ) {
+        if (
+                movimientoId == null
+                        || movimientoId <= 0
+        ) {
+            throw new IllegalArgumentException(
+                    "El movimiento bancario es obligatorio."
+            );
+        }
+
+        if (
+                usuarioId == null
+                        || usuarioId <= 0
+        ) {
+            throw new IllegalArgumentException(
+                    "El usuario es obligatorio para "
+                            + "registrar la anulación."
+            );
+        }
+
+        MovimientoBancario movimiento =
+                movimientoBancarioRepository
+                        .findById(movimientoId)
+                        .orElseThrow(() ->
+                                new IllegalArgumentException(
+                                        "No existe el movimiento bancario "
+                                                + movimientoId
+                                                + "."
+                                )
+                        );
+
+        validarMovimientoParaDesconciliacion(
+                movimiento
+        );
+
+        List<ContabilidadRecibo> recibos =
+                reciboRepository
+                        .findByComunidadIdAndMovimientoBancarioIdOrderByIdAsc(
+                                movimiento.getComunidadId(),
+                                movimiento.getId()
+                        );
+
+        if (recibos.isEmpty()) {
+            throw new IllegalStateException(
+                    "El movimiento conciliado no tiene "
+                            + "recibos asociados."
+            );
+        }
+
+        validarRecibosParaDesconciliacion(
+                movimiento,
+                recibos
+        );
+
+        LocalDate fecha =
+                fechaAnulacion != null
+                        ? fechaAnulacion
+                        : LocalDate.now();
+
+        for (ContabilidadRecibo recibo : recibos) {
+
+            anulacionCobroContableService
+                    .anularCobroRecibo(
+                            recibo,
+                            usuarioId,
+                            fecha
+                    );
+
+            recibo.setEstado(
+                    ESTADO_PENDIENTE
+            );
+
+            recibo.setFechaCobroBanco(
+                    null
+            );
+
+            recibo.setMovimientoBancarioId(
+                    null
+            );
+
+            recibo.setPagadoAcumulado(
+                    BigDecimal.ZERO
+            );
+        }
+
+        reciboRepository.saveAll(
+                recibos
+        );
+
+        movimiento.setConciliado(false);
+        movimiento.setProcesado(false);
+
+        movimientoBancarioRepository.save(
+                movimiento
+        );
+
+        return movimiento;
+    }
+
     private void aplicarConciliacion(
             MovimientoBancario movimiento,
             List<ContabilidadRecibo> recibos
@@ -241,6 +365,75 @@ public class ConciliacionBancariaService {
         movimientoBancarioRepository.save(
                 movimiento
         );
+    }
+
+    private void validarMovimientoParaDesconciliacion(
+            MovimientoBancario movimiento
+    ) {
+        if (movimiento.getComunidadId() == null) {
+            throw new IllegalStateException(
+                    "El movimiento no tiene comunidad asociada."
+            );
+        }
+
+        if (!Boolean.TRUE.equals(
+                movimiento.getConciliado()
+        )) {
+            throw new IllegalStateException(
+                    "El movimiento no está conciliado."
+            );
+        }
+    }
+
+    private void validarRecibosParaDesconciliacion(
+            MovimientoBancario movimiento,
+            List<ContabilidadRecibo> recibos
+    ) {
+        for (ContabilidadRecibo recibo : recibos) {
+
+            if (
+                    recibo == null
+                            || recibo.getId() == null
+            ) {
+                throw new IllegalStateException(
+                        "La conciliación contiene un recibo "
+                                + "no válido."
+                );
+            }
+
+            if (!movimiento.getComunidadId().equals(
+                    recibo.getComunidadId()
+            )) {
+                throw new IllegalStateException(
+                        "El recibo "
+                                + recibo.getId()
+                                + " no pertenece a la comunidad "
+                                + "del movimiento."
+                );
+            }
+
+            if (!ESTADO_COBRADO.equals(
+                    recibo.getEstado()
+            )) {
+                throw new IllegalStateException(
+                        "El recibo "
+                                + recibo.getId()
+                                + " no está cobrado."
+                );
+            }
+
+            if (!movimiento.getId().equals(
+                    recibo.getMovimientoBancarioId()
+            )) {
+                throw new IllegalStateException(
+                        "El recibo "
+                                + recibo.getId()
+                                + " no está asociado al movimiento "
+                                + movimiento.getId()
+                                + "."
+                );
+            }
+        }
     }
 
     private void validarMovimientoParaConciliacion(

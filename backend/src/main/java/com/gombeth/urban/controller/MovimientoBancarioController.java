@@ -213,6 +213,39 @@ public class MovimientoBancarioController {
         }
     }
 
+    @PostMapping("/{id}/desconciliar")
+    public MovimientoBancario desconciliar(
+            @PathVariable Long id,
+            @RequestParam Long usuarioId
+    ) {
+        MovimientoBancario movimiento =
+                obtenerMovimientoAutorizado(
+                        id,
+                        usuarioId
+                );
+
+        try {
+            return conciliacionBancariaService
+                    .desconciliarMovimiento(
+                            movimiento.getId(),
+                            usuarioId,
+                            null
+                    );
+        } catch (IllegalArgumentException excepcion) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    excepcion.getMessage(),
+                    excepcion
+            );
+        } catch (IllegalStateException excepcion) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    excepcion.getMessage(),
+                    excepcion
+            );
+        }
+    }
+
     @GetMapping("/{id}/contexto")
     public MovimientoContextoResponse contexto(
             @PathVariable Long id,

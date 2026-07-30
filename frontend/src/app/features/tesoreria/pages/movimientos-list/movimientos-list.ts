@@ -61,6 +61,7 @@ export class MovimientosList implements OnInit {
 
   cargando = false;
   error = '';
+  movimientoDesconciliandoId: number | null = null;
 
   ngOnInit(): void {
     this.cargarComunidadesUsuario();
@@ -399,6 +400,63 @@ export class MovimientosList implements OnInit {
       });
   }
 
+  desconciliarMovimiento(
+    movimiento: MovimientoBancario
+  ): void {
+    if (!movimiento?.id || !movimiento.conciliado) {
+      return;
+    }
+
+    const confirmado = window.confirm(
+      `Se va a desconciliar el movimiento #${movimiento.id}.\n\n` +
+      'Se generará un contrasiento contable, los recibos asociados volverán a PENDIENTE ' +
+      'y el movimiento quedará disponible para una nueva conciliación.\n\n' +
+      '¿Desea continuar?'
+    );
+
+    if (!confirmado) {
+      return;
+    }
+
+    this.movimientoDesconciliandoId = movimiento.id;
+    this.error = '';
+
+    this.movimientoService
+      .desconciliarMovimiento(
+        movimiento.id,
+        this.getUsuarioId()
+      )
+      .subscribe({
+        next: () => {
+          this.movimientoDesconciliandoId = null;
+
+          alert(
+            'Movimiento desconciliado correctamente. ' +
+            'Se ha generado el contrasiento contable y los recibos vuelven a estar pendientes.'
+          );
+
+          this.cargarMovimientos();
+        },
+        error: (err) => {
+          console.error(
+            'Error desconciliando el movimiento:',
+            err
+          );
+
+          this.movimientoDesconciliandoId = null;
+
+          const mensaje =
+            err?.error?.detail ||
+            err?.error?.message ||
+            err?.error?.error ||
+            'No se pudo desconciliar el movimiento.';
+
+          alert(mensaje);
+          this.cdr.detectChanges();
+        }
+      });
+  }
+
   get diferenciaConciliacion(): number {
     if (!this.movimientoSeleccionado) {
       return 0;
@@ -597,6 +655,7 @@ export class MovimientosList implements OnInit {
       ? ' ▲'
       : ' ▼';
   }
+
   esSugerido(recibo: any): boolean {
     const reciboId = this.normalizarId(recibo?.id);
 

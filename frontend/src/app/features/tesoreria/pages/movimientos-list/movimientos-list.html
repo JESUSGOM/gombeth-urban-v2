@@ -11,7 +11,10 @@
       </p>
     </div>
 
-    <button class="primary-button" type="button" (click)="cargarMovimientos()">
+    <button
+      class="primary-button"
+      type="button"
+      (click)="cargarMovimientos()">
       Actualizar
     </button>
   </div>
@@ -20,8 +23,12 @@
 
     <label>
       Comunidad
-      <select [(ngModel)]="comunidadId" (change)="cargarMovimientos()">
-        <option *ngFor="let c of comunidades" [ngValue]="c.id">
+      <select
+        [(ngModel)]="comunidadId"
+        (change)="cargarMovimientos()">
+        <option
+          *ngFor="let c of comunidades"
+          [ngValue]="c.id">
           {{ c.nombre }}
         </option>
       </select>
@@ -74,20 +81,28 @@
 
     <label>
       Conciliado
-      <select [(ngModel)]="filtroConciliado" (change)="aplicarFiltros()">
+      <select
+        [(ngModel)]="filtroConciliado"
+        (change)="aplicarFiltros()">
         <option value="TODOS">Todos</option>
         <option value="SI">Sí</option>
         <option value="NO">No</option>
       </select>
     </label>
 
-    <button type="button" class="secondary-button" (click)="limpiarFiltros()">
+    <button
+      type="button"
+      class="secondary-button"
+      (click)="limpiarFiltros()">
       Limpiar
     </button>
 
   </div>
 
-  <div *ngIf="resumenTesoreria" class="dashboard-resumen">
+  <div
+    *ngIf="resumenTesoreria"
+    class="dashboard-resumen">
+
     <div class="dashboard-card">
       <span>Recibos pendientes</span>
       <strong>{{ resumenTesoreria.recibosPendientes }}</strong>
@@ -95,7 +110,9 @@
 
     <div class="dashboard-card">
       <span>Importe pendiente</span>
-      <strong>{{ resumenTesoreria.importePendiente | number:'1.2-2' }} €</strong>
+      <strong>
+        {{ resumenTesoreria.importePendiente | number:'1.2-2' }} €
+      </strong>
     </div>
 
     <div class="dashboard-card">
@@ -107,11 +124,18 @@
       <span>Sin conciliar</span>
       <strong>{{ resumenTesoreria.movimientosSinConciliar }}</strong>
     </div>
+
   </div>
 
-  <div *ngIf="error" class="alert error">{{ error }}</div>
+  <div
+    *ngIf="error"
+    class="alert error">
+    {{ error }}
+  </div>
 
-  <div *ngIf="cargando" class="alert info">
+  <div
+    *ngIf="cargando"
+    class="alert info">
     Cargando movimientos bancarios...
   </div>
 
@@ -122,11 +146,16 @@
   </div>
 
   <div
-    *ngIf="mostrarMovimientos && !cargando && movimientosFiltrados.length > 0"
+    *ngIf="
+      mostrarMovimientos
+      && !cargando
+      && movimientosFiltrados.length > 0
+    "
     class="card">
 
     <div class="summary">
       <div class="summary-row">
+
         <div>
           <strong>{{ movimientosFiltrados.length }}</strong>
           movimientos encontrados
@@ -134,62 +163,94 @@
 
         <label class="page-size">
           Mostrar
-          <select [(ngModel)]="registrosPorPagina" (change)="paginaActual = 1">
+
+          <select
+            [(ngModel)]="registrosPorPagina"
+            (change)="paginaActual = 1">
             <option [ngValue]="5">5</option>
             <option [ngValue]="10">10</option>
           </select>
+
           por página
         </label>
+
       </div>
     </div>
 
     <table class="movimientos-table tabla-movimientos">
       <thead>
       <tr>
-        <th class="mov-id sortable" (click)="ordenarPor('id')">
+
+        <th
+          class="mov-id sortable"
+          (click)="ordenarPor('id')">
           ID{{ iconoOrden('id') }}
         </th>
 
-        <th class="mov-fecha sortable" (click)="ordenarPor('fechaOperacion')">
+        <th
+          class="mov-fecha sortable"
+          (click)="ordenarPor('fechaOperacion')">
           Fecha{{ iconoOrden('fechaOperacion') }}
         </th>
 
-        <th class="mov-valor sortable" (click)="ordenarPor('fechaValor')">
+        <th
+          class="mov-valor sortable"
+          (click)="ordenarPor('fechaValor')">
           Valor{{ iconoOrden('fechaValor') }}
         </th>
 
-        <th class="mov-concepto sortable" (click)="ordenarPor('concepto')">
+        <th
+          class="mov-concepto sortable"
+          (click)="ordenarPor('concepto')">
           Concepto{{ iconoOrden('concepto') }}
         </th>
 
-        <th class="mov-importe sortable" (click)="ordenarPor('importe')">
+        <th
+          class="mov-importe sortable"
+          (click)="ordenarPor('importe')">
           Importe{{ iconoOrden('importe') }}
         </th>
 
-        <th class="mov-estado sortable" (click)="ordenarPor('conciliado')">
+        <th
+          class="mov-estado sortable"
+          (click)="ordenarPor('conciliado')">
           Conciliado{{ iconoOrden('conciliado') }}
         </th>
 
-        <th class="mov-estado sortable" (click)="ordenarPor('procesado')">
+        <th
+          class="mov-estado sortable"
+          (click)="ordenarPor('procesado')">
           Procesado{{ iconoOrden('procesado') }}
         </th>
 
         <th class="mov-acciones">
           Acciones
         </th>
+
       </tr>
       </thead>
 
       <tbody>
       <tr *ngFor="let m of movimientosPaginados">
-        <td class="mov-id">{{ m.id }}</td>
+
+        <td class="mov-id">
+          {{ m.id }}
+        </td>
 
         <td class="mov-fecha">
-          {{ m.fechaOperacion ? (m.fechaOperacion | date:'dd/MM/yyyy') : '-' }}
+          {{
+            m.fechaOperacion
+              ? (m.fechaOperacion | date:'dd/MM/yyyy')
+              : '-'
+          }}
         </td>
 
         <td class="mov-valor">
-          {{ m.fechaValor ? (m.fechaValor | date:'dd/MM/yyyy') : '-' }}
+          {{
+            m.fechaValor
+              ? (m.fechaValor | date:'dd/MM/yyyy')
+              : '-'
+          }}
         </td>
 
         <td class="mov-concepto concepto">
@@ -210,76 +271,137 @@
         </td>
 
         <td class="mov-estado">
-          <span class="badge" [class.ok]="m.conciliado" [class.pending]="!m.conciliado">
+          <span
+            class="badge"
+            [class.ok]="m.conciliado"
+            [class.pending]="!m.conciliado">
             {{ m.conciliado ? 'Sí' : 'No' }}
           </span>
         </td>
 
         <td class="mov-estado">
-          <span class="badge" [class.ok]="m.procesado" [class.pending]="!m.procesado">
+          <span
+            class="badge"
+            [class.ok]="m.procesado"
+            [class.pending]="!m.procesado">
             {{ m.procesado ? 'Sí' : 'No' }}
           </span>
         </td>
 
         <td class="mov-acciones">
+
           <button
+            *ngIf="!m.conciliado"
             type="button"
             class="primary-button table-button"
             (click)="verRecibos(m)">
             Recibos
           </button>
+
+          <button
+            *ngIf="m.conciliado"
+            type="button"
+            class="secondary-button table-button"
+            title="Deshacer la conciliación y generar un contrasiento"
+            [disabled]="movimientoDesconciliandoId === m.id"
+            (click)="desconciliarMovimiento(m)">
+
+            {{
+              movimientoDesconciliandoId === m.id
+                ? 'Procesando...'
+                : 'Desconciliar'
+            }}
+
+          </button>
+
         </td>
+
       </tr>
       </tbody>
     </table>
 
     <div class="pagination">
-      <button type="button" (click)="cambiarPagina(paginaActual - 1)" [disabled]="paginaActual === 1">
+
+      <button
+        type="button"
+        [disabled]="paginaActual === 1"
+        (click)="cambiarPagina(paginaActual - 1)">
         Anterior
       </button>
 
-      <span>Página {{ paginaActual }} de {{ totalPaginas }}</span>
+      <span>
+        Página {{ paginaActual }} de {{ totalPaginas }}
+      </span>
 
-      <button type="button" (click)="cambiarPagina(paginaActual + 1)" [disabled]="paginaActual === totalPaginas">
+      <button
+        type="button"
+        [disabled]="paginaActual === totalPaginas"
+        (click)="cambiarPagina(paginaActual + 1)">
         Siguiente
       </button>
+
     </div>
 
   </div>
 
-  <div *ngIf="movimientoSeleccionado" class="card recibos-card">
+  <div
+    *ngIf="movimientoSeleccionado"
+    class="card recibos-card">
 
     <div class="page-header recibos-header">
+
       <div>
         <h3>
-          Recibos pendientes del movimiento #{{ movimientoSeleccionado.id }}
+          Recibos pendientes del movimiento
+          #{{ movimientoSeleccionado.id }}
         </h3>
 
-        <div *ngIf="contextoMovimiento" class="movimiento-contexto">
+        <div
+          *ngIf="contextoMovimiento"
+          class="movimiento-contexto">
+
           <p>
             Comunidad:
-            <strong>{{ contextoMovimiento.nombreComunidad }}</strong>
+            <strong>
+              {{ contextoMovimiento.nombreComunidad }}
+            </strong>
           </p>
 
           <p>
             Movimiento:
-            <strong>{{ getImporteConSigno(movimientoSeleccionado) | number:'1.2-2' }} €</strong>
+            <strong>
+              {{
+                getImporteConSigno(movimientoSeleccionado)
+                  | number:'1.2-2'
+              }} €
+            </strong>
           </p>
 
           <p>
             Fecha:
-            <strong>{{ contextoMovimiento.fechaOperacion | date:'dd/MM/yyyy' }}</strong>
+            <strong>
+              {{
+                contextoMovimiento.fechaOperacion
+                  | date:'dd/MM/yyyy'
+              }}
+            </strong>
           </p>
+
         </div>
       </div>
 
-      <button class="volver-button" type="button" (click)="volverMovimientos()">
+      <button
+        class="volver-button"
+        type="button"
+        (click)="volverMovimientos()">
         ← Volver a movimientos
       </button>
+
     </div>
 
     <div class="summary">
       <div class="summary-row">
+
         <div>
           <strong>{{ recibosPendientes.length }}</strong>
           recibos pendientes
@@ -287,12 +409,17 @@
 
         <label class="page-size">
           Mostrar
-          <select [(ngModel)]="recibosPorPagina" (change)="paginaRecibos = 1">
+
+          <select
+            [(ngModel)]="recibosPorPagina"
+            (change)="paginaRecibos = 1">
             <option [ngValue]="5">5</option>
             <option [ngValue]="10">10</option>
           </select>
+
           recibos
         </label>
+
       </div>
     </div>
 
@@ -312,6 +439,7 @@
 
       <tbody>
       <tr *ngFor="let r of recibosPendientesPaginados">
+
         <td class="rec-check">
           <input
             type="checkbox"
@@ -319,7 +447,9 @@
             (change)="seleccionarRecibo(r, $event)">
         </td>
 
-        <td class="rec-id">{{ r.id }}</td>
+        <td class="rec-id">
+          {{ r.id }}
+        </td>
 
         <td class="rec-vecino vecino">
           {{ r.nombreVecino }}
@@ -343,56 +473,77 @@
 
         <td class="rec-sugerido">
 
-        <span
-          *ngIf="esSugerido(r)"
-          class="badge-sugerido">
-
-          ✓ Sugerido
-
-        </span>
+          <span
+            *ngIf="esSugerido(r)"
+            class="badge-sugerido">
+            ✓ Sugerido
+          </span>
 
         </td>
+
       </tr>
       </tbody>
     </table>
 
     <div class="pagination">
-      <button type="button" (click)="cambiarPaginaRecibos(paginaRecibos - 1)" [disabled]="paginaRecibos === 1">
+
+      <button
+        type="button"
+        [disabled]="paginaRecibos === 1"
+        (click)="cambiarPaginaRecibos(paginaRecibos - 1)">
         Anterior
       </button>
 
-      <span>Página {{ paginaRecibos }} de {{ totalPaginasRecibos }}</span>
+      <span>
+        Página {{ paginaRecibos }}
+        de {{ totalPaginasRecibos }}
+      </span>
 
-      <button type="button" (click)="cambiarPaginaRecibos(paginaRecibos + 1)" [disabled]="paginaRecibos === totalPaginasRecibos">
+      <button
+        type="button"
+        [disabled]="paginaRecibos === totalPaginasRecibos"
+        (click)="cambiarPaginaRecibos(paginaRecibos + 1)">
         Siguiente
       </button>
+
     </div>
 
     <div class="summary total-box">
       <h3>
+
         Total seleccionado:
         {{ totalSeleccionado | number:'1.2-2' }} €
 
         <p>
           Diferencia:
-          <strong>{{ diferenciaConciliacion | number:'1.2-2' }} €</strong>
+          <strong>
+            {{ diferenciaConciliacion | number:'1.2-2' }} €
+          </strong>
         </p>
 
-        <p *ngIf="conciliacionCuadrada" class="ok-text">
+        <p
+          *ngIf="conciliacionCuadrada"
+          class="ok-text">
           ✓ La conciliación cuadra
         </p>
 
-        <p *ngIf="!conciliacionCuadrada" class="warning-text">
+        <p
+          *ngIf="!conciliacionCuadrada"
+          class="warning-text">
           ⚠ El total seleccionado no coincide con el movimiento
         </p>
 
         <button
           type="button"
           class="primary-button"
-          [disabled]="recibosSeleccionados.length === 0 || !conciliacionCuadrada"
+          [disabled]="
+            recibosSeleccionados.length === 0
+            || !conciliacionCuadrada
+          "
           (click)="conciliarSeleccionados()">
           Conciliar seleccionados
         </button>
+
       </h3>
     </div>
 
@@ -408,7 +559,10 @@
       (click)="$event.stopPropagation()">
 
       <div class="modal-header">
-        <h3>Detalle del movimiento bancario</h3>
+
+        <h3>
+          Detalle del movimiento bancario
+        </h3>
 
         <button
           type="button"
@@ -416,6 +570,7 @@
           (click)="cerrarDetalleConcepto()">
           ×
         </button>
+
       </div>
 
       <div class="modal-body">
@@ -427,39 +582,68 @@
 
         <p>
           <strong>Fecha operación:</strong>
-          {{ movimientoDetalleConcepto.fechaOperacion ? (movimientoDetalleConcepto.fechaOperacion | date:'dd/MM/yyyy') : '-' }}
+
+          {{
+            movimientoDetalleConcepto.fechaOperacion
+              ? (
+                movimientoDetalleConcepto.fechaOperacion
+                  | date:'dd/MM/yyyy'
+              )
+              : '-'
+          }}
         </p>
 
         <p>
           <strong>Fecha valor:</strong>
-          {{ movimientoDetalleConcepto.fechaValor ? (movimientoDetalleConcepto.fechaValor | date:'dd/MM/yyyy') : '-' }}
+
+          {{
+            movimientoDetalleConcepto.fechaValor
+              ? (
+                movimientoDetalleConcepto.fechaValor
+                  | date:'dd/MM/yyyy'
+              )
+              : '-'
+          }}
         </p>
 
         <p>
           <strong>Importe:</strong>
-          {{ getImporteConSigno(movimientoDetalleConcepto) | number:'1.2-2' }} €
+
+          {{
+            getImporteConSigno(movimientoDetalleConcepto)
+              | number:'1.2-2'
+          }} €
         </p>
 
         <p>
           <strong>Referencia bancaria:</strong>
-          {{ movimientoDetalleConcepto.referenciaBancaria || '-' }}
+          {{
+            movimientoDetalleConcepto.referenciaBancaria
+            || '-'
+          }}
         </p>
 
         <div class="concepto-completo-box">
-          <strong>Concepto completo:</strong>
+
+          <strong>
+            Concepto completo:
+          </strong>
 
           <pre><strong>{{ movimientoDetalleConcepto.conceptoCompleto || movimientoDetalleConcepto.concepto }}</strong></pre>
+
         </div>
 
       </div>
 
       <div class="modal-footer">
+
         <button
           type="button"
           class="secondary-button"
           (click)="cerrarDetalleConcepto()">
           Cerrar
         </button>
+
       </div>
 
     </div>

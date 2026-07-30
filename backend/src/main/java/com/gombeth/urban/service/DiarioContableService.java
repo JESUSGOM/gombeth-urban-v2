@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -19,6 +20,18 @@ import java.util.stream.Collectors;
 
 @Service
 public class DiarioContableService {
+
+    private static final String PREFIJO_ASIENTO =
+            "ASIENTO-";
+
+    private static final String ORIGEN_RECIBO_COBRADO =
+            "RECIBO_COBRADO";
+
+    private static final String ORIGEN_RECIBO_EMITIDO =
+            "RECIBO_EMITIDO";
+
+    private static final String ORIGEN_GASTO_CONTABILIZADO =
+            "GASTO_CONTABILIZADO";
 
     private final ContabilidadAsientoRepository
             asientoRepository;
@@ -70,15 +83,10 @@ public class DiarioContableService {
                                 )
                         );
 
-        String numeroAsientoControl =
-                obtenerNumeroAsientoControl(asiento);
-
         List<ContabilidadMovimiento> movimientos =
-                movimientoRepository
-                        .findByComunidadIdAndNumeroAsientoOrderByIdAsc(
-                                asiento.getComunidadId(),
-                                numeroAsientoControl
-                        );
+                obtenerMovimientosAsiento(
+                        asiento
+                );
 
         Map<Long, CuentaContable> cuentasPorId =
                 obtenerCuentasPorId(movimientos);
@@ -128,11 +136,89 @@ public class DiarioContableService {
         );
     }
 
-    private String obtenerNumeroAsientoControl(
+    private List<ContabilidadMovimiento>
+    obtenerMovimientosAsiento(
             ContabilidadAsiento asiento
     ) {
+        List<String> referencias =
+                construirReferenciasAsiento(
+                        asiento
+                );
+
+        for (String referencia : referencias) {
+            List<ContabilidadMovimiento> movimientos =
+                    movimientoRepository
+                            .findByComunidadIdAndNumeroAsientoOrderByIdAsc(
+                                    asiento.getComunidadId(),
+                                    referencia
+                            );
+
+            if (!movimientos.isEmpty()) {
+                return movimientos;
+            }
+        }
+
+        return List.of();
+    }
+
+    private List<String> construirReferenciasAsiento(
+            ContabilidadAsiento asiento
+    ) {
+        List<String> referencias =
+                new ArrayList<>();
+
+        if (asiento.getId() != null) {
+            referencias.add(
+                    PREFIJO_ASIENTO
+                            + asiento.getId()
+            );
+        }
+
+        String referenciaHistorica =
+                obtenerReferenciaHistorica(
+                        asiento
+                );
+
         if (
-                "GASTO_CONTABILIZADO".equals(
+                referenciaHistorica != null
+                        && !referencias.contains(
+                        referenciaHistorica
+                )
+        ) {
+            referencias.add(
+                    referenciaHistorica
+            );
+        }
+
+        if (asiento.getNumeroAsiento() != null) {
+            String referenciaNumerica =
+                    String.valueOf(
+                            asiento.getNumeroAsiento()
+                    );
+
+            if (
+                    !referencias.contains(
+                            referenciaNumerica
+                    )
+            ) {
+                referencias.add(
+                        referenciaNumerica
+                );
+            }
+        }
+
+        return referencias;
+    }
+
+    private String obtenerReferenciaHistorica(
+            ContabilidadAsiento asiento
+    ) {
+        if (asiento.getOrigenId() == null) {
+            return null;
+        }
+
+        if (
+                ORIGEN_GASTO_CONTABILIZADO.equals(
                         asiento.getOrigen()
                 )
         ) {
@@ -140,8 +226,25 @@ public class DiarioContableService {
                     + asiento.getOrigenId();
         }
 
-        return "COBRO-RECIBO-"
-                + asiento.getOrigenId();
+        if (
+                ORIGEN_RECIBO_EMITIDO.equals(
+                        asiento.getOrigen()
+                )
+        ) {
+            return "DEVENGO-RECIBO-"
+                    + asiento.getOrigenId();
+        }
+
+        if (
+                ORIGEN_RECIBO_COBRADO.equals(
+                        asiento.getOrigen()
+                )
+        ) {
+            return "COBRO-RECIBO-"
+                    + asiento.getOrigenId();
+        }
+
+        return null;
     }
 
     private Map<Long, CuentaContable> obtenerCuentasPorId(
