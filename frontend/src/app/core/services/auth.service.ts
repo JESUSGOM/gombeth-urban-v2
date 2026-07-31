@@ -48,14 +48,34 @@ export interface LoginResponse {
   mensaje: string;
 }
 
+export interface CambioPasswordRequest {
+
+  username: string;
+
+  passwordActual: string;
+
+  nuevaPassword: string;
+
+  confirmarPassword: string;
+}
+
+export interface CambioPasswordResponse {
+
+  ok: boolean;
+
+  mensaje: string;
+}
+
 @Injectable({
   providedIn: 'root'
 })
 export class AuthService {
 
-  private readonly http = inject(HttpClient);
+  private readonly http =
+    inject(HttpClient);
 
-  private readonly router = inject(Router);
+  private readonly router =
+    inject(Router);
 
   private readonly apiUrl =
     '/api/auth';
@@ -101,6 +121,25 @@ export class AuthService {
           this.guardarUsuario(response);
         }
       })
+    );
+  }
+
+  cambiarPassword(
+    request: CambioPasswordRequest
+  ): Observable<CambioPasswordResponse> {
+
+    /*
+     * El cambio de contraseña también está protegido
+     * mediante CSRF, aunque se utilice antes del login.
+     */
+    return this.inicializarCsrf().pipe(
+
+      switchMap(() =>
+        this.http.post<CambioPasswordResponse>(
+          `${this.apiUrl}/cambiar-password`,
+          request
+        )
+      )
     );
   }
 
@@ -190,9 +229,11 @@ export class AuthService {
 
     const usuario: UsuarioLogin = {
 
-      usuarioId: response.usuarioId,
+      usuarioId:
+      response.usuarioId,
 
-      username: response.username,
+      username:
+      response.username,
 
       administradorId:
       response.administradorId,
@@ -206,14 +247,18 @@ export class AuthService {
       JSON.stringify(usuario)
     );
 
-    this.usuarioSubject.next(usuario);
+    this.usuarioSubject.next(
+      usuario
+    );
   }
 
   private leerUsuarioLocal():
     UsuarioLogin | null {
 
     const contenido =
-      localStorage.getItem('usuario');
+      localStorage.getItem(
+        'usuario'
+      );
 
     if (!contenido) {
       return null;
@@ -227,7 +272,9 @@ export class AuthService {
 
     } catch {
 
-      localStorage.removeItem('usuario');
+      localStorage.removeItem(
+        'usuario'
+      );
 
       return null;
     }
@@ -235,7 +282,9 @@ export class AuthService {
 
   private limpiarContextoLocal(): void {
 
-    localStorage.removeItem('usuario');
+    localStorage.removeItem(
+      'usuario'
+    );
 
     localStorage.removeItem(
       'comunidadActiva'
@@ -248,11 +297,15 @@ export class AuthService {
         )
       )
       .forEach(clave =>
-        localStorage.removeItem(clave)
+        localStorage.removeItem(
+          clave
+        )
       );
 
     sessionStorage.clear();
 
-    this.usuarioSubject.next(null);
+    this.usuarioSubject.next(
+      null
+    );
   }
 }

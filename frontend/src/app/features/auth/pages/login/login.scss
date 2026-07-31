@@ -4,12 +4,13 @@
   display: flex;
   justify-content: center;
   align-items: flex-start;
+  padding-bottom: 40px;
 }
 
 .login-container {
   width: 100%;
-  max-width: 400px;
-  margin-top: 100px;
+  max-width: 430px;
+  margin-top: 70px;
 }
 
 .login-card {
@@ -20,7 +21,7 @@
 }
 
 .login-body {
-  padding: 48px;
+  padding: 42px;
   text-align: center;
 }
 
@@ -56,40 +57,195 @@ h3 {
   input {
     display: block;
     width: 100%;
-    padding: .375rem .75rem;
+    box-sizing: border-box;
+    padding: .5rem .75rem;
     font-size: 1rem;
     line-height: 1.5;
     color: #212529;
-    background-color: #fff;
+    background-color: #ffffff;
     border: 1px solid #ced4da;
     border-radius: .375rem;
   }
+
+  input:focus {
+    border-color: #86b7fe;
+    outline: 0;
+    box-shadow: 0 0 0 .2rem rgba(13, 110, 253, .18);
+  }
+}
+
+.password-wrapper {
+  position: relative;
+  width: 100%;
+
+  input {
+    padding-right: 3.25rem;
+  }
+}
+
+.password-toggle {
+  position: absolute;
+  top: 50%;
+  right: .35rem;
+  transform: translateY(-50%);
+  width: 2.5rem;
+  height: 2.25rem;
+  padding: 0;
+  border: 0;
+  border-radius: .375rem;
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  svg {
+    width: 1.25rem;
+    height: 1.25rem;
+    fill: #495057;
+  }
+}
+
+.password-toggle:hover {
+  background-color: #e9ecef;
+}
+
+.password-toggle:focus-visible {
+  outline: 2px solid #0d6efd;
+  outline-offset: 1px;
 }
 
 .login-button {
   width: 100%;
   margin-top: 8px;
   padding: .5rem 1rem;
-  font-size: 1.25rem;
+  font-size: 1.2rem;
   border-radius: .5rem;
   border: 0;
-  color: #fff;
+  color: #ffffff;
   background-color: #0d6efd;
   cursor: pointer;
   box-shadow: 0 .125rem .25rem rgba(0, 0, 0, .075);
 }
 
-.login-button:disabled {
+.login-button:hover:not(:disabled) {
+  background-color: #0b5ed7;
+}
+
+.login-button:disabled,
+.save-password-button:disabled,
+.cancel-button:disabled {
   opacity: .65;
   cursor: not-allowed;
+}
+
+.change-password-link {
+  margin-top: 14px;
+  padding: 4px 8px;
+  border: 0;
+  background: transparent;
+  color: #0d6efd;
+  font-size: .95rem;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.change-password-link:hover {
+  color: #0a58ca;
+}
+
+.change-password-link:focus-visible {
+  outline: 2px solid #0d6efd;
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+
+.change-password-panel {
+  margin-top: 20px;
+  padding: 20px;
+  border: 1px solid #ced4da;
+  border-radius: .5rem;
+  background-color: #f8f9fa;
+  text-align: left;
+
+  h4 {
+    margin: 0 0 8px;
+    color: #212529;
+    font-size: 1.1rem;
+    text-align: center;
+  }
+}
+
+.change-help {
+  margin: 0 0 18px;
+  color: #6c757d;
+  font-size: .875rem;
+  text-align: center;
+  line-height: 1.4;
+}
+
+.password-rules {
+  margin: -4px 0 16px;
+  color: #6c757d;
+  font-size: .78rem;
+  line-height: 1.4;
+}
+
+.change-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.save-password-button {
+  width: 100%;
+  padding: .6rem 1rem;
+  border: 0;
+  border-radius: .375rem;
+  color: #ffffff;
+  background-color: #198754;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.save-password-button:hover:not(:disabled) {
+  background-color: #157347;
+}
+
+.cancel-button {
+  width: 100%;
+  padding: .55rem 1rem;
+  border: 1px solid #6c757d;
+  border-radius: .375rem;
+  color: #495057;
+  background-color: #ffffff;
+  font-size: .95rem;
+  cursor: pointer;
+}
+
+.cancel-button:hover:not(:disabled) {
+  background-color: #e9ecef;
 }
 
 .alert-error {
   background: #f8d7da;
   color: #842029;
+  border: 1px solid #f5c2c7;
   border-radius: .375rem;
-  padding: .5rem;
+  padding: .6rem;
   margin-bottom: 16px;
+  line-height: 1.4;
+}
+
+.alert-success {
+  background: #d1e7dd;
+  color: #0f5132;
+  border: 1px solid #badbcc;
+  border-radius: .375rem;
+  padding: .6rem;
+  margin-bottom: 16px;
+  line-height: 1.4;
 }
 
 .register-box {
@@ -107,6 +263,10 @@ h3 {
     color: #0d6efd;
     text-decoration: none;
   }
+
+  a:hover {
+    text-decoration: underline;
+  }
 }
 
 .footer-text {
@@ -114,4 +274,20 @@ h3 {
   text-align: center;
   color: #6c757d;
   font-size: .875rem;
+}
+
+@media (max-width: 480px) {
+
+  .login-container {
+    max-width: none;
+    margin: 30px 16px 0;
+  }
+
+  .login-body {
+    padding: 32px 24px;
+  }
+
+  .change-password-panel {
+    padding: 16px;
+  }
 }

@@ -100,7 +100,8 @@ public class SecurityConfig {
                                 "/*.woff2",
                                 "/api/health",
                                 "/api/auth/login",
-                                "/api/auth/csrf"
+                                "/api/auth/csrf",
+                                "/api/auth/cambiar-password"
                         )
                         .permitAll()
 

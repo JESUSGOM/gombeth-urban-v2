@@ -14,40 +14,329 @@
         </h3>
 
         @if (error) {
-          <div class="alert-error">
+          <div
+            class="alert-error"
+            role="alert">
             {{ error }}
           </div>
         }
 
+        @if (mensajeExito) {
+          <div
+            class="alert-success"
+            role="status">
+            {{ mensajeExito }}
+          </div>
+        }
+
         <div class="form-group">
-          <label>Usuario</label>
+          <label for="login-username">
+            Usuario
+          </label>
+
           <input
+            id="login-username"
             type="text"
+            name="username"
             [(ngModel)]="username"
+            autocomplete="username"
             required
             autofocus>
         </div>
 
         <div class="form-group">
-          <label>Contraseña</label>
-          <input
-            type="password"
-            [(ngModel)]="password"
-            required
-            (keyup.enter)="login()">
+          <label for="login-password">
+            Contraseña
+          </label>
+
+          <div class="password-wrapper">
+
+            <input
+              id="login-password"
+              [type]="
+                mostrarPassword
+                  ? 'text'
+                  : 'password'
+              "
+              name="password"
+              [(ngModel)]="password"
+              autocomplete="current-password"
+              required
+              (keyup.enter)="login()">
+
+            <button
+              type="button"
+              class="password-toggle"
+              (click)="alternarVisibilidadPassword()"
+              [attr.aria-label]="
+                mostrarPassword
+                  ? 'Ocultar contraseña'
+                  : 'Mostrar contraseña'
+              "
+              [attr.title]="
+                mostrarPassword
+                  ? 'Ocultar contraseña'
+                  : 'Mostrar contraseña'
+              ">
+
+              <svg
+                aria-hidden="true"
+                viewBox="0 0 24 24">
+                <path
+                  d="M12 5c-5.5 0-9.5 5.2-9.7 5.4a1 1 0 0 0 0 1.2C2.5 11.8 6.5 17 12 17s9.5-5.2 9.7-5.4a1 1 0 0 0 0-1.2C21.5 10.2 17.5 5 12 5Zm0 10c-3.7 0-6.8-3-7.6-4 .8-1 3.9-4 7.6-4s6.8 3 7.6 4c-.8 1-3.9 4-7.6 4Zm0-6.5A2.5 2.5 0 1 0 12 13.5 2.5 2.5 0 0 0 12 8.5Z">
+                </path>
+              </svg>
+
+            </button>
+
+          </div>
         </div>
 
         <button
+          type="button"
           class="login-button"
           (click)="login()"
           [disabled]="cargando">
-          {{ cargando ? 'Accediendo...' : 'Acceder al sistema' }}
+
+          {{
+            cargando
+              ? 'Accediendo...'
+              : 'Acceder al sistema'
+          }}
+
         </button>
+
+        <button
+          type="button"
+          class="change-password-link"
+          (click)="alternarPanelCambioPassword()"
+          [attr.aria-expanded]="mostrarCambioPassword">
+
+          {{
+            mostrarCambioPassword
+              ? 'Ocultar cambio de contraseña'
+              : 'Cambiar contraseña'
+          }}
+
+        </button>
+
+        @if (mostrarCambioPassword) {
+
+          <section class="change-password-panel">
+
+            <h4>
+              Cambiar contraseña
+            </h4>
+
+            <p class="change-help">
+              Introduzca su contraseña actual y la nueva contraseña.
+            </p>
+
+            @if (errorCambio) {
+              <div
+                class="alert-error"
+                role="alert">
+                {{ errorCambio }}
+              </div>
+            }
+
+            <div class="form-group">
+              <label for="change-username">
+                Usuario
+              </label>
+
+              <input
+                id="change-username"
+                type="text"
+                name="changeUsername"
+                [(ngModel)]="cambioUsername"
+                autocomplete="username"
+                required>
+            </div>
+
+            <div class="form-group">
+              <label for="current-password">
+                Contraseña actual
+              </label>
+
+              <div class="password-wrapper">
+
+                <input
+                  id="current-password"
+                  [type]="
+                    mostrarPasswordActual
+                      ? 'text'
+                      : 'password'
+                  "
+                  name="passwordActual"
+                  [(ngModel)]="passwordActual"
+                  autocomplete="current-password"
+                  required>
+
+                <button
+                  type="button"
+                  class="password-toggle"
+                  (click)="alternarVisibilidadPasswordActual()"
+                  [attr.aria-label]="
+                    mostrarPasswordActual
+                      ? 'Ocultar contraseña actual'
+                      : 'Mostrar contraseña actual'
+                  "
+                  [attr.title]="
+                    mostrarPasswordActual
+                      ? 'Ocultar contraseña actual'
+                      : 'Mostrar contraseña actual'
+                  ">
+
+                  <svg
+                    aria-hidden="true"
+                    viewBox="0 0 24 24">
+                    <path
+                      d="M12 5c-5.5 0-9.5 5.2-9.7 5.4a1 1 0 0 0 0 1.2C2.5 11.8 6.5 17 12 17s9.5-5.2 9.7-5.4a1 1 0 0 0 0-1.2C21.5 10.2 17.5 5 12 5Zm0 10c-3.7 0-6.8-3-7.6-4 .8-1 3.9-4 7.6-4s6.8 3 7.6 4c-.8 1-3.9 4-7.6 4Zm0-6.5A2.5 2.5 0 1 0 12 13.5 2.5 2.5 0 0 0 12 8.5Z">
+                    </path>
+                  </svg>
+
+                </button>
+
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="new-password">
+                Nueva contraseña
+              </label>
+
+              <div class="password-wrapper">
+
+                <input
+                  id="new-password"
+                  [type]="
+                    mostrarNuevaPassword
+                      ? 'text'
+                      : 'password'
+                  "
+                  name="nuevaPassword"
+                  [(ngModel)]="nuevaPassword"
+                  autocomplete="new-password"
+                  required>
+
+                <button
+                  type="button"
+                  class="password-toggle"
+                  (click)="alternarVisibilidadNuevaPassword()"
+                  [attr.aria-label]="
+                    mostrarNuevaPassword
+                      ? 'Ocultar nueva contraseña'
+                      : 'Mostrar nueva contraseña'
+                  "
+                  [attr.title]="
+                    mostrarNuevaPassword
+                      ? 'Ocultar nueva contraseña'
+                      : 'Mostrar nueva contraseña'
+                  ">
+
+                  <svg
+                    aria-hidden="true"
+                    viewBox="0 0 24 24">
+                    <path
+                      d="M12 5c-5.5 0-9.5 5.2-9.7 5.4a1 1 0 0 0 0 1.2C2.5 11.8 6.5 17 12 17s9.5-5.2 9.7-5.4a1 1 0 0 0 0-1.2C21.5 10.2 17.5 5 12 5Zm0 10c-3.7 0-6.8-3-7.6-4 .8-1 3.9-4 7.6-4s6.8 3 7.6 4c-.8 1-3.9 4-7.6 4Zm0-6.5A2.5 2.5 0 1 0 12 13.5 2.5 2.5 0 0 0 12 8.5Z">
+                    </path>
+                  </svg>
+
+                </button>
+
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="confirm-password">
+                Confirmar nueva contraseña
+              </label>
+
+              <div class="password-wrapper">
+
+                <input
+                  id="confirm-password"
+                  [type]="
+                    mostrarConfirmacionPassword
+                      ? 'text'
+                      : 'password'
+                  "
+                  name="confirmarPassword"
+                  [(ngModel)]="confirmarPassword"
+                  autocomplete="new-password"
+                  required
+                  (keyup.enter)="cambiarPassword()">
+
+                <button
+                  type="button"
+                  class="password-toggle"
+                  (click)="alternarVisibilidadConfirmacion()"
+                  [attr.aria-label]="
+                    mostrarConfirmacionPassword
+                      ? 'Ocultar confirmación'
+                      : 'Mostrar confirmación'
+                  "
+                  [attr.title]="
+                    mostrarConfirmacionPassword
+                      ? 'Ocultar confirmación'
+                      : 'Mostrar confirmación'
+                  ">
+
+                  <svg
+                    aria-hidden="true"
+                    viewBox="0 0 24 24">
+                    <path
+                      d="M12 5c-5.5 0-9.5 5.2-9.7 5.4a1 1 0 0 0 0 1.2C2.5 11.8 6.5 17 12 17s9.5-5.2 9.7-5.4a1 1 0 0 0 0-1.2C21.5 10.2 17.5 5 12 5Zm0 10c-3.7 0-6.8-3-7.6-4 .8-1 3.9-4 7.6-4s6.8 3 7.6 4c-.8 1-3.9 4-7.6 4Zm0-6.5A2.5 2.5 0 1 0 12 13.5 2.5 2.5 0 0 0 12 8.5Z">
+                    </path>
+                  </svg>
+
+                </button>
+
+              </div>
+            </div>
+
+            <p class="password-rules">
+              Mínimo 8 caracteres, con mayúsculas, minúsculas y números.
+            </p>
+
+            <div class="change-actions">
+
+              <button
+                type="button"
+                class="save-password-button"
+                (click)="cambiarPassword()"
+                [disabled]="cambiandoPassword">
+
+                {{
+                  cambiandoPassword
+                    ? 'Guardando...'
+                    : 'Guardar nueva contraseña'
+                }}
+
+              </button>
+
+              <button
+                type="button"
+                class="cancel-button"
+                (click)="cancelarCambioPassword()"
+                [disabled]="cambiandoPassword">
+
+                Cancelar
+
+              </button>
+
+            </div>
+
+          </section>
+        }
 
         <div class="register-box">
           <p>
             ¿No tienes cuenta?
-            <a href="#">Regístrate aquí</a>
+            <a href="#">
+              Regístrate aquí
+            </a>
           </p>
         </div>
 
