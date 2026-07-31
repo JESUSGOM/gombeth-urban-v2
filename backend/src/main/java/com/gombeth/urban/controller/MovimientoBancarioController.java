@@ -196,7 +196,8 @@ public class MovimientoBancarioController {
             return conciliacionBancariaService
                     .conciliarMovimientoConRecibos(
                             movimiento.getId(),
-                            request.reciboIds()
+                            request.reciboIds(),
+                            usuarioId
                     );
         } catch (IllegalArgumentException excepcion) {
             throw new ResponseStatusException(

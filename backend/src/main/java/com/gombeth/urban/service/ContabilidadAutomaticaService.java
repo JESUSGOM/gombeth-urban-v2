@@ -66,15 +66,30 @@ public class ContabilidadAutomaticaService {
             ContabilidadRecibo recibo,
             MovimientoBancario movimiento
     ) {
+        registrarCobroRecibo(
+                recibo,
+                movimiento,
+                null
+        );
+    }
+
+    @Transactional
+    public void registrarCobroRecibo(
+            ContabilidadRecibo recibo,
+            MovimientoBancario movimiento,
+            Long usuarioId
+    ) {
         registrarCobroReciboSiNecesario(
                 recibo,
-                movimiento
+                movimiento,
+                usuarioId
         );
     }
 
     private boolean registrarCobroReciboSiNecesario(
             ContabilidadRecibo recibo,
-            MovimientoBancario movimiento
+            MovimientoBancario movimiento,
+            Long usuarioId
     ) {
         if (
                 recibo == null
@@ -153,25 +168,28 @@ public class ContabilidadAutomaticaService {
                 "No existe cuenta bancaria 572 para la comunidad "
         );
 
-        CuentaContable cuentaDeudores = buscarCuentaPorPrefijoConAlternativa(
-                recibo.getComunidadId(),
-                "447",
-                "430",
-                "No existe cuenta de deudores 447 ni 430 para la comunidad "
-        );
+        CuentaContable cuentaDeudores =
+                buscarCuentaPorPrefijoConAlternativa(
+                        recibo.getComunidadId(),
+                        "447",
+                        "430",
+                        "No existe cuenta de deudores 447 ni 430 para la comunidad "
+                );
 
-        LocalDate fecha = movimiento.getFechaOperacion() != null
-                ? movimiento.getFechaOperacion()
-                : LocalDate.now();
+        LocalDate fecha =
+                movimiento.getFechaOperacion() != null
+                        ? movimiento.getFechaOperacion()
+                        : LocalDate.now();
 
-        ContabilidadAsiento asiento = asientoService.crearAsientoAutomatico(
-                recibo.getComunidadId(),
-                fecha,
-                "Cobro recibo " + recibo.getId(),
-                ORIGEN_COBRO_RECIBO,
-                recibo.getId(),
-                null
-        );
+        ContabilidadAsiento asiento =
+                asientoService.crearAsientoAutomatico(
+                        recibo.getComunidadId(),
+                        fecha,
+                        "Cobro recibo " + recibo.getId(),
+                        ORIGEN_COBRO_RECIBO,
+                        recibo.getId(),
+                        usuarioId
+                );
 
         validarIdentificadorAsiento(
                 asiento,
@@ -193,11 +211,18 @@ public class ContabilidadAutomaticaService {
             return false;
         }
 
-        String concepto = "Cobro recibo " + recibo.getId()
-                + " - asiento " + asiento.getNumeroAsiento();
+        String concepto =
+                "Cobro recibo " + recibo.getId()
+                        + " - asiento "
+                        + asiento.getNumeroAsiento();
 
-        ContabilidadMovimiento debeBanco = new ContabilidadMovimiento();
-        debeBanco.setComunidadId(recibo.getComunidadId());
+        ContabilidadMovimiento debeBanco =
+                new ContabilidadMovimiento();
+
+        debeBanco.setComunidadId(
+                recibo.getComunidadId()
+        );
+
         debeBanco.setFecha(fecha);
         debeBanco.setNumeroAsiento(numeroAsientoControl);
         debeBanco.setConcepto(concepto);
@@ -205,8 +230,13 @@ public class ContabilidadAutomaticaService {
         debeBanco.setDebe(importe);
         debeBanco.setHaber(BigDecimal.ZERO);
 
-        ContabilidadMovimiento haberDeudores = new ContabilidadMovimiento();
-        haberDeudores.setComunidadId(recibo.getComunidadId());
+        ContabilidadMovimiento haberDeudores =
+                new ContabilidadMovimiento();
+
+        haberDeudores.setComunidadId(
+                recibo.getComunidadId()
+        );
+
         haberDeudores.setFecha(fecha);
         haberDeudores.setNumeroAsiento(numeroAsientoControl);
         haberDeudores.setConcepto(concepto);
@@ -221,19 +251,25 @@ public class ContabilidadAutomaticaService {
     }
 
     @Transactional
-    public void registrarDevengoRecibo(ContabilidadRecibo recibo) {
-
-        if (recibo == null || recibo.getId() == null) {
+    public void registrarDevengoRecibo(
+            ContabilidadRecibo recibo
+    ) {
+        if (
+                recibo == null
+                        || recibo.getId() == null
+        ) {
             return;
         }
 
-        String numeroAsientoControl = "DEVENGO-RECIBO-" + recibo.getId();
+        String numeroAsientoControl =
+                "DEVENGO-RECIBO-" + recibo.getId();
 
         boolean yaExiste =
-                movimientoRepository.existsByComunidadIdAndNumeroAsiento(
-                        recibo.getComunidadId(),
-                        numeroAsientoControl
-                );
+                movimientoRepository
+                        .existsByComunidadIdAndNumeroAsiento(
+                                recibo.getComunidadId(),
+                                numeroAsientoControl
+                        );
 
         if (yaExiste) {
             return;
@@ -257,7 +293,10 @@ public class ContabilidadAutomaticaService {
 
         BigDecimal importe = recibo.getImporte();
 
-        if (importe == null || importe.compareTo(BigDecimal.ZERO) <= 0) {
+        if (
+                importe == null
+                        || importe.compareTo(BigDecimal.ZERO) <= 0
+        ) {
             return;
         }
 
@@ -278,10 +317,16 @@ public class ContabilidadAutomaticaService {
 
         String concepto =
                 "Emisión recibo " + recibo.getId()
-                        + " - asiento " + asiento.getNumeroAsiento();
+                        + " - asiento "
+                        + asiento.getNumeroAsiento();
 
-        ContabilidadMovimiento debeDeudores = new ContabilidadMovimiento();
-        debeDeudores.setComunidadId(recibo.getComunidadId());
+        ContabilidadMovimiento debeDeudores =
+                new ContabilidadMovimiento();
+
+        debeDeudores.setComunidadId(
+                recibo.getComunidadId()
+        );
+
         debeDeudores.setFecha(fecha);
         debeDeudores.setNumeroAsiento(numeroAsientoControl);
         debeDeudores.setConcepto(concepto);
@@ -289,8 +334,13 @@ public class ContabilidadAutomaticaService {
         debeDeudores.setDebe(importe);
         debeDeudores.setHaber(BigDecimal.ZERO);
 
-        ContabilidadMovimiento haberIngresos = new ContabilidadMovimiento();
-        haberIngresos.setComunidadId(recibo.getComunidadId());
+        ContabilidadMovimiento haberIngresos =
+                new ContabilidadMovimiento();
+
+        haberIngresos.setComunidadId(
+                recibo.getComunidadId()
+        );
+
         haberIngresos.setFecha(fecha);
         haberIngresos.setNumeroAsiento(numeroAsientoControl);
         haberIngresos.setConcepto(concepto);
@@ -303,19 +353,25 @@ public class ContabilidadAutomaticaService {
     }
 
     @Transactional
-    public int regularizarCobrosConciliadosComunidad(Long comunidadId) {
+    public int regularizarCobrosConciliadosComunidad(
+            Long comunidadId
+    ) {
         List<ContabilidadRecibo> recibos =
-                reciboRepository.findByComunidadIdAndEstadoAndMovimientoBancarioIdIsNotNull(
-                        comunidadId,
-                        "COBRADO"
-                );
+                reciboRepository
+                        .findByComunidadIdAndEstadoAndMovimientoBancarioIdIsNotNull(
+                                comunidadId,
+                                "COBRADO"
+                        );
 
         int generados = 0;
 
         for (ContabilidadRecibo recibo : recibos) {
-            MovimientoBancario movimiento = movimientoBancarioRepository
-                    .findById(recibo.getMovimientoBancarioId())
-                    .orElse(null);
+            MovimientoBancario movimiento =
+                    movimientoBancarioRepository
+                            .findById(
+                                    recibo.getMovimientoBancarioId()
+                            )
+                            .orElse(null);
 
             if (movimiento == null) {
                 continue;
@@ -324,7 +380,8 @@ public class ContabilidadAutomaticaService {
             boolean generado =
                     registrarCobroReciboSiNecesario(
                             recibo,
-                            movimiento
+                            movimiento,
+                            null
                     );
 
             if (generado) {
@@ -336,64 +393,103 @@ public class ContabilidadAutomaticaService {
     }
 
     @Transactional
-    public void contabilizarGasto(Long gastoId) {
+    public void contabilizarGasto(
+            Long gastoId
+    ) {
+        ContabilidadGasto gasto =
+                gastoRepository.findById(gastoId)
+                        .orElseThrow(() ->
+                                new IllegalStateException(
+                                        "No existe el gasto "
+                                                + gastoId
+                                )
+                        );
 
-        ContabilidadGasto gasto = gastoRepository.findById(gastoId)
-                .orElseThrow(() ->
-                        new IllegalStateException("No existe el gasto " + gastoId)
-                );
-
-        if (gasto.getNumeroAsiento() != null && !gasto.getNumeroAsiento().isBlank()) {
+        if (
+                gasto.getNumeroAsiento() != null
+                        && !gasto.getNumeroAsiento().isBlank()
+        ) {
             return;
         }
 
         if (gasto.getComunidadId() == null) {
-            throw new IllegalStateException("El gasto no tiene comunidad asociada.");
+            throw new IllegalStateException(
+                    "El gasto no tiene comunidad asociada."
+            );
         }
 
         if (gasto.getCuentaGastoId() == null) {
-            throw new IllegalStateException("El gasto no tiene cuenta de gasto asociada.");
+            throw new IllegalStateException(
+                    "El gasto no tiene cuenta de gasto asociada."
+            );
         }
 
-        if (gasto.getImporteTotal() == null || gasto.getImporteTotal().compareTo(BigDecimal.ZERO) <= 0) {
-            throw new IllegalStateException("El gasto no tiene importe válido.");
+        if (
+                gasto.getImporteTotal() == null
+                        || gasto.getImporteTotal()
+                        .compareTo(BigDecimal.ZERO) <= 0
+        ) {
+            throw new IllegalStateException(
+                    "El gasto no tiene importe válido."
+            );
         }
 
-        CuentaContable cuentaProveedor = buscarCuentaPorPrefijo(
-                gasto.getComunidadId(),
-                "410",
-                "No existe cuenta de proveedor 410 para la comunidad "
+        CuentaContable cuentaProveedor =
+                buscarCuentaPorPrefijo(
+                        gasto.getComunidadId(),
+                        "410",
+                        "No existe cuenta de proveedor 410 para la comunidad "
+                );
+
+        LocalDate fecha =
+                gasto.getFechaFactura() != null
+                        ? gasto.getFechaFactura()
+                        : LocalDate.now();
+
+        ContabilidadAsiento asiento =
+                asientoService.crearAsientoAutomatico(
+                        gasto.getComunidadId(),
+                        fecha,
+                        "Factura proveedor "
+                                + gasto.getProveedor(),
+                        "GASTO_CONTABILIZADO",
+                        gasto.getId(),
+                        null
+                );
+
+        String numeroAsientoControl =
+                "GASTO-" + gasto.getId();
+
+        String concepto =
+                "Factura "
+                        + gasto.getNumeroFactura()
+                        + " - "
+                        + gasto.getProveedor();
+
+        ContabilidadMovimiento debeGasto =
+                new ContabilidadMovimiento();
+
+        debeGasto.setComunidadId(
+                gasto.getComunidadId()
         );
 
-        LocalDate fecha = gasto.getFechaFactura() != null
-                ? gasto.getFechaFactura()
-                : LocalDate.now();
-
-        ContabilidadAsiento asiento = asientoService.crearAsientoAutomatico(
-                gasto.getComunidadId(),
-                fecha,
-                "Factura proveedor " + gasto.getProveedor(),
-                "GASTO_CONTABILIZADO",
-                gasto.getId(),
-                null
-        );
-
-        String numeroAsientoControl = "GASTO-" + gasto.getId();
-
-        ContabilidadMovimiento debeGasto = new ContabilidadMovimiento();
-        debeGasto.setComunidadId(gasto.getComunidadId());
         debeGasto.setFecha(fecha);
         debeGasto.setNumeroAsiento(numeroAsientoControl);
-        debeGasto.setConcepto("Factura " + gasto.getNumeroFactura() + " - " + gasto.getProveedor());
+        debeGasto.setConcepto(concepto);
         debeGasto.setCuentaId(gasto.getCuentaGastoId());
         debeGasto.setDebe(gasto.getImporteTotal());
         debeGasto.setHaber(BigDecimal.ZERO);
 
-        ContabilidadMovimiento haberProveedor = new ContabilidadMovimiento();
-        haberProveedor.setComunidadId(gasto.getComunidadId());
+        ContabilidadMovimiento haberProveedor =
+                new ContabilidadMovimiento();
+
+        haberProveedor.setComunidadId(
+                gasto.getComunidadId()
+        );
+
         haberProveedor.setFecha(fecha);
         haberProveedor.setNumeroAsiento(numeroAsientoControl);
-        haberProveedor.setConcepto("Factura " + gasto.getNumeroFactura() + " - " + gasto.getProveedor());
+        haberProveedor.setConcepto(concepto);
         haberProveedor.setCuentaId(cuentaProveedor.getId());
         haberProveedor.setDebe(BigDecimal.ZERO);
         haberProveedor.setHaber(gasto.getImporteTotal());
@@ -401,7 +497,12 @@ public class ContabilidadAutomaticaService {
         movimientoRepository.save(debeGasto);
         movimientoRepository.save(haberProveedor);
 
-        gasto.setNumeroAsiento("GASTO-" + gasto.getId() + "-ASIENTO-" + asiento.getNumeroAsiento());
+        gasto.setNumeroAsiento(
+                "GASTO-"
+                        + gasto.getId()
+                        + "-ASIENTO-"
+                        + asiento.getNumeroAsiento()
+        );
 
         gastoRepository.save(gasto);
     }
@@ -432,7 +533,11 @@ public class ContabilidadAutomaticaService {
                         comunidadId,
                         prefijo
                 )
-                .orElseThrow(() -> new IllegalStateException(mensajeError + comunidadId));
+                .orElseThrow(() ->
+                        new IllegalStateException(
+                                mensajeError + comunidadId
+                        )
+                );
     }
 
     private CuentaContable buscarCuentaPorPrefijoConAlternativa(
@@ -442,10 +547,11 @@ public class ContabilidadAutomaticaService {
             String mensajeError
     ) {
         Optional<CuentaContable> cuentaPrincipal =
-                cuentaRepository.findFirstByComunidad_IdAndCodigoStartingWithOrderByCodigoAsc(
-                        comunidadId,
-                        prefijoPrincipal
-                );
+                cuentaRepository
+                        .findFirstByComunidad_IdAndCodigoStartingWithOrderByCodigoAsc(
+                                comunidadId,
+                                prefijoPrincipal
+                        );
 
         if (cuentaPrincipal.isPresent()) {
             return cuentaPrincipal.get();
@@ -456,6 +562,10 @@ public class ContabilidadAutomaticaService {
                         comunidadId,
                         prefijoAlternativo
                 )
-                .orElseThrow(() -> new IllegalStateException(mensajeError + comunidadId));
+                .orElseThrow(() ->
+                        new IllegalStateException(
+                                mensajeError + comunidadId
+                        )
+                );
     }
 }

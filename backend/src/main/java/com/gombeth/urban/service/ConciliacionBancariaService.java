@@ -133,15 +133,33 @@ public class ConciliacionBancariaService {
 
         aplicarConciliacion(
                 movimiento,
-                mismoImporte
+                mismoImporte,
+                null
         );
 
         return true;
     }
 
     /**
+     * Mantiene compatibilidad con las llamadas internas
+     * y pruebas que no proporcionan usuario.
+     */
+    @Transactional
+    public MovimientoBancario conciliarMovimientoConRecibos(
+            Long movimientoId,
+            List<Long> reciboIds
+    ) {
+        return conciliarMovimientoConRecibos(
+                movimientoId,
+                reciboIds,
+                null
+        );
+    }
+
+    /**
      * Concilia manualmente un movimiento bancario con uno
-     * o varios recibos seleccionados.
+     * o varios recibos seleccionados, registrando el usuario
+     * que realiza la operación.
      *
      * La operación es atómica:
      *
@@ -155,7 +173,8 @@ public class ConciliacionBancariaService {
     @Transactional
     public MovimientoBancario conciliarMovimientoConRecibos(
             Long movimientoId,
-            List<Long> reciboIds
+            List<Long> reciboIds,
+            Long usuarioId
     ) {
         if (movimientoId == null) {
             throw new IllegalArgumentException(
@@ -205,7 +224,8 @@ public class ConciliacionBancariaService {
 
         aplicarConciliacion(
                 movimiento,
-                recibos
+                recibos,
+                usuarioId
         );
 
         return movimiento;
@@ -328,7 +348,8 @@ public class ConciliacionBancariaService {
 
     private void aplicarConciliacion(
             MovimientoBancario movimiento,
-            List<ContabilidadRecibo> recibos
+            List<ContabilidadRecibo> recibos,
+            Long usuarioId
     ) {
         for (ContabilidadRecibo recibo : recibos) {
 
@@ -348,11 +369,20 @@ public class ConciliacionBancariaService {
                     recibo.getImporte()
             );
 
-            contabilidadAutomaticaService
-                    .registrarCobroRecibo(
-                            recibo,
-                            movimiento
-                    );
+            if (usuarioId == null) {
+                contabilidadAutomaticaService
+                        .registrarCobroRecibo(
+                                recibo,
+                                movimiento
+                        );
+            } else {
+                contabilidadAutomaticaService
+                        .registrarCobroRecibo(
+                                recibo,
+                                movimiento,
+                                usuarioId
+                        );
+            }
         }
 
         reciboRepository.saveAll(

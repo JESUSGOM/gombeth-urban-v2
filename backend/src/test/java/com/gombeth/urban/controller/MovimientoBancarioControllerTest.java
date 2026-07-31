@@ -1,5 +1,6 @@
 package com.gombeth.urban.controller;
 
+import com.gombeth.urban.dto.ConciliacionRequest;
 import com.gombeth.urban.entity.Comunidad;
 import com.gombeth.urban.entity.MovimientoBancario;
 import com.gombeth.urban.entity.Usuario;
@@ -18,6 +19,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -59,8 +61,50 @@ class MovimientoBancarioControllerTest {
     @Mock
     private Comunidad comunidad;
 
+    @Mock
+    private ConciliacionRequest conciliacionRequest;
+
     @InjectMocks
     private MovimientoBancarioController controller;
+
+    @Test
+    void conciliarMovimientoAutorizadoPropagaElUsuario() {
+        prepararAccesoAutorizado();
+
+        when(
+                conciliacionRequest.reciboIds()
+        ).thenReturn(
+                List.of(1554L)
+        );
+
+        when(
+                conciliacionBancariaService
+                        .conciliarMovimientoConRecibos(
+                                328L,
+                                List.of(1554L),
+                                4L
+                        )
+        ).thenReturn(movimiento);
+
+        MovimientoBancario resultado =
+                controller.conciliar(
+                        328L,
+                        4L,
+                        conciliacionRequest
+                );
+
+        assertSame(
+                movimiento,
+                resultado
+        );
+
+        verify(conciliacionBancariaService)
+                .conciliarMovimientoConRecibos(
+                        328L,
+                        List.of(1554L),
+                        4L
+                );
+    }
 
     @Test
     void desconciliarMovimientoAutorizadoLlamaAlServicio() {
