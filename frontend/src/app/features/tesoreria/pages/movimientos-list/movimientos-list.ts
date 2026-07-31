@@ -1,16 +1,17 @@
 import {
   Component,
   OnInit,
+  OnDestroy,
   inject,
   ChangeDetectorRef
 } from '@angular/core';
 
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Subscription } from 'rxjs';
 import { MovimientoBancario } from '../../../../core/models/movimiento-bancario.model';
 import { MovimientoBancarioService } from '../../../../core/services/movimiento-bancario.service';
-import { Comunidad } from '../../../../core/models/comunidad.model';
-import { ComunidadService } from '../../../../core/services/comunidad';
+import { ComunidadStateService } from '../../../../core/state/comunidad-state.service';
 
 @Component({
   selector: 'app-movimientos-list',
@@ -18,15 +19,16 @@ import { ComunidadService } from '../../../../core/services/comunidad';
   templateUrl: './movimientos-list.html',
   styleUrl: './movimientos-list.scss'
 })
-export class MovimientosList implements OnInit {
+export class MovimientosList implements OnInit, OnDestroy {
 
   private movimientoService = inject(MovimientoBancarioService);
-  private comunidadService = inject(ComunidadService);
+  private comunidadState = inject(ComunidadStateService);
   private cdr = inject(ChangeDetectorRef);
+
+  private comunidadSubscription?: Subscription;
 
   movimientos: MovimientoBancario[] = [];
   movimientosFiltrados: MovimientoBancario[] = [];
-  comunidades: Comunidad[] = [];
 
   nombreComunidadFiltro = '';
   resumenTesoreria: any = null;
@@ -64,30 +66,39 @@ export class MovimientosList implements OnInit {
   movimientoDesconciliandoId: number | null = null;
 
   ngOnInit(): void {
-    this.cargarComunidadesUsuario();
-  }
+    this.comunidadState.init();
 
-  cargarComunidadesUsuario(): void {
-    this.comunidadService
-      .getComunidades(
-        0,
-        500
-      )
-      .subscribe({
-        next: (response) => {
-          this.comunidades = response.content || [];
+    this.comunidadSubscription =
+      this.comunidadState.comunidad$
+        .subscribe((comunidad) => {
 
-          if (this.comunidades.length > 0) {
-            this.comunidadId = this.comunidades[0].id!;
-            this.cargarMovimientos();
+          if (!comunidad) {
+            this.comunidadId = null;
+            this.nombreComunidadFiltro = '';
+            this.movimientos = [];
+            this.movimientosFiltrados = [];
+            this.resumenTesoreria = null;
+            this.mostrarMovimientos = true;
+            this.movimientoSeleccionado = null;
+            this.cargando = false;
+            this.error =
+              'Debe seleccionar una comunidad para ver sus movimientos bancarios.';
+
+            this.cdr.detectChanges();
+            return;
           }
 
-          this.cdr.detectChanges();
-        },
-        error: (err) => {
-          console.error('Error cargando comunidades', err);
-        }
-      });
+          this.comunidadId = comunidad.id;
+          this.nombreComunidadFiltro =
+            comunidad.nombre;
+
+          this.volverMovimientos();
+          this.cargarMovimientos();
+        });
+  }
+
+  ngOnDestroy(): void {
+    this.comunidadSubscription?.unsubscribe();
   }
 
   cargarMovimientos(): void {

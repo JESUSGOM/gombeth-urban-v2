@@ -609,3 +609,26 @@ button:disabled {
   font-weight: 700;
 
 }
+
+.page-heading {
+  min-width: 0;
+}
+
+.title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.title-row h2 {
+  margin: 0;
+}
+
+.title-row .comunidad-activa {
+  margin: 0;
+}
+
+.page-subtitle {
+  margin-top: 0.25rem;
+}

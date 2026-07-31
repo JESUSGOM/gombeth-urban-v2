@@ -1,14 +1,26 @@
 <div class="movimientos-page">
 
   <div class="page-header">
-    <div>
-      <h2>Tesorería - Movimientos bancarios</h2>
-      <p>Listado de movimientos importados desde Norma 43</p>
 
-      <p class="comunidad-activa">
-        Comunidad:
-        <strong>{{ nombreComunidadFiltro || 'Todas las comunidades' }}</strong>
+    <div class="page-heading">
+
+      <div class="title-row">
+
+        <h2>Tesorería - Movimientos bancarios</h2>
+
+        <p class="comunidad-activa">
+          Comunidad:
+          <strong>
+            {{ nombreComunidadFiltro || 'Todas las comunidades' }}
+          </strong>
+        </p>
+
+      </div>
+
+      <p class="page-subtitle">
+        Listado de movimientos importados desde Norma 43
       </p>
+
     </div>
 
     <button
@@ -17,22 +29,11 @@
       (click)="cargarMovimientos()">
       Actualizar
     </button>
+
   </div>
 
   <div class="filters-card">
 
-    <label>
-      Comunidad
-      <select
-        [(ngModel)]="comunidadId"
-        (change)="cargarMovimientos()">
-        <option
-          *ngFor="let c of comunidades"
-          [ngValue]="c.id">
-          {{ c.nombre }}
-        </option>
-      </select>
-    </label>
 
     <label>
       Fecha desde
