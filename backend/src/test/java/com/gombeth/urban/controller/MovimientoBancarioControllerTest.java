@@ -1,15 +1,12 @@
 package com.gombeth.urban.controller;
 
 import com.gombeth.urban.dto.ConciliacionRequest;
-import com.gombeth.urban.entity.Comunidad;
 import com.gombeth.urban.entity.MovimientoBancario;
-import com.gombeth.urban.entity.Usuario;
 import com.gombeth.urban.repository.ComunidadRepository;
 import com.gombeth.urban.repository.ContabilidadReciboRepository;
 import com.gombeth.urban.repository.MovimientoBancarioRepository;
-import com.gombeth.urban.repository.UsuarioComunidadRepository;
-import com.gombeth.urban.repository.UsuarioRepository;
 import com.gombeth.urban.repository.VecinoRepository;
+import com.gombeth.urban.service.AccesoComunidadService;
 import com.gombeth.urban.service.ConciliacionBancariaService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -17,6 +14,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
@@ -25,7 +23,9 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -44,32 +44,35 @@ class MovimientoBancarioControllerTest {
     private ComunidadRepository comunidadRepository;
 
     @Mock
-    private UsuarioRepository usuarioRepository;
+    private AccesoComunidadService accesoComunidadService;
 
     @Mock
-    private UsuarioComunidadRepository usuarioComunidadRepository;
-
-    @Mock
-    private ConciliacionBancariaService conciliacionBancariaService;
+    private ConciliacionBancariaService
+            conciliacionBancariaService;
 
     @Mock
     private MovimientoBancario movimiento;
 
     @Mock
-    private Usuario usuario;
-
-    @Mock
-    private Comunidad comunidad;
-
-    @Mock
     private ConciliacionRequest conciliacionRequest;
+
+    @Mock
+    private Authentication authentication;
 
     @InjectMocks
     private MovimientoBancarioController controller;
 
     @Test
-    void conciliarMovimientoAutorizadoPropagaElUsuario() {
-        prepararAccesoAutorizado();
+    void conciliarUsaElUsuarioDeLaSesion() {
+        prepararMovimientoAutorizado();
+
+        when(
+                accesoComunidadService.obtenerUsuarioId(
+                        authentication
+                )
+        ).thenReturn(
+                4L
+        );
 
         when(
                 conciliacionRequest.reciboIds()
@@ -84,19 +87,27 @@ class MovimientoBancarioControllerTest {
                                 List.of(1554L),
                                 4L
                         )
-        ).thenReturn(movimiento);
+        ).thenReturn(
+                movimiento
+        );
 
         MovimientoBancario resultado =
                 controller.conciliar(
                         328L,
-                        4L,
-                        conciliacionRequest
+                        conciliacionRequest,
+                        authentication
                 );
 
         assertSame(
                 movimiento,
                 resultado
         );
+
+        verify(accesoComunidadService)
+                .validarAcceso(
+                        authentication,
+                        33L
+                );
 
         verify(conciliacionBancariaService)
                 .conciliarMovimientoConRecibos(
@@ -107,8 +118,16 @@ class MovimientoBancarioControllerTest {
     }
 
     @Test
-    void desconciliarMovimientoAutorizadoLlamaAlServicio() {
-        prepararAccesoAutorizado();
+    void desconciliarUsaElUsuarioDeLaSesion() {
+        prepararMovimientoAutorizado();
+
+        when(
+                accesoComunidadService.obtenerUsuarioId(
+                        authentication
+                )
+        ).thenReturn(
+                4L
+        );
 
         when(
                 conciliacionBancariaService
@@ -117,12 +136,14 @@ class MovimientoBancarioControllerTest {
                                 4L,
                                 null
                         )
-        ).thenReturn(movimiento);
+        ).thenReturn(
+                movimiento
+        );
 
         MovimientoBancario resultado =
                 controller.desconciliar(
                         328L,
-                        4L
+                        authentication
                 );
 
         assertSame(
@@ -140,7 +161,15 @@ class MovimientoBancarioControllerTest {
 
     @Test
     void desconciliarMovimientoNoConciliadoDevuelveConflicto() {
-        prepararAccesoAutorizado();
+        prepararMovimientoAutorizado();
+
+        when(
+                accesoComunidadService.obtenerUsuarioId(
+                        authentication
+                )
+        ).thenReturn(
+                4L
+        );
 
         when(
                 conciliacionBancariaService
@@ -158,11 +187,10 @@ class MovimientoBancarioControllerTest {
         ResponseStatusException excepcion =
                 assertThrows(
                         ResponseStatusException.class,
-                        () ->
-                                controller.desconciliar(
-                                        328L,
-                                        4L
-                                )
+                        () -> controller.desconciliar(
+                                328L,
+                                authentication
+                        )
                 );
 
         assertEquals(
@@ -176,7 +204,54 @@ class MovimientoBancarioControllerTest {
         );
     }
 
-    private void prepararAccesoAutorizado() {
+    @Test
+    void bloqueaMovimientoDeOtraComunidad() {
+        when(
+                repository.findById(328L)
+        ).thenReturn(
+                Optional.of(movimiento)
+        );
+
+        when(
+                movimiento.getComunidadId()
+        ).thenReturn(
+                33L
+        );
+
+        doThrow(
+                new ResponseStatusException(
+                        HttpStatus.FORBIDDEN,
+                        "No tiene permisos para acceder "
+                                + "a esta comunidad."
+                )
+        ).when(
+                accesoComunidadService
+        ).validarAcceso(
+                authentication,
+                33L
+        );
+
+        ResponseStatusException excepcion =
+                assertThrows(
+                        ResponseStatusException.class,
+                        () -> controller.candidatos(
+                                328L,
+                                authentication
+                        )
+                );
+
+        assertEquals(
+                HttpStatus.FORBIDDEN,
+                excepcion.getStatusCode()
+        );
+
+        verifyNoInteractions(
+                reciboRepository,
+                conciliacionBancariaService
+        );
+    }
+
+    private void prepararMovimientoAutorizado() {
         when(
                 repository.findById(328L)
         ).thenReturn(
@@ -185,26 +260,14 @@ class MovimientoBancarioControllerTest {
 
         when(
                 movimiento.getId()
-        ).thenReturn(328L);
+        ).thenReturn(
+                328L
+        );
 
         when(
                 movimiento.getComunidadId()
-        ).thenReturn(33L);
-
-        when(
-                usuarioRepository.findById(4L)
         ).thenReturn(
-                Optional.of(usuario)
+                33L
         );
-
-        when(
-                comunidadRepository.findById(33L)
-        ).thenReturn(
-                Optional.of(comunidad)
-        );
-
-        when(
-                comunidad.getUsuarioId()
-        ).thenReturn(4L);
     }
 }

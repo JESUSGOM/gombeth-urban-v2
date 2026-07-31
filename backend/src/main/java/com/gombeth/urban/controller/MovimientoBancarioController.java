@@ -9,17 +9,22 @@ import com.gombeth.urban.dto.ResumenTesoreriaResponse;
 import com.gombeth.urban.entity.Comunidad;
 import com.gombeth.urban.entity.ContabilidadRecibo;
 import com.gombeth.urban.entity.MovimientoBancario;
-import com.gombeth.urban.entity.Usuario;
 import com.gombeth.urban.entity.Vecino;
 import com.gombeth.urban.repository.ComunidadRepository;
 import com.gombeth.urban.repository.ContabilidadReciboRepository;
 import com.gombeth.urban.repository.MovimientoBancarioRepository;
-import com.gombeth.urban.repository.UsuarioComunidadRepository;
-import com.gombeth.urban.repository.UsuarioRepository;
 import com.gombeth.urban.repository.VecinoRepository;
+import com.gombeth.urban.service.AccesoComunidadService;
 import com.gombeth.urban.service.ConciliacionBancariaService;
 import org.springframework.http.HttpStatus;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
@@ -38,10 +43,8 @@ public class MovimientoBancarioController {
 
     private final ComunidadRepository comunidadRepository;
 
-    private final UsuarioRepository usuarioRepository;
-
-    private final UsuarioComunidadRepository
-            usuarioComunidadRepository;
+    private final AccesoComunidadService
+            accesoComunidadService;
 
     private final ConciliacionBancariaService
             conciliacionBancariaService;
@@ -51,29 +54,16 @@ public class MovimientoBancarioController {
             ContabilidadReciboRepository reciboRepository,
             VecinoRepository vecinoRepository,
             ComunidadRepository comunidadRepository,
-            UsuarioRepository usuarioRepository,
-            UsuarioComunidadRepository
-                    usuarioComunidadRepository,
+            AccesoComunidadService accesoComunidadService,
             ConciliacionBancariaService
                     conciliacionBancariaService
     ) {
         this.repository = repository;
-
-        this.reciboRepository =
-                reciboRepository;
-
-        this.vecinoRepository =
-                vecinoRepository;
-
-        this.comunidadRepository =
-                comunidadRepository;
-
-        this.usuarioRepository =
-                usuarioRepository;
-
-        this.usuarioComunidadRepository =
-                usuarioComunidadRepository;
-
+        this.reciboRepository = reciboRepository;
+        this.vecinoRepository = vecinoRepository;
+        this.comunidadRepository = comunidadRepository;
+        this.accesoComunidadService =
+                accesoComunidadService;
         this.conciliacionBancariaService =
                 conciliacionBancariaService;
     }
@@ -81,10 +71,10 @@ public class MovimientoBancarioController {
     @GetMapping
     public List<MovimientoBancario> listar(
             @RequestParam Long comunidadId,
-            @RequestParam Long usuarioId
+            Authentication authentication
     ) {
-        validarAccesoComunidad(
-                usuarioId,
+        accesoComunidadService.validarAcceso(
+                authentication,
                 comunidadId
         );
 
@@ -97,12 +87,12 @@ public class MovimientoBancarioController {
     @GetMapping("/{id}/candidatos")
     public List<CandidatoConciliacionResponse> candidatos(
             @PathVariable Long id,
-            @RequestParam Long usuarioId
+            Authentication authentication
     ) {
         MovimientoBancario movimiento =
                 obtenerMovimientoAutorizado(
                         id,
-                        usuarioId
+                        authentication
                 );
 
         List<ContabilidadRecibo> recibos =
@@ -134,12 +124,12 @@ public class MovimientoBancarioController {
     @GetMapping("/{id}/recibos-pendientes")
     public List<ReciboPendienteResponse> recibosPendientes(
             @PathVariable Long id,
-            @RequestParam Long usuarioId
+            Authentication authentication
     ) {
         MovimientoBancario movimiento =
                 obtenerMovimientoAutorizado(
                         id,
-                        usuarioId
+                        authentication
                 );
 
         return reciboRepository
@@ -183,13 +173,18 @@ public class MovimientoBancarioController {
     @PostMapping("/{id}/conciliar")
     public MovimientoBancario conciliar(
             @PathVariable Long id,
-            @RequestParam Long usuarioId,
-            @RequestBody ConciliacionRequest request
+            @RequestBody ConciliacionRequest request,
+            Authentication authentication
     ) {
         MovimientoBancario movimiento =
                 obtenerMovimientoAutorizado(
                         id,
-                        usuarioId
+                        authentication
+                );
+
+        Long usuarioId =
+                accesoComunidadService.obtenerUsuarioId(
+                        authentication
                 );
 
         try {
@@ -217,12 +212,17 @@ public class MovimientoBancarioController {
     @PostMapping("/{id}/desconciliar")
     public MovimientoBancario desconciliar(
             @PathVariable Long id,
-            @RequestParam Long usuarioId
+            Authentication authentication
     ) {
         MovimientoBancario movimiento =
                 obtenerMovimientoAutorizado(
                         id,
-                        usuarioId
+                        authentication
+                );
+
+        Long usuarioId =
+                accesoComunidadService.obtenerUsuarioId(
+                        authentication
                 );
 
         try {
@@ -250,12 +250,12 @@ public class MovimientoBancarioController {
     @GetMapping("/{id}/contexto")
     public MovimientoContextoResponse contexto(
             @PathVariable Long id,
-            @RequestParam Long usuarioId
+            Authentication authentication
     ) {
         MovimientoBancario movimiento =
                 obtenerMovimientoAutorizado(
                         id,
-                        usuarioId
+                        authentication
                 );
 
         Comunidad comunidad =
@@ -285,121 +285,32 @@ public class MovimientoBancarioController {
     @GetMapping("/comunidad/{comunidadId}/nombre")
     public ComunidadNombreResponse nombreComunidad(
             @PathVariable Long comunidadId,
-            @RequestParam Long usuarioId
+            Authentication authentication
     ) {
-        validarAccesoComunidad(
-                usuarioId,
-                comunidadId
-        );
-
         Comunidad comunidad =
-                comunidadRepository
-                        .findById(comunidadId)
-                        .orElse(null);
-
-        String nombre =
-                comunidad != null
-                        ? comunidad.getNombre()
-                        : "Comunidad " + comunidadId;
-
-        return new ComunidadNombreResponse(
-                comunidadId,
-                nombre
-        );
-    }
-
-    private MovimientoBancario obtenerMovimientoAutorizado(
-            Long movimientoId,
-            Long usuarioId
-    ) {
-        MovimientoBancario movimiento =
-                repository.findById(movimientoId)
-                        .orElseThrow(() ->
-                                new ResponseStatusException(
-                                        HttpStatus.NOT_FOUND,
-                                        "Movimiento no encontrado"
-                                )
-                        );
-
-        validarAccesoComunidad(
-                usuarioId,
-                movimiento.getComunidadId()
-        );
-
-        return movimiento;
-    }
-
-    private void validarAccesoComunidad(
-            Long usuarioId,
-            Long comunidadId
-    ) {
-        Usuario usuario =
-                usuarioRepository.findById(usuarioId)
-                        .orElseThrow(() ->
-                                new ResponseStatusException(
-                                        HttpStatus.FORBIDDEN,
-                                        "Usuario no autorizado"
-                                )
-                        );
-
-        Comunidad comunidad =
-                comunidadRepository
-                        .findById(comunidadId)
-                        .orElseThrow(() ->
-                                new ResponseStatusException(
-                                        HttpStatus.NOT_FOUND,
-                                        "Comunidad no encontrada"
-                                )
-                        );
-
-        boolean esUsuarioDirecto =
-                comunidad.getUsuarioId() != null
-                        && comunidad.getUsuarioId()
-                        .equals(usuarioId);
-
-        boolean esAdministrador =
-                usuario.getAdministradorId() != null
-                        && comunidad.getAdministradorId()
-                        != null
-                        && comunidad.getAdministradorId()
-                        .equals(
-                                usuario.getAdministradorId()
-                        );
-
-        boolean estaAsignado =
-                usuarioComunidadRepository
-                        .existsByUsuarioIdAndComunidadId(
-                                usuarioId,
+                accesoComunidadService
+                        .obtenerComunidadAutorizada(
+                                authentication,
                                 comunidadId
                         );
 
-        if (
-                !esUsuarioDirecto
-                        && !esAdministrador
-                        && !estaAsignado
-        ) {
-            throw new ResponseStatusException(
-                    HttpStatus.FORBIDDEN,
-                    "No tiene permiso para acceder "
-                            + "a esta comunidad"
-            );
-        }
+        return new ComunidadNombreResponse(
+                comunidadId,
+                comunidad.getNombre()
+        );
     }
 
     @GetMapping("/resumen")
     public ResumenTesoreriaResponse resumenTesoreria(
             @RequestParam Long comunidadId,
-            @RequestParam Long usuarioId
+            Authentication authentication
     ) {
-        validarAccesoComunidad(
-                usuarioId,
-                comunidadId
-        );
-
         Comunidad comunidad =
-                comunidadRepository
-                        .findById(comunidadId)
-                        .orElseThrow();
+                accesoComunidadService
+                        .obtenerComunidadAutorizada(
+                                authentication,
+                                comunidadId
+                        );
 
         List<ContabilidadRecibo> recibosPendientes =
                 reciboRepository
@@ -458,5 +369,26 @@ public class MovimientoBancarioController {
                 sinConciliar.size(),
                 importeSinConciliar
         );
+    }
+
+    private MovimientoBancario obtenerMovimientoAutorizado(
+            Long movimientoId,
+            Authentication authentication
+    ) {
+        MovimientoBancario movimiento =
+                repository.findById(movimientoId)
+                        .orElseThrow(() ->
+                                new ResponseStatusException(
+                                        HttpStatus.NOT_FOUND,
+                                        "Movimiento no encontrado"
+                                )
+                        );
+
+        accesoComunidadService.validarAcceso(
+                authentication,
+                movimiento.getComunidadId()
+        );
+
+        return movimiento;
     }
 }
