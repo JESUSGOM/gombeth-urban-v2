@@ -1,48 +1,83 @@
 package com.gombeth.urban.config;
 
 import org.springframework.context.annotation.Configuration;
-import org.springframework.web.servlet.config.annotation.ViewControllerRegistry;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.Resource;
+import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+import org.springframework.web.servlet.resource.PathResourceResolver;
+
+import java.io.IOException;
 
 @Configuration
 public class SpaForwardConfig implements WebMvcConfigurer {
 
+    private static final Resource INDEX_HTML =
+            new ClassPathResource("static/index.html");
+
     @Override
-    public void addViewControllers(
-            ViewControllerRegistry registry
+    public void addResourceHandlers(
+            ResourceHandlerRegistry registry
     ) {
+        registry.addResourceHandler("/**")
+                .addResourceLocations("classpath:/static/")
+                .resourceChain(true)
+                .addResolver(new PathResourceResolver() {
 
-        registry.addViewController("/")
-                .setViewName("forward:/index.html");
+                    @Override
+                    protected Resource getResource(
+                            String resourcePath,
+                            Resource location
+                    ) throws IOException {
 
-        registry.addViewController(
-                        "/{path:[^\\.]*}"
-                )
-                .setViewName("forward:/index.html");
+                        if (
+                                resourcePath == null
+                                        || resourcePath.isBlank()
+                        ) {
+                            return INDEX_HTML;
+                        }
 
-        registry.addViewController(
-                        "/{path1:[^\\.]*}/{path2:[^\\.]*}"
-                )
-                .setViewName("forward:/index.html");
+                        Resource recursoSolicitado =
+                                super.getResource(
+                                        resourcePath,
+                                        location
+                                );
 
-        registry.addViewController(
-                        "/{path1:[^\\.]*}/{path2:[^\\.]*}/{path3:[^\\.]*}"
-                )
-                .setViewName("forward:/index.html");
+                        if (recursoSolicitado != null) {
+                            return recursoSolicitado;
+                        }
 
-        registry.addViewController(
-                        "/vecinos/nuevo/comunidad/{comunidadId}"
-                )
-                .setViewName("forward:/index.html");
+                        if (esRutaAngular(resourcePath)) {
+                            return INDEX_HTML;
+                        }
 
-        registry.addViewController(
-                        "/conceptos/comunidad/{comunidadId}/nuevo"
-                )
-                .setViewName("forward:/index.html");
+                        return null;
+                    }
+                });
+    }
 
-        registry.addViewController(
-                        "/conceptos/comunidad/{comunidadId}/editar/{conceptoId}"
-                )
-                .setViewName("forward:/index.html");
+    private boolean esRutaAngular(
+            String resourcePath
+    ) {
+        String rutaNormalizada =
+                resourcePath.replace('\\', '/');
+
+        if (
+                rutaNormalizada.equals("api")
+                        || rutaNormalizada.startsWith("api/")
+                        || rutaNormalizada.equals("error")
+                        || rutaNormalizada.startsWith("error/")
+        ) {
+            return false;
+        }
+
+        /*
+         * Los archivos estáticos contienen una extensión:
+         * .js, .css, .png, .ico, .woff, etc.
+         *
+         * Si un archivo no existe, debe devolver 404 y no
+         * responder incorrectamente con index.html.
+         */
+        return !rutaNormalizada.contains(".");
     }
 }
