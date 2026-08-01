@@ -5,8 +5,8 @@ title Gombeth Urban
 
 set "ROOT=%~dp0"
 set "BACKEND=%ROOT%backend"
-set "FRONTEND=%ROOT%frontend"
 set "CONFIG=%BACKEND%\config\application-local.properties"
+set "JAR=%BACKEND%\target\GombethUrban-1.0.0.jar"
 
 echo =====================================
 echo   INICIANDO GOMBETH URBAN
@@ -19,51 +19,40 @@ if not exist "%CONFIG%" (
     echo.
     echo %CONFIG%
     echo.
-    echo Cree el archivo a partir de:
-    echo backend\src\main\resources\application-example.properties
+    pause
+    exit /b 1
+)
+
+if not exist "%JAR%" (
+    echo ERROR:
+    echo No existe el JAR ejecutable:
+    echo.
+    echo %JAR%
+    echo.
+    echo Compile primero Angular y el backend.
     echo.
     pause
     exit /b 1
 )
 
-if not exist "%BACKEND%\mvnw.cmd" (
-    echo ERROR: no se encuentra backend\mvnw.cmd
-    pause
-    exit /b 1
-)
-
-if not exist "%FRONTEND%\package.json" (
-    echo ERROR: no se encuentra frontend\package.json
-    pause
-    exit /b 1
-)
-
-echo Arrancando BACKEND con perfiles prod,local...
+echo Arrancando Gombeth Urban...
 
 start "Gombeth Urban - Backend" powershell -NoExit -NoProfile -Command ^
-    "Set-Location '%BACKEND%'; .\mvnw.cmd spring-boot:run '-Dspring-boot.run.profiles=prod,local'"
-
-timeout /t 10 /nobreak > nul
-
-echo Arrancando FRONTEND...
-
-start "Gombeth Urban - Frontend" powershell -NoExit -NoProfile -Command ^
-    "Set-Location '%FRONTEND%'; npm start"
+    "Set-Location '%BACKEND%'; java -jar '.\target\GombethUrban-1.0.0.jar' --spring.profiles.active=prod,local"
 
 timeout /t 15 /nobreak > nul
 
 echo Abriendo navegador...
 
-start http://localhost:4200/
+start http://localhost:8080/
 
 echo.
 echo =====================================
 echo Gombeth Urban iniciado
 echo =====================================
 echo.
-echo Backend:  http://localhost:8080
-echo Frontend: http://localhost:4200
-echo Health:   http://localhost:8080/api/health
+echo Aplicacion: http://localhost:8080/
+echo Health:     http://localhost:8080/api/health
 echo.
 
 endlocal
