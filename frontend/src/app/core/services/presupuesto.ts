@@ -7,6 +7,12 @@ import { RepartoPresupuesto } from '../models/reparto-presupuesto.model';
 import { CuotaPresupuesto } from '../models/cuota-presupuesto.model';
 import { PresupuestoRevision } from '../models/presupuesto-revision.model';
 
+export interface PresupuestoAltaRequest {
+  cuentaId: number;
+  anio: number;
+  importe: number;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -24,6 +30,16 @@ export class PresupuestoService {
     );
   }
 
+  crearPartida(
+    comunidadId: number,
+    request: PresupuestoAltaRequest
+  ): Observable<Presupuesto> {
+    return this.http.post<Presupuesto>(
+      `${this.apiUrl}/comunidad/${comunidadId}`,
+      request
+    );
+  }
+
   getResumenComunidad(
     comunidadId: number,
     anio: number
@@ -37,7 +53,6 @@ export class PresupuestoService {
     comunidadId: number,
     anio: number
   ): Observable<RepartoPresupuesto[]> {
-
     return this.http.get<RepartoPresupuesto[]>(
       `${this.apiUrl}/comunidad/${comunidadId}/reparto?anio=${anio}`
     );
@@ -93,11 +108,9 @@ export class PresupuestoService {
   eliminarRevision(
     revisionId: number
   ): Observable<void> {
-
     return this.http.delete<void>(
       `${this.apiUrl}/revisiones/${revisionId}`
     );
-
   }
 
   generarRecibos(
