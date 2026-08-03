@@ -503,8 +503,10 @@ public class SepaRemesaValidationService {
         }
 
         String limpio =
-                iban.replaceAll("\\s+", "")
-                        .trim()
+                iban.replaceAll(
+                                "[^A-Za-z0-9]",
+                                ""
+                        )
                         .toUpperCase(
                                 Locale.ROOT
                         );
@@ -525,17 +527,23 @@ public class SepaRemesaValidationService {
 
         int resto = 0;
 
-        for (int i = 0; i < reorganizado.length(); i++) {
+        for (
+                int i = 0;
+                i < reorganizado.length();
+                i++
+        ) {
             char caracter =
                     reorganizado.charAt(i);
 
             if (Character.isDigit(caracter)) {
                 resto =
-                        (resto * 10
-                                + Character.digit(
-                                caracter,
-                                10
-                        )) % 97;
+                        (
+                                resto * 10
+                                        + Character.digit(
+                                        caracter,
+                                        10
+                                )
+                        ) % 97;
 
             } else if (
                     caracter >= 'A'
@@ -545,7 +553,10 @@ public class SepaRemesaValidationService {
                         caracter - 'A' + 10;
 
                 resto =
-                        (resto * 100 + valor) % 97;
+                        (
+                                resto * 100
+                                        + valor
+                        ) % 97;
 
             } else {
                 return false;
@@ -558,9 +569,15 @@ public class SepaRemesaValidationService {
     private boolean pareceIdentificadorAcreedorValido(
             String identificador
     ) {
+        if (identificador == null) {
+            return false;
+        }
+
         String limpio =
-                identificador.replace(" ", "")
-                        .trim()
+                identificador.replaceAll(
+                                "[^A-Za-z0-9]",
+                                ""
+                        )
                         .toUpperCase(
                                 Locale.ROOT
                         );
