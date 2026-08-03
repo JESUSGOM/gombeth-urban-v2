@@ -827,8 +827,13 @@ public class PresupuestoController {
                 BigDecimal.ZERO;
 
         if (
-                "IGUALITARIO".equalsIgnoreCase(
-                        metodoReparto
+                (
+                        "PARTES_IGUALES".equalsIgnoreCase(
+                                metodoReparto
+                        )
+                                || "IGUALITARIO".equalsIgnoreCase(
+                                metodoReparto
+                        )
                 )
                         && !vecinos.isEmpty()
         ) {
@@ -858,7 +863,11 @@ public class PresupuestoController {
                     BigDecimal importeAnual;
 
                     if (
-                            "IGUALITARIO"
+                            "PARTES_IGUALES"
+                                    .equalsIgnoreCase(
+                                            metodoReparto
+                                    )
+                                    || "IGUALITARIO"
                                     .equalsIgnoreCase(
                                             metodoReparto
                                     )
