@@ -2,17 +2,23 @@ package com.gombeth.urban.controller;
 
 import com.gombeth.urban.dto.CuotaPresupuestoResponse;
 import com.gombeth.urban.dto.GeneracionCuotasResponse;
+import com.gombeth.urban.dto.PresupuestoAltaRequest;
 import com.gombeth.urban.dto.PresupuestoResponse;
 import com.gombeth.urban.dto.PresupuestoRevisionResponse;
 import com.gombeth.urban.dto.RepartoPresupuestoResponse;
 import com.gombeth.urban.dto.RevisionCuotasRequest;
+import com.gombeth.urban.entity.Comunidad;
 import com.gombeth.urban.entity.ContabilidadRecibo;
+import com.gombeth.urban.entity.CuentaContable;
 import com.gombeth.urban.entity.CuotaPresupuesto;
 import com.gombeth.urban.entity.Presupuesto;
 import com.gombeth.urban.entity.PresupuestoRevision;
+import com.gombeth.urban.entity.TipoCuenta;
 import com.gombeth.urban.entity.Vecino;
 import com.gombeth.urban.repository.ComunidadConfiguracionRepartoRepository;
+import com.gombeth.urban.repository.ComunidadRepository;
 import com.gombeth.urban.repository.ContabilidadReciboRepository;
+import com.gombeth.urban.repository.CuentaContableRepository;
 import com.gombeth.urban.repository.CuotaPresupuestoRepository;
 import com.gombeth.urban.repository.PresupuestoRepository;
 import com.gombeth.urban.repository.PresupuestoRevisionRepository;
@@ -43,6 +49,10 @@ public class PresupuestoController {
 
     private final PresupuestoRepository presupuestoRepository;
 
+    private final ComunidadRepository comunidadRepository;
+
+    private final CuentaContableRepository cuentaContableRepository;
+
     private final VecinoRepository vecinoRepository;
 
     private final CuotaPresupuestoRepository cuotaPresupuestoRepository;
@@ -70,6 +80,8 @@ public class PresupuestoController {
 
     public PresupuestoController(
             PresupuestoRepository presupuestoRepository,
+            ComunidadRepository comunidadRepository,
+            CuentaContableRepository cuentaContableRepository,
             VecinoRepository vecinoRepository,
             CuotaPresupuestoRepository cuotaPresupuestoRepository,
             ComunidadConfiguracionRepartoRepository
@@ -88,6 +100,12 @@ public class PresupuestoController {
     ) {
         this.presupuestoRepository =
                 presupuestoRepository;
+
+        this.comunidadRepository =
+                comunidadRepository;
+
+        this.cuentaContableRepository =
+                cuentaContableRepository;
 
         this.vecinoRepository =
                 vecinoRepository;
@@ -152,6 +170,112 @@ public class PresupuestoController {
                 .toList();
     }
 
+    @PostMapping("/comunidad/{comunidadId}")
+    public PresupuestoResponse crearPartida(
+            @PathVariable Long comunidadId,
+            @RequestBody PresupuestoAltaRequest request,
+            Authentication authentication
+    ) {
+        validarAcceso(
+                authentication,
+                comunidadId
+        );
+
+        if (request == null) {
+            throw new IllegalArgumentException(
+                    "Debe informar los datos de la partida presupuestaria."
+            );
+        }
+
+        if (request.cuentaId() == null) {
+            throw new IllegalArgumentException(
+                    "Debe seleccionar una cuenta contable."
+            );
+        }
+
+        if (request.anio() == null
+                || request.anio() < 2000
+                || request.anio() > 2100) {
+            throw new IllegalArgumentException(
+                    "El año del presupuesto no es válido."
+            );
+        }
+
+        if (request.importe() == null
+                || request.importe().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException(
+                    "El importe debe ser mayor que cero."
+            );
+        }
+
+        Comunidad comunidad =
+                comunidadRepository
+                        .findById(comunidadId)
+                        .orElseThrow(() ->
+                                new IllegalArgumentException(
+                                        "No existe la comunidad "
+                                                + comunidadId
+                                )
+                        );
+
+        CuentaContable cuenta =
+                cuentaContableRepository
+                        .findByIdAndComunidad_Id(
+                                request.cuentaId(),
+                                comunidadId
+                        )
+                        .orElseThrow(() ->
+                                new IllegalArgumentException(
+                                        "La cuenta contable seleccionada "
+                                                + "no pertenece a la comunidad."
+                                )
+                        );
+
+        if (cuenta.getTipo() != TipoCuenta.GASTO) {
+            throw new IllegalArgumentException(
+                    "Solo se pueden presupuestar cuentas de gasto."
+            );
+        }
+
+        if (
+                presupuestoRepository
+                        .existsByComunidad_IdAndCuenta_IdAndAnio(
+                                comunidadId,
+                                request.cuentaId(),
+                                request.anio()
+                        )
+        ) {
+            throw new IllegalStateException(
+                    "Ya existe una partida para esa cuenta y año."
+            );
+        }
+
+        Presupuesto presupuesto =
+                new Presupuesto(
+                        comunidad,
+                        cuenta,
+                        request.anio(),
+                        request.importe().setScale(
+                                2,
+                                RoundingMode.HALF_UP
+                        )
+                );
+
+        Presupuesto guardado =
+                presupuestoRepository.save(
+                        presupuesto
+                );
+
+        return new PresupuestoResponse(
+                guardado.getId(),
+                cuenta.getId(),
+                cuenta.getCodigo(),
+                cuenta.getNombre(),
+                guardado.getAnio(),
+                guardado.getImporte()
+        );
+    }
+
     @GetMapping("/comunidad/{comunidadId}/resumen")
     public BigDecimal resumenPorComunidad(
             @PathVariable Long comunidadId,
@@ -183,6 +307,140 @@ public class PresupuestoController {
         return calcularReparto(
                 comunidadId,
                 anio
+        );
+    }
+
+    @PostMapping("/comunidad/{comunidadId}/generar-borrador-cuotas")
+    public GeneracionCuotasResponse generarBorradorCuotas(
+            @PathVariable Long comunidadId,
+            @RequestParam Integer anio,
+            Authentication authentication
+    ) {
+        validarAcceso(
+                authentication,
+                comunidadId
+        );
+
+        if (anio == null || anio < 2000 || anio > 2100) {
+            throw new IllegalArgumentException(
+                    "El año del presupuesto no es válido."
+            );
+        }
+
+        BigDecimal totalPresupuesto =
+                calcularTotalPresupuesto(
+                        comunidadId,
+                        anio
+                );
+
+        if (totalPresupuesto.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalStateException(
+                    "No se puede generar el borrador "
+                            + "porque el presupuesto total es cero."
+            );
+        }
+
+        List<CuotaPresupuesto> cuotasExistentes =
+                cuotaPresupuestoRepository
+                        .findByComunidadIdAndAnioOrderByIdAsc(
+                                comunidadId,
+                                anio
+                        );
+
+        if (!cuotasExistentes.isEmpty()) {
+            throw new IllegalStateException(
+                    "Ya existen cuotas presupuestarias para "
+                            + "la comunidad y el año indicados."
+            );
+        }
+
+        List<RepartoPresupuestoResponse> reparto =
+                calcularReparto(
+                        comunidadId,
+                        anio
+                );
+
+        if (reparto.isEmpty()) {
+            throw new IllegalStateException(
+                    "No existen propietarios activos para generar cuotas."
+            );
+        }
+
+        int generadas = 0;
+
+        for (RepartoPresupuestoResponse elemento : reparto) {
+            CuotaPresupuesto cuota =
+                    new CuotaPresupuesto();
+
+            cuota.setComunidadId(
+                    comunidadId
+            );
+
+            cuota.setVecinoId(
+                    elemento.getVecinoId()
+            );
+
+            cuota.setAnio(
+                    anio
+            );
+
+            cuota.setMesInicio(
+                    1
+            );
+
+            cuota.setMesFin(
+                    12
+            );
+
+            cuota.setVersion(
+                    1
+            );
+
+            cuota.setRevisionId(
+                    null
+            );
+
+            cuota.setMotivoRevision(
+                    "Presupuesto inicial"
+            );
+
+            cuota.setDescripcion(
+                    "Cuota presupuesto "
+                            + anio
+            );
+
+            cuota.setCoeficiente(
+                    elemento.getCoeficiente()
+            );
+
+            cuota.setImporteAnual(
+                    elemento.getImporteAnual()
+            );
+
+            cuota.setImporteMensual(
+                    elemento.getImporteMensual()
+            );
+
+            cuota.setEstado(
+                    "BORRADOR"
+            );
+
+            cuota.setFechaGeneracion(
+                    LocalDateTime.now()
+            );
+
+            cuotaPresupuestoRepository.save(
+                    cuota
+            );
+
+            generadas++;
+        }
+
+        return new GeneracionCuotasResponse(
+                comunidadId,
+                anio,
+                generadas,
+                "Borrador de cuotas generado correctamente"
         );
     }
 
