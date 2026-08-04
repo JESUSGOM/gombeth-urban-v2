@@ -750,6 +750,13 @@ public class RemesaController {
             @PathVariable Long id,
             Authentication authentication
     ) {
+
+        Usuario usuario =
+                accesoComunidadService
+                        .obtenerUsuarioAutenticado(
+                                authentication
+                        );
+
         FicheroGenerado remesa =
                 obtenerRemesaAutorizada(
                         id,
@@ -789,8 +796,7 @@ public class RemesaController {
                     "La remesa no es válida para C19: "
                             + String.join(
                             " | ",
-                            resultadoValidacion
-                                    .getErrores()
+                            resultadoValidacion.getErrores()
                     )
             );
         }
@@ -813,20 +819,18 @@ public class RemesaController {
                     "El fichero C19 generado no es válido: "
                             + String.join(
                             " | ",
-                            validacionEstructural
-                                    .getErrores()
+                            validacionEstructural.getErrores()
                     )
             );
         }
 
         String nombreArchivo =
-                "REMESA_"
-                        + remesa.getId()
-                        + ".c19";
+                "REMESA_" + remesa.getId() + ".c19";
 
         Path rutaGuardada;
 
         try {
+
             rutaGuardada =
                     documentStorageService
                             .guardarRemesaC19(
@@ -843,6 +847,7 @@ public class RemesaController {
                             .toString();
 
         } catch (Exception e) {
+
             throw new RuntimeException(
                     "Error guardando fichero C19 en disco: "
                             + e.getMessage(),
@@ -858,14 +863,33 @@ public class RemesaController {
                 nombreArchivo
         );
 
-        ficheroGeneradoRepository.save(
-                remesa
+        FicheroGenerado remesaGuardada =
+                ficheroGeneradoRepository.save(
+                        remesa
+                );
+
+        remesaSeguimientoService.registrarEvento(
+                remesaGuardada,
+                usuario.getId(),
+                RemesaEventoTipo.C19_GENERADO,
+                "C19",
+                nombreArchivo,
+                "Fichero Norma 19 generado, validado y almacenado correctamente."
         );
 
         byte[] bytes =
                 contenido.getBytes(
                         StandardCharsets.ISO_8859_1
                 );
+
+        remesaSeguimientoService.registrarEvento(
+                remesaGuardada,
+                usuario.getId(),
+                RemesaEventoTipo.C19_DESCARGADO,
+                "C19",
+                nombreArchivo,
+                "El usuario ha solicitado la descarga del fichero C19."
+        );
 
         return ResponseEntity.ok()
                 .header(
