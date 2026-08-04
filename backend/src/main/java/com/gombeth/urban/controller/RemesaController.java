@@ -1,5 +1,4 @@
 package com.gombeth.urban.controller;
-
 import com.gombeth.urban.dto.GenerarRemesaSeleccionRequest;
 import com.gombeth.urban.dto.RemesaResumenResponse;
 import com.gombeth.urban.dto.SepaValidacionResultado;
@@ -46,7 +45,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
@@ -54,11 +52,9 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-
 @RestController
 @RequestMapping("/api/remesas")
 public class RemesaController {
-
     private final ContabilidadReciboRepository reciboRepository;
     private final FicheroGeneradoRepository ficheroGeneradoRepository;
     private final RemesaLineaRepository remesaLineaRepository;
@@ -76,7 +72,6 @@ public class RemesaController {
     private final AccesoComunidadService accesoComunidadService;
     private final CuentaPresentadorService cuentaPresentadorService;
     private final RemesaSeguimientoService remesaSeguimientoService;
-
     public RemesaController(
             ContabilidadReciboRepository reciboRepository,
             FicheroGeneradoRepository ficheroGeneradoRepository,
@@ -115,7 +110,6 @@ public class RemesaController {
         this.cuentaPresentadorService = cuentaPresentadorService;
         this.remesaSeguimientoService = remesaSeguimientoService;
     }
-
     @PostMapping("/generar")
     public Map<String, Object> generarRemesa(
             @RequestParam Long comunidadId,
@@ -129,33 +123,28 @@ public class RemesaController {
                 authentication,
                 comunidadId
         );
-
+        Usuario usuario =
+                accesoComunidadService.obtenerUsuarioAutenticado(authentication);
         CuentaPresentador cuentaPresentador =
                 obtenerCuentaPresentadoraActiva(
                         authentication,
                         cuentaPresentadorId
                 );
-
         LocalDate fechaCobroDate =
                 LocalDate.parse(fechaCobro);
-
         LocalDate fechaDesdeDate =
                 LocalDate.parse(fechaDesde);
-
         LocalDate fechaHastaDate =
                 LocalDate.parse(fechaHasta);
-
         List<ContabilidadRecibo> recibosPendientes =
                 remesaService.obtenerRecibosParaRemesa(
                         comunidadId,
                         fechaDesdeDate
                 );
-
         recibosPendientes =
                 remesaService.eliminarRecibosYaIncluidos(
                         recibosPendientes
                 );
-
         if (recibosPendientes.isEmpty()) {
             return Map.of(
                     "comunidadId",
@@ -166,19 +155,14 @@ public class RemesaController {
                     "No existen recibos pendientes para generar remesa en el periodo indicado"
             );
         }
-
         BigDecimal total =
                 BigDecimal.ZERO;
-
         BigDecimal totalDomiciliado =
                 BigDecimal.ZERO;
-
         BigDecimal totalNoDomiciliado =
                 BigDecimal.ZERO;
-
         int lineasGeneradas = 0;
         int recibosOmitidos = 0;
-
         FicheroGenerado fichero =
                 remesaService.crearRemesaInicial(
                         comunidadId,
@@ -188,28 +172,23 @@ public class RemesaController {
                         "recibos pendientes",
                         cuentaPresentador
                 );
-
         for (ContabilidadRecibo recibo
                 : recibosPendientes) {
-
             if (remesaService.reciboYaIncluidoEnRemesa(
                     recibo.getId()
             )) {
                 recibosOmitidos++;
                 continue;
             }
-
             RemesaLinea linea =
                     remesaService.crearLineaDesdeRecibo(
                             fichero,
                             recibo
                     );
-
             total =
                     total.add(
                             recibo.getImporte()
                     );
-
             if (Boolean.TRUE.equals(
                     linea.getDomiciliado()
             )) {
@@ -223,16 +202,12 @@ public class RemesaController {
                                 recibo.getImporte()
                         );
             }
-
             lineasGeneradas++;
         }
-
         if (lineasGeneradas == 0) {
-
             remesaService.eliminarRemesa(
                     fichero
             );
-
             return Map.of(
                     "comunidadId",
                     comunidadId,
@@ -246,7 +221,6 @@ public class RemesaController {
                     "No se creó remesa porque todos los recibos pendientes ya estaban incluidos en otra remesa"
             );
         }
-
         remesaService.actualizarTotalesRemesa(
                 fichero,
                 total,
@@ -254,7 +228,14 @@ public class RemesaController {
                 totalNoDomiciliado,
                 lineasGeneradas
         );
-
+        remesaSeguimientoService.registrarEvento(
+                fichero,
+                usuario.getId(),
+                RemesaEventoTipo.REMESA_GENERADA,
+                "REMESA",
+                null,
+                "Remesa generada automáticamente desde recibos pendientes."
+        );
         return Map.of(
                 "remesaId",
                 fichero.getId(),
@@ -278,7 +259,6 @@ public class RemesaController {
                 "Remesa generada correctamente"
         );
     }
-
     @PostMapping("/generar-seleccion")
     public Map<String, Object> generarRemesaSeleccion(
             @RequestBody
@@ -289,18 +269,20 @@ public class RemesaController {
                 authentication,
                 request.comunidadId()
         );
-
+        Usuario usuario =
+                accesoComunidadService
+                        .obtenerUsuarioAutenticado(
+                                authentication
+                        );
         CuentaPresentador cuentaPresentador =
                 obtenerCuentaPresentadoraActiva(
                         authentication,
                         request.cuentaPresentadorId()
                 );
-
         List<ContabilidadRecibo> recibosSeleccionados =
                 reciboRepository.findByIdIn(
                         request.reciboIds()
                 );
-
         if (recibosSeleccionados.isEmpty()) {
             return Map.of(
                     "comunidadId",
@@ -311,19 +293,14 @@ public class RemesaController {
                     "No se encontraron recibos seleccionados"
             );
         }
-
         BigDecimal total =
                 BigDecimal.ZERO;
-
         BigDecimal totalDomiciliado =
                 BigDecimal.ZERO;
-
         BigDecimal totalNoDomiciliado =
                 BigDecimal.ZERO;
-
         int lineasGeneradas = 0;
         int recibosOmitidos = 0;
-
         FicheroGenerado fichero =
                 remesaService.crearRemesaInicial(
                         request.comunidadId(),
@@ -334,10 +311,8 @@ public class RemesaController {
                         "recibos seleccionados",
                         cuentaPresentador
                 );
-
         for (ContabilidadRecibo recibo
                 : recibosSeleccionados) {
-
             if (!remesaService.perteneceAComunidad(
                     recibo,
                     request.comunidadId()
@@ -345,32 +320,27 @@ public class RemesaController {
                 recibosOmitidos++;
                 continue;
             }
-
             if (!remesaService.esReciboPendiente(
                     recibo
             )) {
                 recibosOmitidos++;
                 continue;
             }
-
             if (remesaService.reciboYaIncluidoEnRemesa(
                     recibo.getId()
             )) {
                 recibosOmitidos++;
                 continue;
             }
-
             RemesaLinea linea =
                     remesaService.crearLineaDesdeRecibo(
                             fichero,
                             recibo
                     );
-
             total =
                     total.add(
                             recibo.getImporte()
                     );
-
             if (Boolean.TRUE.equals(
                     linea.getDomiciliado()
             )) {
@@ -384,16 +354,12 @@ public class RemesaController {
                                 recibo.getImporte()
                         );
             }
-
             lineasGeneradas++;
         }
-
         if (lineasGeneradas == 0) {
-
             remesaService.eliminarRemesa(
                     fichero
             );
-
             return Map.of(
                     "comunidadId",
                     request.comunidadId(),
@@ -407,7 +373,6 @@ public class RemesaController {
                     "No se creó remesa porque ningún recibo seleccionado era válido"
             );
         }
-
         remesaService.actualizarTotalesRemesa(
                 fichero,
                 total,
@@ -415,7 +380,14 @@ public class RemesaController {
                 totalNoDomiciliado,
                 lineasGeneradas
         );
-
+        remesaSeguimientoService.registrarEvento(
+                fichero,
+                usuario.getId(),
+                RemesaEventoTipo.REMESA_GENERADA,
+                "REMESA",
+                null,
+                "Remesa generada desde la selección manual de recibos."
+        );
         return Map.of(
                 "remesaId",
                 fichero.getId(),
@@ -439,7 +411,6 @@ public class RemesaController {
                 "Remesa generada correctamente desde recibos seleccionados"
         );
     }
-
     @GetMapping("/{id}/xml")
     public ResponseEntity<byte[]> generarXml(
             @PathVariable Long id,
@@ -450,13 +421,11 @@ public class RemesaController {
                         .obtenerUsuarioAutenticado(
                                 authentication
                         );
-
         FicheroGenerado remesa =
                 obtenerRemesaAutorizada(
                         id,
                         authentication
                 );
-
         Comunidad comunidad =
                 comunidadRepository
                         .findById(
@@ -467,7 +436,6 @@ public class RemesaController {
                                         "Comunidad no encontrada"
                                 )
                         );
-
         List<RemesaLinea> lineas =
                 remesaLineaRepository
                         .findByRemesaIdOrderByIdAsc(id)
@@ -478,18 +446,15 @@ public class RemesaController {
                                 )
                         )
                         .toList();
-
         if (lineas.isEmpty()) {
             throw new RuntimeException(
                     "La remesa no tiene líneas SEPA incluidas"
             );
         }
-
         List<Vecino> vecinos =
                 obtenerVecinosDeLineas(
                         lineas
                 );
-
         SepaValidacionResultado resultadoValidacion =
                 sepaRemesaValidationService
                         .validarRemesaSepa(
@@ -497,7 +462,6 @@ public class RemesaController {
                                 lineas,
                                 vecinos
                         );
-
         if (!resultadoValidacion.isValida()) {
             throw new RuntimeException(
                     "La remesa no es válida para SEPA: "
@@ -508,7 +472,6 @@ public class RemesaController {
                     )
             );
         }
-
         String xml =
                 sepaCoreXmlService.generarXmlCore(
                         remesa,
@@ -516,12 +479,10 @@ public class RemesaController {
                         lineas,
                         vecinos
                 );
-
         SepaValidacionResultado validacionXml =
                 sepaXmlValidationService.validar(
                         xml
                 );
-
         if (!validacionXml.isValida()) {
             throw new RuntimeException(
                     "El XML SEPA generado no es válido: "
@@ -531,10 +492,8 @@ public class RemesaController {
                     )
             );
         }
-
         String nombreArchivo;
         Path rutaGuardada;
-
         try {
             rutaGuardada =
                     documentStorageService
@@ -545,12 +504,10 @@ public class RemesaController {
                                     remesa.getFechaCobro(),
                                     remesa.getEsquemaSepa()
                             );
-
             nombreArchivo =
                     rutaGuardada
                             .getFileName()
                             .toString();
-
         } catch (Exception e) {
             throw new RuntimeException(
                     "Error guardando fichero XML en disco: "
@@ -558,20 +515,16 @@ public class RemesaController {
                     e
             );
         }
-
         remesa.setContenido(
                 xml
         );
-
         remesa.setNombreArchivo(
                 nombreArchivo
         );
-
         FicheroGenerado remesaGuardada =
                 ficheroGeneradoRepository.save(
                         remesa
                 );
-
         remesaSeguimientoService.registrarEvento(
                 remesaGuardada,
                 usuario.getId(),
@@ -580,12 +533,10 @@ public class RemesaController {
                 nombreArchivo,
                 "Fichero XML SEPA generado, validado y almacenado correctamente."
         );
-
         byte[] bytes =
                 xml.getBytes(
                         StandardCharsets.UTF_8
                 );
-
         remesaSeguimientoService.registrarEvento(
                 remesaGuardada,
                 usuario.getId(),
@@ -594,7 +545,6 @@ public class RemesaController {
                 nombreArchivo,
                 "El usuario ha solicitado la descarga del fichero XML SEPA."
         );
-
         return ResponseEntity.ok()
                 .header(
                         HttpHeaders.CONTENT_DISPOSITION,
@@ -609,7 +559,6 @@ public class RemesaController {
                         bytes
                 );
     }
-
     @GetMapping
     public List<RemesaResumenResponse> listarRemesas(
             @RequestParam Long comunidadId,
@@ -619,7 +568,6 @@ public class RemesaController {
                 authentication,
                 comunidadId
         );
-
         return ficheroGeneradoRepository
                 .findByComunidadIdOrderByIdDesc(
                         comunidadId
@@ -645,7 +593,6 @@ public class RemesaController {
                 )
                 .toList();
     }
-
     @GetMapping("/{id}/validar")
     public ValidacionRemesaResponse validarRemesa(
             @PathVariable Long id,
@@ -656,13 +603,11 @@ public class RemesaController {
                         id,
                         authentication
                 );
-
         Usuario usuario =
                 accesoComunidadService
                         .obtenerUsuarioAutenticado(
                                 authentication
                         );
-
         Comunidad comunidad =
                 comunidadRepository
                         .findById(
@@ -673,7 +618,6 @@ public class RemesaController {
                                         "Comunidad no encontrada"
                                 )
                         );
-
         List<RemesaLinea> lineas =
                 remesaLineaRepository
                         .findByRemesaIdOrderByIdAsc(id)
@@ -684,12 +628,10 @@ public class RemesaController {
                                 )
                         )
                         .toList();
-
         List<Vecino> vecinos =
                 obtenerVecinosDeLineas(
                         lineas
                 );
-
         SepaValidacionResultado resultadoValidacion =
                 sepaRemesaValidationService
                         .validarRemesaSepa(
@@ -697,30 +639,23 @@ public class RemesaController {
                                 lineas,
                                 vecinos
                         );
-
         List<String> mensajes =
                 new ArrayList<>();
-
         mensajes.addAll(
                 resultadoValidacion.getErrores()
         );
-
         mensajes.addAll(
                 resultadoValidacion
                         .getAdvertencias()
         );
-
         if (resultadoValidacion.isValida()) {
-
             registrarValidacionCorrecta(
                     remesa,
                     usuario.getId(),
                     resultadoValidacion
                             .getAdvertencias()
             );
-
         } else {
-
             remesaSeguimientoService.registrarEvento(
                     remesa,
                     usuario.getId(),
@@ -734,7 +669,6 @@ public class RemesaController {
                     )
             );
         }
-
         return new ValidacionRemesaResponse(
                 id,
                 resultadoValidacion.isValida(),
@@ -744,25 +678,21 @@ public class RemesaController {
                 mensajes
         );
     }
-
     @GetMapping("/{id}/c19")
     public ResponseEntity<byte[]> descargarC19(
             @PathVariable Long id,
             Authentication authentication
     ) {
-
         Usuario usuario =
                 accesoComunidadService
                         .obtenerUsuarioAutenticado(
                                 authentication
                         );
-
         FicheroGenerado remesa =
                 obtenerRemesaAutorizada(
                         id,
                         authentication
                 );
-
         Comunidad comunidad =
                 comunidadRepository
                         .findById(
@@ -773,16 +703,13 @@ public class RemesaController {
                                         "Comunidad no encontrada"
                                 )
                         );
-
         List<RemesaLinea> lineas =
                 remesaLineaRepository
                         .findByRemesaIdOrderByIdAsc(id);
-
         List<Vecino> vecinos =
                 obtenerVecinosDeLineas(
                         lineas
                 );
-
         SepaValidacionResultado resultadoValidacion =
                 sepaRemesaValidationService
                         .validarRemesaSepa(
@@ -790,7 +717,6 @@ public class RemesaController {
                                 lineas,
                                 vecinos
                         );
-
         if (!resultadoValidacion.isValida()) {
             throw new RuntimeException(
                     "La remesa no es válida para C19: "
@@ -800,7 +726,6 @@ public class RemesaController {
                     )
             );
         }
-
         String contenido =
                 sepaC19Service.generarC19(
                         remesa,
@@ -808,12 +733,10 @@ public class RemesaController {
                         lineas,
                         vecinos
                 );
-
         SepaValidacionResultado validacionEstructural =
                 sepaC19ValidationService.validar(
                         contenido
                 );
-
         if (!validacionEstructural.isValida()) {
             throw new RuntimeException(
                     "El fichero C19 generado no es válido: "
@@ -823,14 +746,10 @@ public class RemesaController {
                     )
             );
         }
-
         String nombreArchivo =
                 "REMESA_" + remesa.getId() + ".c19";
-
         Path rutaGuardada;
-
         try {
-
             rutaGuardada =
                     documentStorageService
                             .guardarRemesaC19(
@@ -840,34 +759,27 @@ public class RemesaController {
                                     remesa.getFechaCobro(),
                                     remesa.getEsquemaSepa()
                             );
-
             nombreArchivo =
                     rutaGuardada
                             .getFileName()
                             .toString();
-
         } catch (Exception e) {
-
             throw new RuntimeException(
                     "Error guardando fichero C19 en disco: "
                             + e.getMessage(),
                     e
             );
         }
-
         remesa.setContenido(
                 contenido
         );
-
         remesa.setNombreArchivo(
                 nombreArchivo
         );
-
         FicheroGenerado remesaGuardada =
                 ficheroGeneradoRepository.save(
                         remesa
                 );
-
         remesaSeguimientoService.registrarEvento(
                 remesaGuardada,
                 usuario.getId(),
@@ -876,12 +788,10 @@ public class RemesaController {
                 nombreArchivo,
                 "Fichero Norma 19 generado, validado y almacenado correctamente."
         );
-
         byte[] bytes =
                 contenido.getBytes(
                         StandardCharsets.ISO_8859_1
                 );
-
         remesaSeguimientoService.registrarEvento(
                 remesaGuardada,
                 usuario.getId(),
@@ -890,7 +800,6 @@ public class RemesaController {
                 nombreArchivo,
                 "El usuario ha solicitado la descarga del fichero C19."
         );
-
         return ResponseEntity.ok()
                 .header(
                         HttpHeaders.CONTENT_DISPOSITION,
@@ -905,7 +814,6 @@ public class RemesaController {
                         bytes
                 );
     }
-
     private void registrarValidacionCorrecta(
             FicheroGenerado remesa,
             Long usuarioId,
@@ -915,16 +823,13 @@ public class RemesaController {
                 RemesaEstado.desde(
                         remesa.getEstado()
                 );
-
         String detalle =
                 construirDetalleValidacion(
                         "Validación SEPA correcta.",
                         advertencias
                 );
-
         if (estadoActual
                 == RemesaEstado.GENERADA) {
-
             remesaSeguimientoService.cambiarEstado(
                     remesa,
                     RemesaEstado.VALIDADA,
@@ -935,10 +840,8 @@ public class RemesaController {
                     null,
                     detalle
             );
-
             return;
         }
-
         remesaSeguimientoService.registrarEvento(
                 remesa,
                 usuarioId,
@@ -949,17 +852,14 @@ public class RemesaController {
                 detalle
         );
     }
-
     private String construirDetalleValidacion(
             String cabecera,
             List<String> mensajes
     ) {
         if (mensajes == null
                 || mensajes.isEmpty()) {
-
             return cabecera;
         }
-
         return cabecera
                 + " "
                 + String.join(
@@ -967,7 +867,6 @@ public class RemesaController {
                 mensajes
         );
     }
-
     private CuentaPresentador
     obtenerCuentaPresentadoraActiva(
             Authentication authentication,
@@ -978,14 +877,12 @@ public class RemesaController {
                         .obtenerUsuarioAutenticado(
                                 authentication
                         );
-
         return cuentaPresentadorService
                 .obtenerActivaPropia(
                         usuario.getAdministradorId(),
                         cuentaPresentadorId
                 );
     }
-
     private List<Vecino> obtenerVecinosDeLineas(
             List<RemesaLinea> lineas
     ) {
@@ -1006,7 +903,6 @@ public class RemesaController {
                 )
                 .toList();
     }
-
     @PostMapping("/proceso")
     public ProcesoRemesaResponse procesoCompleto(
             @RequestBody
@@ -1017,19 +913,16 @@ public class RemesaController {
                 authentication,
                 request.getComunidadId()
         );
-
         CuentaPresentador cuentaPresentador =
                 obtenerCuentaPresentadoraActiva(
                         authentication,
                         request.getCuentaPresentadorId()
                 );
-
         return procesoRemesaService.ejecutar(
                 request,
                 cuentaPresentador
         );
     }
-
     @GetMapping("/{id}/detalle")
     public RemesaDetalleResponse detalleRemesa(
             @PathVariable Long id,
@@ -1040,7 +933,6 @@ public class RemesaController {
                         id,
                         authentication
                 );
-
         Comunidad comunidad =
                 comunidadRepository
                         .findById(
@@ -1051,22 +943,18 @@ public class RemesaController {
                                         "Comunidad no encontrada"
                                 )
                         );
-
         List<RemesaLinea> lineas =
                 remesaLineaRepository
                         .findByRemesaIdOrderByIdAsc(id);
-
         List<RemesaLineaDetalleResponse> lineasDetalle =
                 lineas.stream()
                         .map(linea -> {
-
                             Vecino vecino =
                                     vecinoRepository
                                             .findById(
                                                     linea.getVecinoId()
                                             )
                                             .orElse(null);
-
                             List<RemesaLineaConceptoDetalleResponse>
                                     conceptos =
                                     remesaLineaConceptoRepository
@@ -1084,7 +972,6 @@ public class RemesaController {
                                                     )
                                             )
                                             .toList();
-
                             return new RemesaLineaDetalleResponse(
                                     linea.getId(),
                                     linea.getVecinoId(),
@@ -1101,7 +988,6 @@ public class RemesaController {
                             );
                         })
                         .toList();
-
         return new RemesaDetalleResponse(
                 remesa.getId(),
                 remesa.getComunidadId(),
@@ -1118,7 +1004,6 @@ public class RemesaController {
                 lineasDetalle
         );
     }
-
     private FicheroGenerado obtenerRemesaAutorizada(
             Long remesaId,
             Authentication authentication
@@ -1132,12 +1017,10 @@ public class RemesaController {
                                                 + remesaId
                                 )
                         );
-
         accesoComunidadService.validarAcceso(
                 authentication,
                 remesa.getComunidadId()
         );
-
         return remesa;
     }
 }
