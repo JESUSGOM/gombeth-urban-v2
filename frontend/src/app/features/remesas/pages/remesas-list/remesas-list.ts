@@ -927,7 +927,12 @@ export class RemesasList implements OnInit {
               remesa.id +
               ' validada correctamente.';
 
+            this.cargarRemesas();
+
           } else {
+            this.remesasValidadas
+              .delete(remesa.id!);
+
             this.resultadoValidacion =
               'Remesa ' +
               remesa.id +
@@ -939,13 +944,16 @@ export class RemesasList implements OnInit {
         },
 
         error: error => {
-          console.error(
-            'Error validando la remesa:',
-            error
-          );
-
           this.resultadoValidacion =
-            'Error validando la remesa.';
+            'No se ha podido validar la remesa ' +
+            remesa.id +
+            '.';
+
+          this.erroresValidacion = [
+            error?.error?.message ??
+            error?.message ??
+            'Error desconocido al validar la remesa.'
+          ];
         }
       });
   }
