@@ -445,6 +445,12 @@ public class RemesaController {
             @PathVariable Long id,
             Authentication authentication
     ) {
+        Usuario usuario =
+                accesoComunidadService
+                        .obtenerUsuarioAutenticado(
+                                authentication
+                        );
+
         FicheroGenerado remesa =
                 obtenerRemesaAutorizada(
                         id,
@@ -561,14 +567,33 @@ public class RemesaController {
                 nombreArchivo
         );
 
-        ficheroGeneradoRepository.save(
-                remesa
+        FicheroGenerado remesaGuardada =
+                ficheroGeneradoRepository.save(
+                        remesa
+                );
+
+        remesaSeguimientoService.registrarEvento(
+                remesaGuardada,
+                usuario.getId(),
+                RemesaEventoTipo.XML_GENERADO,
+                "XML",
+                nombreArchivo,
+                "Fichero XML SEPA generado, validado y almacenado correctamente."
         );
 
         byte[] bytes =
                 xml.getBytes(
                         StandardCharsets.UTF_8
                 );
+
+        remesaSeguimientoService.registrarEvento(
+                remesaGuardada,
+                usuario.getId(),
+                RemesaEventoTipo.XML_DESCARGADO,
+                "XML",
+                nombreArchivo,
+                "El usuario ha solicitado la descarga del fichero XML SEPA."
+        );
 
         return ResponseEntity.ok()
                 .header(
