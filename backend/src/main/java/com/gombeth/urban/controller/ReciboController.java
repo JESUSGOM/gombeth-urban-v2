@@ -14,6 +14,7 @@ import com.gombeth.urban.service.AccesoComunidadService;
 import com.gombeth.urban.service.ContabilidadAutomaticaService;
 import com.gombeth.urban.service.PdfService;
 import com.gombeth.urban.service.ReciboCobroService;
+import com.gombeth.urban.service.ReciboEmailService;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -61,6 +62,8 @@ public class ReciboController {
 
     private final PdfService pdfService;
 
+    private final ReciboEmailService reciboEmailService;
+
     public ReciboController(
             CuotaPresupuestoRepository cuotaPresupuestoRepository,
             ContabilidadReciboRepository contabilidadReciboRepository,
@@ -69,7 +72,8 @@ public class ReciboController {
             ContabilidadAutomaticaService contabilidadAutomaticaService,
             AccesoComunidadService accesoComunidadService,
             ReciboCobroService reciboCobroService,
-            PdfService pdfService
+            PdfService pdfService,
+            ReciboEmailService reciboEmailService
     ) {
         this.cuotaPresupuestoRepository =
                 cuotaPresupuestoRepository;
@@ -93,6 +97,8 @@ public class ReciboController {
                 reciboCobroService;
 
         this.pdfService = pdfService;
+
+        this.reciboEmailService = reciboEmailService;
     }
 
     @PostMapping("/generar-desde-cuotas")
@@ -244,6 +250,34 @@ public class ReciboController {
                 )
                 .contentLength(pdf.length)
                 .body(pdf);
+    }
+
+    @PostMapping("/{id}/enviar-email")
+    public Map<String, Object> enviarEmail(
+            @PathVariable Long id,
+            Authentication authentication
+    ) {
+        ContabilidadRecibo recibo =
+                obtenerRecibo(id);
+
+        accesoComunidadService.validarAcceso(
+                authentication,
+                recibo.getComunidadId()
+        );
+
+        ReciboEmailService.ResultadoEnvio resultado =
+                reciboEmailService.enviarRecibo(id);
+
+        return Map.of(
+                "correcto",
+                true,
+                "reciboId",
+                resultado.reciboId(),
+                "destinatario",
+                resultado.destinatario(),
+                "mensaje",
+                resultado.mensaje()
+        );
     }
 
     @PostMapping("/{id}/cobrar")

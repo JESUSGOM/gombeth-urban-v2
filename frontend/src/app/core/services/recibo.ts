@@ -4,6 +4,14 @@ import { Observable } from 'rxjs';
 
 import { Recibo } from '../models/recibo.model';
 
+
+export interface EnvioReciboEmailResponse {
+  correcto: boolean;
+  reciboId: number;
+  destinatario: string;
+  mensaje: string;
+}
+
 export interface OperacionReciboResponse {
   correcto: boolean;
   reciboId: number;
@@ -38,6 +46,15 @@ export class ReciboService {
       {
         responseType: 'blob'
       }
+    );
+  }
+
+  enviarEmail(
+    reciboId: number
+  ): Observable<EnvioReciboEmailResponse> {
+    return this.http.post<EnvioReciboEmailResponse>(
+      `${this.apiUrl}/${reciboId}/enviar-email`,
+      null
     );
   }
 

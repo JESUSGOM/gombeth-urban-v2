@@ -275,6 +275,20 @@
             </button>
 
             <button
+              type="button"
+              class="action-button email-button"
+              [disabled]="procesandoReciboId !== null"
+              (click)="enviarEmail(r)">
+
+              {{
+                procesandoReciboId === r.id
+                  ? 'Procesando...'
+                  : 'Email'
+              }}
+
+            </button>
+
+            <button
               *ngIf="r.estado === 'PENDIENTE'"
               type="button"
               class="action-button collect-button"
@@ -295,15 +309,12 @@
               class="action-button cancel-payment-button"
               [disabled]="procesandoReciboId !== null"
               (click)="anularCobro(r)">
-
               {{
                 procesandoReciboId === r.id
                   ? 'Procesando...'
                   : 'Anular cobro'
               }}
-
             </button>
-
             <span
               *ngIf="
                   r.estado !== 'PENDIENTE' &&
@@ -312,13 +323,10 @@
               class="no-action">
                 —
               </span>
-
           </td>
-
         </tr>
         </tbody>
       </table>
-
     </div>
 
     <div class="pagination">
@@ -338,9 +346,6 @@
         [disabled]="paginaActual === totalPaginas">
         Siguiente
       </button>
-
     </div>
-
   </div>
-
 </div>

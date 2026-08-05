@@ -30,11 +30,35 @@ public class PdfService {
     private static final DateTimeFormatter FECHA_ES =
             DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
-    private static final Color AZUL_CABECERA =
-            new Color(31, 78, 121);
+    private static final Color AZUL_PRINCIPAL =
+            new Color(20, 64, 108);
+
+    private static final Color AZUL_SECUNDARIO =
+            new Color(41, 98, 150);
+
+    private static final Color AZUL_MUY_CLARO =
+            new Color(235, 244, 252);
 
     private static final Color GRIS_FONDO =
-            new Color(242, 244, 247);
+            new Color(245, 247, 250);
+
+    private static final Color GRIS_BORDE =
+            new Color(211, 218, 226);
+
+    private static final Color GRIS_TEXTO =
+            new Color(82, 92, 104);
+
+    private static final Color VERDE =
+            new Color(31, 122, 78);
+
+    private static final Color VERDE_FONDO =
+            new Color(226, 245, 235);
+
+    private static final Color NARANJA =
+            new Color(160, 96, 0);
+
+    private static final Color NARANJA_FONDO =
+            new Color(255, 243, 214);
 
     public byte[] generarReciboPdf(
             ContabilidadRecibo recibo,
@@ -48,10 +72,10 @@ public class PdfService {
 
         Document documento = new Document(
                 PageSize.A4,
-                42,
-                42,
-                36,
-                36
+                34,
+                34,
+                24,
+                22
         );
 
         try {
@@ -62,55 +86,88 @@ public class PdfService {
 
             documento.open();
 
-            Font titulo = FontFactory.getFont(
+            Font marca = fuente(
                     FontFactory.HELVETICA_BOLD,
-                    18,
-                    Color.BLACK
-            );
-
-            Font subtitulo = FontFactory.getFont(
-                    FontFactory.HELVETICA_BOLD,
-                    11,
+                    16,
                     Color.WHITE
             );
 
-            Font etiqueta = FontFactory.getFont(
+            Font nombreAplicacion = fuente(
                     FontFactory.HELVETICA_BOLD,
-                    9,
-                    Color.DARK_GRAY
+                    15,
+                    AZUL_PRINCIPAL
             );
 
-            Font texto = FontFactory.getFont(
+            Font textoPequeno = fuente(
+                    FontFactory.HELVETICA,
+                    8,
+                    GRIS_TEXTO
+            );
+
+            Font titulo = fuente(
+                    FontFactory.HELVETICA_BOLD,
+                    22,
+                    AZUL_PRINCIPAL
+            );
+
+            Font referencia = fuente(
+                    FontFactory.HELVETICA,
+                    9,
+                    GRIS_TEXTO
+            );
+
+            Font subtitulo = fuente(
+                    FontFactory.HELVETICA_BOLD,
+                    10,
+                    Color.WHITE
+            );
+
+            Font etiqueta = fuente(
+                    FontFactory.HELVETICA_BOLD,
+                    8.5f,
+                    GRIS_TEXTO
+            );
+
+            Font texto = fuente(
                     FontFactory.HELVETICA,
                     9,
                     Color.BLACK
             );
 
-            Font importe = FontFactory.getFont(
+            Font textoDestacado = fuente(
                     FontFactory.HELVETICA_BOLD,
-                    16,
-                    AZUL_CABECERA
+                    9,
+                    AZUL_PRINCIPAL
             );
 
-            Paragraph encabezado = new Paragraph(
-                    "RECIBO",
-                    titulo
+            Font importe = fuente(
+                    FontFactory.HELVETICA_BOLD,
+                    20,
+                    AZUL_PRINCIPAL
             );
-            encabezado.setAlignment(
-                    Element.ALIGN_CENTER
-            );
-            encabezado.setSpacingAfter(4);
-            documento.add(encabezado);
 
-            Paragraph referencia = new Paragraph(
-                    "Referencia: " + recibo.getId(),
-                    texto
+            agregarCabeceraCorporativa(
+                    documento,
+                    comunidad,
+                    marca,
+                    nombreAplicacion,
+                    textoPequeno
             );
-            referencia.setAlignment(
-                    Element.ALIGN_CENTER
+
+            agregarTituloRecibo(
+                    documento,
+                    recibo,
+                    titulo,
+                    referencia
             );
-            referencia.setSpacingAfter(18);
-            documento.add(referencia);
+
+            agregarResumenSuperior(
+                    documento,
+                    recibo,
+                    vecino,
+                    textoPequeno,
+                    textoDestacado
+            );
 
             agregarSeccion(
                     documento,
@@ -126,7 +183,7 @@ public class PdfService {
                     "Comunidad",
                     valor(comunidad.getNombre()),
                     etiqueta,
-                    texto
+                    textoDestacado
             );
             agregarFila(
                     tablaComunidad,
@@ -149,6 +206,13 @@ public class PdfService {
                     etiqueta,
                     texto
             );
+            agregarFila(
+                    tablaComunidad,
+                    "Cuenta de cargo",
+                    enmascararIban(comunidad.getIban()),
+                    etiqueta,
+                    texto
+            );
 
             documento.add(tablaComunidad);
 
@@ -166,7 +230,7 @@ public class PdfService {
                     "Propietario",
                     valor(vecino.getNombre()),
                     etiqueta,
-                    texto
+                    textoDestacado
             );
             agregarFila(
                     tablaVecino,
@@ -186,6 +250,13 @@ public class PdfService {
                     tablaVecino,
                     "Dirección de notificación",
                     direccionVecino(vecino),
+                    etiqueta,
+                    texto
+            );
+            agregarFila(
+                    tablaVecino,
+                    "Referencia de mandato",
+                    valor(vecino.getReferenciaMandato()),
                     etiqueta,
                     texto
             );
@@ -213,29 +284,32 @@ public class PdfService {
                     "Concepto",
                     valor(recibo.getConcepto()),
                     etiqueta,
-                    texto
+                    textoDestacado
             );
             agregarFila(
                     tablaRecibo,
                     "Tipo",
-                    valor(recibo.getTipoRemesa()),
+                    formatearEstado(recibo.getTipoRemesa()),
                     etiqueta,
                     texto
             );
             agregarFila(
                     tablaRecibo,
                     "Estado",
-                    valor(recibo.getEstado()),
+                    formatearEstado(recibo.getEstado()),
                     etiqueta,
                     texto
             );
-            agregarFila(
-                    tablaRecibo,
-                    "Versión / periodo",
-                    valor(recibo.getEtiquetaExtra()),
-                    etiqueta,
-                    texto
-            );
+
+            if (tieneTexto(recibo.getEtiquetaExtra())) {
+                agregarFila(
+                        tablaRecibo,
+                        "Versión / periodo",
+                        valor(recibo.getEtiquetaExtra()),
+                        etiqueta,
+                        texto
+                );
+            }
 
             if (recibo.getFechaCobroBanco() != null) {
                 agregarFila(
@@ -249,44 +323,24 @@ public class PdfService {
 
             documento.add(tablaRecibo);
 
-            PdfPTable tablaImporte =
-                    new PdfPTable(1);
-            tablaImporte.setWidthPercentage(100);
-            tablaImporte.setSpacingBefore(18);
+            agregarTotal(
+                    documento,
+                    recibo,
+                    importe,
+                    textoPequeno
+            );
 
-            PdfPCell celdaImporte = new PdfPCell(
-                    new Phrase(
-                            "TOTAL: "
-                                    + importe(recibo.getImporte())
-                                    + " €",
-                            importe
-                    )
+            agregarAviso(
+                    documento,
+                    recibo,
+                    textoPequeno
             );
-            celdaImporte.setHorizontalAlignment(
-                    Element.ALIGN_RIGHT
-            );
-            celdaImporte.setPadding(12);
-            celdaImporte.setBackgroundColor(
-                    GRIS_FONDO
-            );
-            celdaImporte.setBorderColor(
-                    AZUL_CABECERA
-            );
-            tablaImporte.addCell(celdaImporte);
 
-            documento.add(tablaImporte);
-
-            Paragraph pie = new Paragraph(
-                    "Documento generado por Gombeth Urban.",
-                    FontFactory.getFont(
-                            FontFactory.HELVETICA_OBLIQUE,
-                            8,
-                            Color.GRAY
-                    )
+            agregarPie(
+                    documento,
+                    comunidad,
+                    textoPequeno
             );
-            pie.setAlignment(Element.ALIGN_CENTER);
-            pie.setSpacingBefore(24);
-            documento.add(pie);
 
             documento.close();
             return salida.toByteArray();
@@ -445,6 +499,298 @@ public class PdfService {
                 + ".pdf";
     }
 
+    private void agregarCabeceraCorporativa(
+            Document documento,
+            Comunidad comunidad,
+            Font marca,
+            Font nombreAplicacion,
+            Font textoPequeno
+    ) throws Exception {
+        PdfPTable cabecera = new PdfPTable(
+                new float[]{0.8f, 3.2f, 4.8f}
+        );
+        cabecera.setWidthPercentage(100);
+        cabecera.setSpacingAfter(10);
+
+        PdfPCell insignia = new PdfPCell(
+                new Phrase("GU", marca)
+        );
+        insignia.setHorizontalAlignment(Element.ALIGN_CENTER);
+        insignia.setVerticalAlignment(Element.ALIGN_MIDDLE);
+        insignia.setBackgroundColor(AZUL_PRINCIPAL);
+        insignia.setPaddingTop(12);
+        insignia.setPaddingBottom(12);
+        insignia.setBorder(Rectangle.NO_BORDER);
+        cabecera.addCell(insignia);
+
+        PdfPCell marcaCelda = new PdfPCell();
+        marcaCelda.addElement(new Paragraph(
+                "Gombeth Urban",
+                nombreAplicacion
+        ));
+        marcaCelda.addElement(new Paragraph(
+                "Gestión profesional de comunidades",
+                textoPequeno
+        ));
+        marcaCelda.setVerticalAlignment(Element.ALIGN_MIDDLE);
+        marcaCelda.setPaddingLeft(10);
+        marcaCelda.setBorder(Rectangle.NO_BORDER);
+        cabecera.addCell(marcaCelda);
+
+        PdfPCell comunidadCelda = new PdfPCell();
+        Paragraph nombre = new Paragraph(
+                valor(comunidad.getNombre()),
+                fuente(
+                        FontFactory.HELVETICA_BOLD,
+                        10,
+                        AZUL_PRINCIPAL
+                )
+        );
+        nombre.setAlignment(Element.ALIGN_RIGHT);
+        comunidadCelda.addElement(nombre);
+
+        Paragraph direccion = new Paragraph(
+                direccionComunidad(comunidad),
+                textoPequeno
+        );
+        direccion.setAlignment(Element.ALIGN_RIGHT);
+        comunidadCelda.addElement(direccion);
+
+        comunidadCelda.setVerticalAlignment(
+                Element.ALIGN_MIDDLE
+        );
+        comunidadCelda.setBorder(Rectangle.NO_BORDER);
+        cabecera.addCell(comunidadCelda);
+
+        documento.add(cabecera);
+
+        PdfPTable linea = new PdfPTable(1);
+        linea.setWidthPercentage(100);
+
+        PdfPCell celda = new PdfPCell();
+        celda.setFixedHeight(2);
+        celda.setBackgroundColor(AZUL_SECUNDARIO);
+        celda.setBorder(Rectangle.NO_BORDER);
+        linea.addCell(celda);
+
+        documento.add(linea);
+    }
+
+    private void agregarTituloRecibo(
+            Document documento,
+            ContabilidadRecibo recibo,
+            Font titulo,
+            Font referencia
+    ) throws Exception {
+        Paragraph encabezado = new Paragraph(
+                "RECIBO",
+                titulo
+        );
+        encabezado.setAlignment(Element.ALIGN_CENTER);
+        encabezado.setSpacingBefore(8);
+        encabezado.setSpacingAfter(2);
+        documento.add(encabezado);
+
+        Paragraph numero = new Paragraph(
+                "Referencia "
+                        + recibo.getId()
+                        + " · Emitido "
+                        + fecha(recibo.getFechaEmision()),
+                referencia
+        );
+        numero.setAlignment(Element.ALIGN_CENTER);
+        numero.setSpacingAfter(8);
+        documento.add(numero);
+    }
+
+    private void agregarResumenSuperior(
+            Document documento,
+            ContabilidadRecibo recibo,
+            Vecino vecino,
+            Font etiqueta,
+            Font valor
+    ) throws Exception {
+        PdfPTable resumen = new PdfPTable(
+                new float[]{1.7f, 2.7f, 1.7f, 2.1f}
+        );
+        resumen.setWidthPercentage(100);
+        resumen.setSpacingAfter(5);
+
+        agregarTarjetaResumen(
+                resumen,
+                "PROPIETARIO",
+                valor(vecino.getNombre()),
+                etiqueta,
+                valor
+        );
+        agregarTarjetaResumen(
+                resumen,
+                "VIVIENDA",
+                valor(vecino.getVivienda()),
+                etiqueta,
+                valor
+        );
+        agregarTarjetaResumen(
+                resumen,
+                "ESTADO",
+                formatearEstado(recibo.getEstado()),
+                etiqueta,
+                valor
+        );
+        agregarTarjetaResumen(
+                resumen,
+                "IMPORTE",
+                importe(recibo.getImporte()) + " €",
+                etiqueta,
+                valor
+        );
+
+        documento.add(resumen);
+    }
+
+    private void agregarTarjetaResumen(
+            PdfPTable tabla,
+            String etiqueta,
+            String contenido,
+            Font fuenteEtiqueta,
+            Font fuenteContenido
+    ) {
+        PdfPCell celda = new PdfPCell();
+        celda.addElement(new Paragraph(
+                etiqueta,
+                fuenteEtiqueta
+        ));
+        celda.addElement(new Paragraph(
+                contenido,
+                fuenteContenido
+        ));
+        celda.setPadding(6);
+        celda.setBackgroundColor(AZUL_MUY_CLARO);
+        celda.setBorderColor(GRIS_BORDE);
+        tabla.addCell(celda);
+    }
+
+    private void agregarTotal(
+            Document documento,
+            ContabilidadRecibo recibo,
+            Font fuenteImporte,
+            Font fuenteDetalle
+    ) throws Exception {
+        PdfPTable tablaImporte =
+                new PdfPTable(new float[]{4.2f, 2.8f});
+        tablaImporte.setWidthPercentage(100);
+        tablaImporte.setSpacingBefore(10);
+
+        PdfPCell detalle = new PdfPCell(
+                new Phrase(
+                        "Importe total del recibo",
+                        fuenteDetalle
+                )
+        );
+        detalle.setVerticalAlignment(Element.ALIGN_MIDDLE);
+        detalle.setPadding(10);
+        detalle.setBackgroundColor(GRIS_FONDO);
+        detalle.setBorderColor(AZUL_PRINCIPAL);
+        tablaImporte.addCell(detalle);
+
+        PdfPCell celdaImporte = new PdfPCell(
+                new Phrase(
+                        importe(recibo.getImporte()) + " €",
+                        fuenteImporte
+                )
+        );
+        celdaImporte.setHorizontalAlignment(
+                Element.ALIGN_RIGHT
+        );
+        celdaImporte.setVerticalAlignment(
+                Element.ALIGN_MIDDLE
+        );
+        celdaImporte.setPadding(10);
+        celdaImporte.setBackgroundColor(GRIS_FONDO);
+        celdaImporte.setBorderColor(AZUL_PRINCIPAL);
+        tablaImporte.addCell(celdaImporte);
+
+        documento.add(tablaImporte);
+    }
+
+    private void agregarAviso(
+            Document documento,
+            ContabilidadRecibo recibo,
+            Font fuente
+    ) throws Exception {
+        boolean cobrado = "COBRADO".equalsIgnoreCase(
+                valor(recibo.getEstado())
+        );
+
+        PdfPTable aviso = new PdfPTable(1);
+        aviso.setWidthPercentage(100);
+        aviso.setSpacingBefore(8);
+
+        String texto = cobrado
+                ? "Este recibo figura como cobrado. "
+                + "Conserve el documento como justificante."
+                : "Este documento informa del recibo emitido. "
+                + "La situación definitiva del cobro dependerá "
+                + "de la confirmación bancaria.";
+
+        PdfPCell celda = new PdfPCell(
+                new Phrase(texto, fuente)
+        );
+        celda.setPadding(7);
+        celda.setBackgroundColor(
+                cobrado
+                        ? VERDE_FONDO
+                        : NARANJA_FONDO
+        );
+        celda.setBorderColor(
+                cobrado
+                        ? VERDE
+                        : NARANJA
+        );
+        aviso.addCell(celda);
+
+        documento.add(aviso);
+    }
+
+    private void agregarPie(
+            Document documento,
+            Comunidad comunidad,
+            Font fuente
+    ) throws Exception {
+        PdfPTable linea = new PdfPTable(1);
+        linea.setWidthPercentage(100);
+        linea.setSpacingBefore(8);
+
+        PdfPCell separador = new PdfPCell();
+        separador.setFixedHeight(1);
+        separador.setBackgroundColor(GRIS_BORDE);
+        separador.setBorder(Rectangle.NO_BORDER);
+        linea.addCell(separador);
+        documento.add(linea);
+
+        Paragraph legal = new Paragraph(
+                "Documento generado electrónicamente por "
+                        + "Gombeth Urban para "
+                        + valor(comunidad.getNombre())
+                        + ". Este documento no sustituye al "
+                        + "justificante bancario cuando resulte exigible.",
+                fuente
+        );
+        legal.setAlignment(Element.ALIGN_CENTER);
+        legal.setSpacingBefore(5);
+        documento.add(legal);
+
+        Paragraph fechaGeneracion = new Paragraph(
+                "Generado el "
+                        + FECHA_ES.format(LocalDate.now())
+                        + " · www.jfgb.es",
+                fuente
+        );
+        fechaGeneracion.setAlignment(Element.ALIGN_CENTER);
+        fechaGeneracion.setSpacingBefore(2);
+        documento.add(fechaGeneracion);
+    }
+
     private void validarDatosRecibo(
             ContabilidadRecibo recibo,
             Comunidad comunidad,
@@ -476,14 +822,16 @@ public class PdfService {
     ) throws Exception {
         PdfPTable tabla = new PdfPTable(1);
         tabla.setWidthPercentage(100);
-        tabla.setSpacingBefore(12);
-        tabla.setSpacingAfter(6);
+        tabla.setSpacingBefore(7);
+        tabla.setSpacingAfter(3);
 
         PdfPCell celda = new PdfPCell(
                 new Phrase(titulo, fuente)
         );
-        celda.setBackgroundColor(AZUL_CABECERA);
-        celda.setPadding(7);
+        celda.setBackgroundColor(AZUL_PRINCIPAL);
+        celda.setPaddingTop(5);
+        celda.setPaddingBottom(5);
+        celda.setPaddingLeft(9);
         celda.setBorder(Rectangle.NO_BORDER);
         tabla.addCell(celda);
 
@@ -494,7 +842,8 @@ public class PdfService {
             throws Exception {
         PdfPTable tabla = new PdfPTable(2);
         tabla.setWidthPercentage(100);
-        tabla.setWidths(new float[]{1.5f, 4.5f});
+        tabla.setWidths(new float[]{1.55f, 4.45f});
+        tabla.setHeaderRows(0);
         return tabla;
     }
 
@@ -509,15 +858,21 @@ public class PdfService {
                 new Phrase(etiqueta, fuenteEtiqueta)
         );
         celdaEtiqueta.setBackgroundColor(GRIS_FONDO);
-        celdaEtiqueta.setPadding(6);
-        celdaEtiqueta.setBorderColor(Color.LIGHT_GRAY);
+        celdaEtiqueta.setPadding(5f);
+        celdaEtiqueta.setVerticalAlignment(
+                Element.ALIGN_MIDDLE
+        );
+        celdaEtiqueta.setBorderColor(GRIS_BORDE);
         tabla.addCell(celdaEtiqueta);
 
         PdfPCell celdaContenido = new PdfPCell(
                 new Phrase(contenido, fuenteContenido)
         );
-        celdaContenido.setPadding(6);
-        celdaContenido.setBorderColor(Color.LIGHT_GRAY);
+        celdaContenido.setPadding(5f);
+        celdaContenido.setVerticalAlignment(
+                Element.ALIGN_MIDDLE
+        );
+        celdaContenido.setBorderColor(GRIS_BORDE);
         tabla.addCell(celdaContenido);
     }
 
@@ -580,6 +935,43 @@ public class PdfService {
         resultado.append(parte.trim());
     }
 
+    private String enmascararIban(
+            String iban
+    ) {
+        if (!tieneTexto(iban)) {
+            return "";
+        }
+
+        String limpio = iban
+                .replace(" ", "")
+                .trim();
+
+        if (limpio.length() <= 8) {
+            return limpio;
+        }
+
+        return limpio.substring(0, 4)
+                + " **** **** **** "
+                + limpio.substring(limpio.length() - 4);
+    }
+
+    private String formatearEstado(
+            String estado
+    ) {
+        if (!tieneTexto(estado)) {
+            return "";
+        }
+
+        String limpio = estado
+                .trim()
+                .replace('_', ' ')
+                .toLowerCase(Locale.ROOT);
+
+        return limpio.substring(0, 1)
+                .toUpperCase(Locale.ROOT)
+                + limpio.substring(1);
+    }
+
     private String fecha(LocalDate fecha) {
         return fecha != null
                 ? FECHA_ES.format(fecha)
@@ -603,6 +995,18 @@ public class PdfService {
 
     private boolean tieneTexto(String texto) {
         return texto != null && !texto.isBlank();
+    }
+
+    private Font fuente(
+            String nombre,
+            float tamanio,
+            Color color
+    ) {
+        return FontFactory.getFont(
+                nombre,
+                tamanio,
+                color
+        );
     }
 
     private String normalizarNombreArchivo(

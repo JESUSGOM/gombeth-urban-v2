@@ -846,6 +846,59 @@ export class RecibosList implements OnInit {
       });
   }
 
+  enviarEmail(
+    recibo: Recibo
+  ): void {
+    if (!recibo.id) {
+      return;
+    }
+
+    const confirmado = window.confirm(
+      '¿Desea enviar por correo electrónico el PDF del recibo ' +
+      recibo.id +
+      ' al propietario?'
+    );
+
+    if (!confirmado) {
+      return;
+    }
+
+    this.procesandoReciboId = recibo.id;
+    this.mensajeOperacion = '';
+    this.errorOperacion = '';
+
+    this.reciboService
+      .enviarEmail(recibo.id)
+      .pipe(
+        takeUntilDestroyed(
+          this.destroyRef
+        )
+      )
+      .subscribe({
+        next: response => {
+          this.procesandoReciboId = null;
+          this.mensajeOperacion =
+            response.mensaje ||
+            'Recibo enviado correctamente por correo.';
+        },
+
+        error: error => {
+          console.error(
+            'Error enviando el recibo por correo:',
+            error
+          );
+
+          this.procesandoReciboId = null;
+          this.mensajeOperacion = '';
+          this.errorOperacion =
+            this.obtenerMensajeError(
+              error,
+              'No se pudo enviar el recibo por correo.'
+            );
+        }
+      });
+  }
+
   cobrarRecibo(
     recibo: Recibo
   ): void {
