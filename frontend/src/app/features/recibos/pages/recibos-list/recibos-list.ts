@@ -789,6 +789,63 @@ export class RecibosList implements OnInit {
       });
   }
 
+
+  descargarPdf(
+    recibo: Recibo
+  ): void {
+    if (!recibo.id) {
+      return;
+    }
+
+    this.procesandoReciboId = recibo.id;
+    this.mensajeOperacion = '';
+    this.errorOperacion = '';
+
+    this.reciboService
+      .descargarPdf(recibo.id)
+      .pipe(
+        takeUntilDestroyed(
+          this.destroyRef
+        )
+      )
+      .subscribe({
+        next: blob => {
+          this.procesandoReciboId = null;
+
+          const url = URL.createObjectURL(blob);
+          const enlace = document.createElement('a');
+
+          enlace.href = url;
+          enlace.download =
+            `RECIBO_${recibo.id}.pdf`;
+
+          document.body.appendChild(enlace);
+          enlace.click();
+          enlace.remove();
+
+          URL.revokeObjectURL(url);
+
+          this.mensajeOperacion =
+            `PDF del recibo ${recibo.id} descargado correctamente.`;
+        },
+
+        error: error => {
+          console.error(
+            'Error descargando PDF del recibo:',
+            error
+          );
+
+          this.procesandoReciboId = null;
+          this.mensajeOperacion = '';
+          this.errorOperacion =
+            this.obtenerMensajeError(
+              error,
+              'No se pudo descargar el PDF del recibo.'
+            );
+        }
+      });
+  }
+
   cobrarRecibo(
     recibo: Recibo
   ): void {

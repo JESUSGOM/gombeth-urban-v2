@@ -261,6 +261,20 @@
           <td class="actions-cell">
 
             <button
+              type="button"
+              class="action-button pdf-button"
+              [disabled]="procesandoReciboId !== null"
+              (click)="descargarPdf(r)">
+
+              {{
+                procesandoReciboId === r.id
+                  ? 'Procesando...'
+                  : 'PDF'
+              }}
+
+            </button>
+
+            <button
               *ngIf="r.estado === 'PENDIENTE'"
               type="button"
               class="action-button collect-button"

@@ -1,17 +1,23 @@
 package com.gombeth.urban.controller;
 
 import com.gombeth.urban.dto.ReciboResponse;
+import com.gombeth.urban.entity.Comunidad;
 import com.gombeth.urban.entity.ContabilidadRecibo;
 import com.gombeth.urban.entity.CuotaPresupuesto;
 import com.gombeth.urban.entity.Usuario;
 import com.gombeth.urban.entity.Vecino;
+import com.gombeth.urban.repository.ComunidadRepository;
 import com.gombeth.urban.repository.ContabilidadReciboRepository;
 import com.gombeth.urban.repository.CuotaPresupuestoRepository;
 import com.gombeth.urban.repository.VecinoRepository;
 import com.gombeth.urban.service.AccesoComunidadService;
 import com.gombeth.urban.service.ContabilidadAutomaticaService;
+import com.gombeth.urban.service.PdfService;
 import com.gombeth.urban.service.ReciboCobroService;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -39,6 +45,9 @@ public class ReciboController {
     private final ContabilidadReciboRepository
             contabilidadReciboRepository;
 
+    private final ComunidadRepository
+            comunidadRepository;
+
     private final VecinoRepository vecinoRepository;
 
     private final ContabilidadAutomaticaService
@@ -50,19 +59,26 @@ public class ReciboController {
     private final ReciboCobroService
             reciboCobroService;
 
+    private final PdfService pdfService;
+
     public ReciboController(
             CuotaPresupuestoRepository cuotaPresupuestoRepository,
             ContabilidadReciboRepository contabilidadReciboRepository,
+            ComunidadRepository comunidadRepository,
             VecinoRepository vecinoRepository,
             ContabilidadAutomaticaService contabilidadAutomaticaService,
             AccesoComunidadService accesoComunidadService,
-            ReciboCobroService reciboCobroService
+            ReciboCobroService reciboCobroService,
+            PdfService pdfService
     ) {
         this.cuotaPresupuestoRepository =
                 cuotaPresupuestoRepository;
 
         this.contabilidadReciboRepository =
                 contabilidadReciboRepository;
+
+        this.comunidadRepository =
+                comunidadRepository;
 
         this.vecinoRepository =
                 vecinoRepository;
@@ -75,6 +91,8 @@ public class ReciboController {
 
         this.reciboCobroService =
                 reciboCobroService;
+
+        this.pdfService = pdfService;
     }
 
     @PostMapping("/generar-desde-cuotas")
@@ -163,6 +181,69 @@ public class ReciboController {
                 comunidadId,
                 anio
         );
+    }
+
+    @GetMapping("/{id}/pdf")
+    public ResponseEntity<byte[]> descargarPdf(
+            @PathVariable Long id,
+            Authentication authentication
+    ) {
+        ContabilidadRecibo recibo =
+                obtenerRecibo(id);
+
+        accesoComunidadService.validarAcceso(
+                authentication,
+                recibo.getComunidadId()
+        );
+
+        Comunidad comunidad =
+                comunidadRepository
+                        .findById(
+                                recibo.getComunidadId()
+                        )
+                        .orElseThrow(() ->
+                                new ResponseStatusException(
+                                        HttpStatus.NOT_FOUND,
+                                        "Comunidad no encontrada para el recibo."
+                                )
+                        );
+
+        Vecino vecino =
+                vecinoRepository
+                        .findById(
+                                recibo.getVecinoId()
+                        )
+                        .orElseThrow(() ->
+                                new ResponseStatusException(
+                                        HttpStatus.NOT_FOUND,
+                                        "Propietario no encontrado para el recibo."
+                                )
+                        );
+
+        byte[] pdf = pdfService.generarReciboPdf(
+                recibo,
+                comunidad,
+                vecino
+        );
+
+        String nombreArchivo =
+                pdfService.nombreArchivoRecibo(
+                        recibo,
+                        vecino
+                );
+
+        return ResponseEntity.ok()
+                .header(
+                        HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=\""
+                                + nombreArchivo
+                                + "\""
+                )
+                .contentType(
+                        MediaType.APPLICATION_PDF
+                )
+                .contentLength(pdf.length)
+                .body(pdf);
     }
 
     @PostMapping("/{id}/cobrar")

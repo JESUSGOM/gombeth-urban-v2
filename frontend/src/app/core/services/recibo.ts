@@ -30,6 +30,17 @@ export class ReciboService {
     );
   }
 
+  descargarPdf(
+    reciboId: number
+  ): Observable<Blob> {
+    return this.http.get(
+      `${this.apiUrl}/${reciboId}/pdf`,
+      {
+        responseType: 'blob'
+      }
+    );
+  }
+
   cobrarRecibo(
     reciboId: number,
     fechaCobro?: string
