@@ -1,136 +1,233 @@
+:host {
+  display: block;
+  min-width: 0;
+}
+
 .recibos-page {
-  padding: 24px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  padding: 16px 18px;
+  overflow-x: hidden;
 }
 
 .page-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 18px;
+  gap: 12px;
+  margin-bottom: 12px;
 }
 
 .page-header h2 {
   margin: 0;
-  font-size: 24px;
+  font-size: 20px;
   font-weight: 700;
+  line-height: 1.15;
 }
 
 .page-header p {
-  margin: 4px 0 0;
+  margin: 2px 0 0;
   color: #64748b;
-  font-size: 13px;
+  font-size: 12px;
 }
 
 .community-name {
-  margin-top: 6px;
-  font-size: 15px;
-  font-weight: 700;
+  margin-top: 4px;
   color: #0f172a;
+  font-size: 13px;
+  font-weight: 700;
 }
 
 .primary-button {
+  min-height: 32px;
+  padding: 7px 12px;
+  color: #fff;
   background: #2563eb;
-  color: white;
-  border: none;
+  border: 0;
   border-radius: 6px;
-  padding: 9px 16px;
-  font-weight: 700;
   cursor: pointer;
-  transition: all 0.2s ease;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
 }
 
-.primary-button:hover {
+.primary-button:hover:not(:disabled) {
   background: #1d4ed8;
 }
 
+.primary-button:disabled {
+  opacity: .55;
+  cursor: not-allowed;
+}
+
 .card {
-  background: white;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  padding: 10px;
+  background: #fff;
   border-radius: 10px;
-  padding: 12px;
-  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.12);
+  box-shadow: 0 1px 4px rgba(15, 23, 42, .12);
+}
+
+.filters {
+  display: grid;
+  grid-template-columns:
+    minmax(150px, 1.4fr)
+    minmax(125px, .8fr)
+    minmax(125px, .8fr)
+    minmax(110px, .7fr)
+    minmax(110px, .7fr);
+  gap: 8px;
+  margin-bottom: 9px;
+}
+
+.filters select,
+.filters input,
+.selection-summary select {
+  min-width: 0;
+  height: 32px;
+  box-sizing: border-box;
+  padding: 5px 8px;
+  background: #fff;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font-size: 12px;
+}
+
+.selection-summary {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 9px;
+  padding: 8px 10px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 7px;
+  font-size: 12px;
+}
+
+.selection-summary label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.selection-summary select {
+  width: min(320px, 30vw);
+}
+
+.table-wrapper {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  border: 1px solid #e5e7eb;
+  border-radius: 7px;
 }
 
 .recibos-table {
   width: 100%;
+  min-width: 1120px;
   table-layout: fixed;
   border-collapse: collapse;
+  font-size: 11px;
 }
 
 .recibos-table th,
 .recibos-table td {
-  padding: 8px 8px;
+  box-sizing: border-box;
+  padding: 7px 5px;
   border-bottom: 1px solid #e5e7eb;
   vertical-align: middle;
-}
-
-.recibos-table th {
-  background: #f1f5f9;
-  text-align: left;
-  font-weight: 800;
-  white-space: nowrap;
-  color: #0f172a;
-}
-
-/* ID */
-.recibos-table th:nth-child(1),
-.recibos-table td:nth-child(1) {
-  width: 60px;
-  text-align: center;
-}
-
-/* FECHA */
-.recibos-table th:nth-child(2),
-.recibos-table td:nth-child(2) {
-  width: 95px;
-  text-align: center;
-}
-
-/* PROPIETARIO */
-.recibos-table th:nth-child(3),
-.recibos-table td:nth-child(3) {
-  width: 260px;
-}
-
-/* CONCEPTO */
-.recibos-table th:nth-child(4),
-.recibos-table td:nth-child(4) {
-  width: auto;
-}
-
-/* IMPORTE */
-.recibos-table th:nth-child(5),
-.recibos-table td:nth-child(5) {
-  width: 110px;
-  text-align: center;
-}
-
-/* ESTADO */
-.recibos-table th:nth-child(6),
-.recibos-table td:nth-child(6) {
-  width: 95px;
-  text-align: center;
-}
-
-/* TIPO */
-.recibos-table th:nth-child(7),
-.recibos-table td:nth-child(7) {
-  width: 95px;
-  text-align: center;
-}
-
-/* VERSION */
-.recibos-table th:nth-child(8),
-.recibos-table td:nth-child(8) {
-  width: 100px;
-  text-align: center;
-}
-
-.propietario {
-  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
+.recibos-table th {
+  color: #0f172a;
+  background: #f1f5f9;
+  text-align: left;
+  font-weight: 800;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.recibos-table tbody tr:hover {
+  background: #f8fafc;
+}
+
+/* Selección */
+.recibos-table th:nth-child(1),
+.recibos-table td:nth-child(1) {
+  width: 42px;
+  text-align: center;
+}
+
+/* ID */
+.recibos-table th:nth-child(2),
+.recibos-table td:nth-child(2) {
+  width: 52px;
+  text-align: center;
+}
+
+/* Fecha */
+.recibos-table th:nth-child(3),
+.recibos-table td:nth-child(3) {
+  width: 82px;
+  text-align: center;
+}
+
+/* Propietario */
+.recibos-table th:nth-child(4),
+.recibos-table td:nth-child(4) {
+  width: 190px;
+}
+
+/* Concepto */
+.recibos-table th:nth-child(5),
+.recibos-table td:nth-child(5) {
+  width: auto;
+}
+
+/* Importe */
+.recibos-table th:nth-child(6),
+.recibos-table td:nth-child(6) {
+  width: 82px;
+  text-align: right;
+}
+
+/* Estado */
+.recibos-table th:nth-child(7),
+.recibos-table td:nth-child(7) {
+  width: 88px;
+  text-align: center;
+}
+
+/* Tipo */
+.recibos-table th:nth-child(8),
+.recibos-table td:nth-child(8) {
+  width: 82px;
+  text-align: center;
+}
+
+/* Versión */
+.recibos-table th:nth-child(9),
+.recibos-table td:nth-child(9) {
+  width: 72px;
+  text-align: center;
+}
+
+/* Acciones */
+.recibos-table th:nth-child(10),
+.recibos-table td:nth-child(10) {
+  width: 118px;
+  text-align: center;
+}
+
+.propietario,
 .concepto {
   white-space: nowrap;
   overflow: hidden;
@@ -138,54 +235,99 @@
 }
 
 .amount {
-  text-align: center;
-  font-weight: 700;
   color: #0f172a;
-}
-
-.estado,
-.tipo,
-.version {
-  text-align: center;
+  font-weight: 700;
+  white-space: nowrap;
 }
 
 .badge {
   display: inline-block;
-  padding: 4px 8px;
+  max-width: 100%;
+  padding: 3px 7px;
   border-radius: 999px;
-  font-size: 11px;
+  overflow: hidden;
+  font-size: 10px;
   font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .badge.pending {
-  background: #fef3c7;
   color: #92400e;
+  background: #fef3c7;
 }
 
 .badge.paid {
-  background: #dcfce7;
   color: #166534;
+  background: #dcfce7;
 }
 
 .badge.returned {
-  background: #fee2e2;
   color: #991b1b;
+  background: #fee2e2;
+}
+
+.actions-cell {
+  white-space: nowrap;
+}
+
+.action-button {
+  min-height: 27px;
+  max-width: 108px;
+  padding: 5px 8px;
+  border: 0;
+  border-radius: 5px;
+  cursor: pointer;
+  overflow: hidden;
+  font-size: 10px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.collect-button {
+  color: #fff;
+  background: #15803d;
+}
+
+.collect-button:hover:not(:disabled) {
+  background: #166534;
+}
+
+.cancel-payment-button {
+  color: #fff;
+  background: #dc2626;
+}
+
+.cancel-payment-button:hover:not(:disabled) {
+  background: #b91c1c;
+}
+
+.action-button:disabled {
+  opacity: .55;
+  cursor: wait;
+}
+
+.no-action {
+  color: #94a3b8;
 }
 
 .pagination {
   display: flex;
   justify-content: flex-end;
   align-items: center;
-  gap: 14px;
-  padding-top: 14px;
+  gap: 12px;
+  padding-top: 10px;
+  font-size: 12px;
 }
 
 .pagination button {
-  border: none;
+  padding: 6px 10px;
   background: #e2e8f0;
-  padding: 7px 12px;
+  border: 0;
   border-radius: 6px;
   cursor: pointer;
+  font-size: 11px;
   font-weight: 700;
 }
 
@@ -194,45 +336,83 @@
 }
 
 .pagination button:disabled {
-  opacity: 0.45;
+  opacity: .45;
   cursor: not-allowed;
 }
 
 .alert {
-  padding: 12px;
-  border-radius: 8px;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
+  padding: 9px 11px;
+  border-radius: 7px;
+  font-size: 12px;
   font-weight: 700;
 }
 
 .alert.error {
-  background: #fee2e2;
   color: #991b1b;
+  background: #fee2e2;
 }
 
 .alert.info {
-  background: #dbeafe;
   color: #1e40af;
+  background: #dbeafe;
 }
 
 .alert.warning {
-  background: #fef3c7;
   color: #92400e;
+  background: #fef3c7;
 }
 
-/* Hover filas */
-.recibos-table tbody tr:hover {
-  background: #f8fafc;
+.alert.success {
+  color: #166534;
+  background: #dcfce7;
 }
 
-/* Responsive */
-@media (max-width: 1400px) {
+@media (min-width: 1400px) {
   .recibos-table {
-    font-size: 12px;
+    min-width: 0;
+  }
+}
+
+@media (max-width: 1050px) {
+  .filters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .recibos-table th,
-  .recibos-table td {
-    padding: 6px;
+  .selection-summary {
+    align-items: stretch;
+  }
+
+  .selection-summary label {
+    width: 100%;
+  }
+
+  .selection-summary select {
+    flex: 1 1 auto;
+    width: auto;
+  }
+}
+
+@media (max-width: 650px) {
+  .recibos-page {
+    padding: 10px;
+  }
+
+  .page-header {
+    align-items: flex-start;
+  }
+
+  .filters {
+    grid-template-columns: 1fr;
+  }
+
+  .selection-summary {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .selection-summary .primary-button,
+  .selection-summary select {
+    width: 100%;
   }
 }

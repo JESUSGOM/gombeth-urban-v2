@@ -3,18 +3,23 @@ package com.gombeth.urban.controller;
 import com.gombeth.urban.dto.ReciboResponse;
 import com.gombeth.urban.entity.ContabilidadRecibo;
 import com.gombeth.urban.entity.CuotaPresupuesto;
+import com.gombeth.urban.entity.Usuario;
 import com.gombeth.urban.entity.Vecino;
 import com.gombeth.urban.repository.ContabilidadReciboRepository;
 import com.gombeth.urban.repository.CuotaPresupuestoRepository;
 import com.gombeth.urban.repository.VecinoRepository;
 import com.gombeth.urban.service.AccesoComunidadService;
 import com.gombeth.urban.service.ContabilidadAutomaticaService;
+import com.gombeth.urban.service.ReciboCobroService;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -42,12 +47,16 @@ public class ReciboController {
     private final AccesoComunidadService
             accesoComunidadService;
 
+    private final ReciboCobroService
+            reciboCobroService;
+
     public ReciboController(
             CuotaPresupuestoRepository cuotaPresupuestoRepository,
             ContabilidadReciboRepository contabilidadReciboRepository,
             VecinoRepository vecinoRepository,
             ContabilidadAutomaticaService contabilidadAutomaticaService,
-            AccesoComunidadService accesoComunidadService
+            AccesoComunidadService accesoComunidadService,
+            ReciboCobroService reciboCobroService
     ) {
         this.cuotaPresupuestoRepository =
                 cuotaPresupuestoRepository;
@@ -63,12 +72,11 @@ public class ReciboController {
 
         this.accesoComunidadService =
                 accesoComunidadService;
+
+        this.reciboCobroService =
+                reciboCobroService;
     }
 
-    /**
-     * Genera recibos únicamente para una comunidad
-     * accesible por el usuario autenticado.
-     */
     @PostMapping("/generar-desde-cuotas")
     public Map<String, Object> generarDesdeCuotas(
             @RequestParam Long comunidadId,
@@ -86,10 +94,6 @@ public class ReciboController {
         );
     }
 
-    /**
-     * Lista exclusivamente recibos pertenecientes a una
-     * comunidad autorizada.
-     */
     @GetMapping
     public List<ReciboResponse> listarRecibos(
             @RequestParam Long comunidadId,
@@ -137,10 +141,6 @@ public class ReciboController {
                 .toList();
     }
 
-    /**
-     * Borra los recibos pendientes del periodo y los genera
-     * nuevamente, siempre dentro de una comunidad autorizada.
-     */
     @PostMapping("/limpiar-y-generar")
     public Map<String, Object> limpiarYGenerar(
             @RequestParam Long comunidadId,
@@ -165,10 +165,111 @@ public class ReciboController {
         );
     }
 
-    /**
-     * Método interno. Solo debe ejecutarse después de validar
-     * el acceso a la comunidad.
-     */
+    @PostMapping("/{id}/cobrar")
+    public Map<String, Object> cobrarRecibo(
+            @PathVariable Long id,
+            @RequestParam(required = false)
+            LocalDate fechaCobro,
+            Authentication authentication
+    ) {
+        ContabilidadRecibo recibo =
+                obtenerRecibo(id);
+
+        accesoComunidadService.validarAcceso(
+                authentication,
+                recibo.getComunidadId()
+        );
+
+        Usuario usuario =
+                accesoComunidadService
+                        .obtenerUsuarioAutenticado(
+                                authentication
+                        );
+
+        ContabilidadRecibo actualizado =
+                reciboCobroService
+                        .cobrarManualmente(
+                                recibo,
+                                usuario.getId(),
+                                fechaCobro
+                        );
+
+        return Map.of(
+                "correcto",
+                true,
+                "reciboId",
+                actualizado.getId(),
+                "estado",
+                actualizado.getEstado(),
+                "fechaCobro",
+                actualizado.getFechaCobroBanco(),
+                "mensaje",
+                "Recibo cobrado y contabilizado correctamente."
+        );
+    }
+
+    @PostMapping("/{id}/anular-cobro")
+    public Map<String, Object> anularCobro(
+            @PathVariable Long id,
+            @RequestParam(required = false)
+            LocalDate fechaAnulacion,
+            Authentication authentication
+    ) {
+        ContabilidadRecibo recibo =
+                obtenerRecibo(id);
+
+        accesoComunidadService.validarAcceso(
+                authentication,
+                recibo.getComunidadId()
+        );
+
+        Usuario usuario =
+                accesoComunidadService
+                        .obtenerUsuarioAutenticado(
+                                authentication
+                        );
+
+        ContabilidadRecibo actualizado =
+                reciboCobroService
+                        .anularCobroManual(
+                                recibo,
+                                usuario.getId(),
+                                fechaAnulacion
+                        );
+
+        return Map.of(
+                "correcto",
+                true,
+                "reciboId",
+                actualizado.getId(),
+                "estado",
+                actualizado.getEstado(),
+                "mensaje",
+                "Cobro anulado y asiento inverso generado correctamente."
+        );
+    }
+
+    private ContabilidadRecibo obtenerRecibo(
+            Long id
+    ) {
+        if (id == null) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "El identificador del recibo es obligatorio."
+            );
+        }
+
+        return contabilidadReciboRepository
+                .findById(id)
+                .orElseThrow(() ->
+                        new ResponseStatusException(
+                                HttpStatus.NOT_FOUND,
+                                "Recibo no encontrado con ID: "
+                                        + id
+                        )
+                );
+    }
+
     private Map<String, Object> generarDesdeCuotasInterno(
             Long comunidadId,
             Integer anio
@@ -186,12 +287,10 @@ public class ReciboController {
 
         for (CuotaPresupuesto cuota : cuotas) {
 
-            if (
-                    contabilidadReciboRepository
-                            .existsByCuotaPresupuestoId(
-                                    cuota.getId()
-                            )
-            ) {
+            if (contabilidadReciboRepository
+                    .existsByCuotaPresupuestoId(
+                            cuota.getId()
+                    )) {
                 omitidos++;
                 continue;
             }

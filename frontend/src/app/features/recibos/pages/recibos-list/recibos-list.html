@@ -4,6 +4,7 @@
     <div>
       <h2>Recibos</h2>
       <p>Listado de recibos generados para la comunidad</p>
+
       <div class="community-name">
         {{ nombreComunidad }}
       </div>
@@ -20,6 +21,18 @@
     *ngIf="error"
     class="alert error">
     {{ error }}
+  </div>
+
+  <div
+    *ngIf="mensajeOperacion"
+    class="alert success">
+    {{ mensajeOperacion }}
+  </div>
+
+  <div
+    *ngIf="errorOperacion"
+    class="alert error">
+    {{ errorOperacion }}
   </div>
 
   <div
@@ -116,6 +129,7 @@
             [ngValue]="cuenta.id">
 
             {{ cuenta.alias }}
+
             <ng-container *ngIf="cuenta.banco">
               - {{ cuenta.banco }}
             </ng-container>
@@ -141,72 +155,157 @@
 
     </div>
 
-    <table class="recibos-table">
-      <thead>
+    <div class="table-wrapper">
+
+      <table class="recibos-table">
+        <thead>
         <tr>
-          <th style="width:50px">
+          <th class="selection-column">
             <input
               type="checkbox"
               (change)="seleccionarTodos($event)">
           </th>
 
-          <th (click)="ordenar('id')">ID</th>
-          <th (click)="ordenar('fechaEmision')">Fecha</th>
-          <th (click)="ordenar('nombreVecino')">Propietario</th>
-          <th (click)="ordenar('concepto')">Concepto</th>
-          <th (click)="ordenar('importe')">Importe</th>
-          <th (click)="ordenar('estado')">Estado</th>
-          <th (click)="ordenar('tipoRemesa')">Tipo</th>
-          <th (click)="ordenar('etiquetaExtra')">Versión</th>
+          <th (click)="ordenar('id')">
+            ID
+          </th>
+
+          <th (click)="ordenar('fechaEmision')">
+            Fecha
+          </th>
+
+          <th (click)="ordenar('nombreVecino')">
+            Propietario
+          </th>
+
+          <th (click)="ordenar('concepto')">
+            Concepto
+          </th>
+
+          <th (click)="ordenar('importe')">
+            Importe
+          </th>
+
+          <th (click)="ordenar('estado')">
+            Estado
+          </th>
+
+          <th (click)="ordenar('tipoRemesa')">
+            Tipo
+          </th>
+
+          <th (click)="ordenar('etiquetaExtra')">
+            Versión
+          </th>
+
+          <th class="actions-column">
+            Acciones
+          </th>
         </tr>
-      </thead>
+        </thead>
 
-      <tbody>
-      <tr *ngFor="let r of recibosPaginados">
+        <tbody>
+        <tr *ngFor="let r of recibosPaginados">
 
-        <td>
-          <input
-            type="checkbox"
-            [checked]="estaSeleccionado(r.id)"
-            (change)="toggleRecibo(r.id)">
-        </td>
+          <td>
+            <input
+              type="checkbox"
+              [checked]="estaSeleccionado(r.id)"
+              [disabled]="
+                  r.estado !== 'PENDIENTE' ||
+                  procesandoReciboId === r.id
+                "
+              (change)="toggleRecibo(r.id)">
+          </td>
 
-        <td>{{ r.id }}</td>
+          <td>
+            {{ r.id }}
+          </td>
 
-        <td class="fecha">
-          {{ r.fechaEmision | date:'dd/MM/yyyy' }}
-        </td>
+          <td class="fecha">
+            {{ r.fechaEmision | date:'dd/MM/yyyy' }}
+          </td>
 
-        <td class="propietario">
-          <strong>{{ r.vivienda }}</strong> - {{ r.nombreVecino }}
-        </td>
+          <td class="propietario">
+            <strong>{{ r.vivienda }}</strong>
+            -
+            {{ r.nombreVecino }}
+          </td>
 
-        <td class="concepto">
-          {{ r.concepto }}
-        </td>
+          <td class="concepto">
+            {{ r.concepto }}
+          </td>
 
-        <td class="amount">
-          {{ r.importe | number:'1.2-2' }} €
-        </td>
+          <td class="amount">
+            {{ r.importe | number:'1.2-2' }} €
+          </td>
 
-        <td>
+          <td>
+              <span
+                class="badge"
+                [class.pending]="r.estado === 'PENDIENTE'"
+                [class.paid]="r.estado === 'COBRADO'"
+                [class.returned]="r.estado === 'DEVUELTO'">
+                {{ r.estado }}
+              </span>
+          </td>
+
+          <td>
+            {{ r.tipoRemesa }}
+          </td>
+
+          <td>
+            {{ r.etiquetaExtra || '-' }}
+          </td>
+
+          <td class="actions-cell">
+
+            <button
+              *ngIf="r.estado === 'PENDIENTE'"
+              type="button"
+              class="action-button collect-button"
+              [disabled]="procesandoReciboId !== null"
+              (click)="cobrarRecibo(r)">
+
+              {{
+                procesandoReciboId === r.id
+                  ? 'Procesando...'
+                  : 'Cobrar'
+              }}
+
+            </button>
+
+            <button
+              *ngIf="r.estado === 'COBRADO'"
+              type="button"
+              class="action-button cancel-payment-button"
+              [disabled]="procesandoReciboId !== null"
+              (click)="anularCobro(r)">
+
+              {{
+                procesandoReciboId === r.id
+                  ? 'Procesando...'
+                  : 'Anular cobro'
+              }}
+
+            </button>
+
             <span
-              class="badge"
-              [class.pending]="r.estado === 'PENDIENTE'"
-              [class.paid]="r.estado === 'COBRADO'"
-              [class.returned]="r.estado === 'DEVUELTO'">
-              {{ r.estado }}
-            </span>
-        </td>
+              *ngIf="
+                  r.estado !== 'PENDIENTE' &&
+                  r.estado !== 'COBRADO'
+                "
+              class="no-action">
+                —
+              </span>
 
-        <td>{{ r.tipoRemesa }}</td>
+          </td>
 
-        <td>{{ r.etiquetaExtra || '-' }}</td>
+        </tr>
+        </tbody>
+      </table>
 
-      </tr>
-      </tbody>
-
-    </table>
+    </div>
 
     <div class="pagination">
 

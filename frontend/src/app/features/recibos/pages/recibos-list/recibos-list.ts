@@ -134,6 +134,10 @@ export class RecibosList implements OnInit {
   cargando = false;
   error = '';
 
+  procesandoReciboId: number | null = null;
+  mensajeOperacion = '';
+  errorOperacion = '';
+
   ngOnInit(): void {
     this.cargarCuentasPresentador();
 
@@ -783,6 +787,217 @@ export class RecibosList implements OnInit {
           );
         }
       });
+  }
+
+  cobrarRecibo(
+    recibo: Recibo
+  ): void {
+    if (!recibo.id) {
+      return;
+    }
+
+    if (recibo.estado !== 'PENDIENTE') {
+      this.mensajeOperacion = '';
+      this.errorOperacion =
+        'Solo se pueden cobrar recibos pendientes.';
+      return;
+    }
+
+    const confirmado = window.confirm(
+      '¿Desea registrar manualmente el cobro del recibo ' +
+      recibo.id +
+      ' por ' +
+      recibo.importe.toFixed(2) +
+      ' €?'
+    );
+
+    if (!confirmado) {
+      return;
+    }
+
+    this.procesandoReciboId = recibo.id;
+    this.mensajeOperacion = '';
+    this.errorOperacion = '';
+
+    const fechaCobro =
+      new Date()
+        .toISOString()
+        .split('T')[0];
+
+    this.reciboService
+      .cobrarRecibo(
+        recibo.id,
+        fechaCobro
+      )
+      .pipe(
+        takeUntilDestroyed(
+          this.destroyRef
+        )
+      )
+      .subscribe({
+        next: response => {
+          this.procesandoReciboId = null;
+
+          this.mensajeOperacion =
+            response.mensaje ||
+            'Recibo cobrado correctamente.';
+
+          this.recibosSeleccionados.delete(
+            recibo.id
+          );
+
+          this.cargarRecibos();
+        },
+
+        error: error => {
+          console.error(
+            'Error cobrando recibo:',
+            error
+          );
+
+          this.procesandoReciboId = null;
+          this.mensajeOperacion = '';
+
+          this.errorOperacion =
+            this.obtenerMensajeError(
+              error,
+              'No se pudo registrar el cobro del recibo.'
+            );
+        }
+      });
+  }
+
+  anularCobro(
+    recibo: Recibo
+  ): void {
+    if (!recibo.id) {
+      return;
+    }
+
+    if (recibo.estado !== 'COBRADO') {
+      this.mensajeOperacion = '';
+      this.errorOperacion =
+        'Solo se puede anular un recibo cobrado.';
+      return;
+    }
+
+    const confirmado = window.confirm(
+      '¿Desea anular el cobro del recibo ' +
+      recibo.id +
+      '? Se generará el asiento contable inverso.'
+    );
+
+    if (!confirmado) {
+      return;
+    }
+
+    this.procesandoReciboId = recibo.id;
+    this.mensajeOperacion = '';
+    this.errorOperacion = '';
+
+    const fechaAnulacion =
+      new Date()
+        .toISOString()
+        .split('T')[0];
+
+    this.reciboService
+      .anularCobro(
+        recibo.id,
+        fechaAnulacion
+      )
+      .pipe(
+        takeUntilDestroyed(
+          this.destroyRef
+        )
+      )
+      .subscribe({
+        next: response => {
+          this.procesandoReciboId = null;
+
+          this.mensajeOperacion =
+            response.mensaje ||
+            'Cobro anulado correctamente.';
+
+          this.recibosSeleccionados.delete(
+            recibo.id
+          );
+
+          this.cargarRecibos();
+        },
+
+        error: error => {
+          console.error(
+            'Error anulando cobro:',
+            error
+          );
+
+          this.procesandoReciboId = null;
+          this.mensajeOperacion = '';
+
+          this.errorOperacion =
+            this.obtenerMensajeError(
+              error,
+              'No se pudo anular el cobro del recibo.'
+            );
+        }
+      });
+  }
+
+  private obtenerMensajeError(
+    error: unknown,
+    mensajeAlternativo: string
+  ): string {
+    if (
+      typeof error === 'object' &&
+      error !== null
+    ) {
+      const errorHttp =
+        error as {
+          error?: unknown;
+          message?: unknown;
+        };
+
+      if (
+        typeof errorHttp.error === 'string' &&
+        errorHttp.error.trim() !== ''
+      ) {
+        return errorHttp.error;
+      }
+
+      if (
+        typeof errorHttp.error === 'object' &&
+        errorHttp.error !== null
+      ) {
+        const cuerpo =
+          errorHttp.error as {
+            message?: unknown;
+            detail?: unknown;
+          };
+
+        if (
+          typeof cuerpo.message === 'string' &&
+          cuerpo.message.trim() !== ''
+        ) {
+          return cuerpo.message;
+        }
+
+        if (
+          typeof cuerpo.detail === 'string' &&
+          cuerpo.detail.trim() !== ''
+        ) {
+          return cuerpo.detail;
+        }
+      }
+
+      if (
+        typeof errorHttp.message === 'string' &&
+        errorHttp.message.trim() !== ''
+      ) {
+        return errorHttp.message;
+      }
+    }
+
+    return mensajeAlternativo;
   }
 
   private cancelarPeticiones(): void {
