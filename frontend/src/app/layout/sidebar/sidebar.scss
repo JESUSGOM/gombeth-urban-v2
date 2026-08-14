@@ -149,3 +149,25 @@
     margin-bottom: 4px;
   }
 }
+
+/* ==========================================================
+ * PANTALLAS_100_RESPONSIVE_GLOBAL_V1
+ *
+ * La barra lateral recupera espacio para el contenido en
+ * resoluciones menores sin desaparecer ni cortar el menu.
+ * ========================================================== */
+.sidebar-container {
+  width: clamp(210px, 16vw, 260px);
+}
+
+@media (max-width: 1100px) {
+  .sidebar-container {
+    width: 200px;
+  }
+
+  .menu-item {
+    padding-left: 14px;
+    padding-right: 14px;
+    font-size: 13px;
+  }
+}

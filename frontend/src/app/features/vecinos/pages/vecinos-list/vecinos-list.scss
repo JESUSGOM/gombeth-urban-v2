@@ -238,6 +238,8 @@ tbody tr:hover {
   background: rgba(13, 110, 253, 0.05);
 }
 
+/* Distribución exacta de las 9 columnas.
+   Total: 100 %. Se evita que Gestión quede cortada. */
 th:nth-child(1),
 td:nth-child(1) {
   width: 6%;
@@ -245,44 +247,46 @@ td:nth-child(1) {
 
 th:nth-child(2),
 td:nth-child(2) {
-  width: 7%;
+  width: 6%;
+  text-align: center;
 }
 
 th:nth-child(3),
 td:nth-child(3) {
-  width: 22%;
+  width: 23%;
 }
 
 th:nth-child(4),
 td:nth-child(4) {
   width: 9%;
-}
-
-th:nth-child(3),
-td:nth-child(3) {
-  width: 9%;
-}
-
-th:nth-child(4),
-td:nth-child(4) {
-  width: 27%;
 }
 
 th:nth-child(5),
 td:nth-child(5) {
-  width: 7%;
-  text-align: center;
+  width: 21%;
 }
 
 th:nth-child(6),
 td:nth-child(6) {
-  width: 8%;
+  width: 5%;
   text-align: center;
 }
 
 th:nth-child(7),
 td:nth-child(7) {
-  width: 19%;
+  width: 11%;
+  text-align: center;
+}
+
+th:nth-child(8),
+td:nth-child(8) {
+  width: 7%;
+  text-align: center;
+}
+
+th:nth-child(9),
+td:nth-child(9) {
+  width: 12%;
   text-align: center;
   overflow: visible;
 }
@@ -310,11 +314,18 @@ td:nth-child(7) {
 }
 
 .sepa-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  min-width: 28px;
+  height: 22px;
+  padding: 0;
   background: #d1fae5;
   color: #047857;
   border: 1px solid #a7f3d0;
   border-radius: 6px;
-  padding: 4px 9px;
+  line-height: 1;
 }
 
 .status-active {
@@ -336,23 +347,28 @@ td:nth-child(7) {
 }
 
 .actions {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 3px;
-  min-width: 0;
+  text-align: center;
+  vertical-align: middle;
+  white-space: nowrap;
   overflow: visible;
+  padding-left: 4px;
+  padding-right: 4px;
 }
 
 .btn-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   width: 26px;
   min-width: 26px;
   height: 26px;
-  flex: 0 0 26px;
+  margin: 0 1px;
+  vertical-align: middle;
   border-radius: 4px;
   border: none;
   cursor: pointer;
-  font-size: 11px;
+  font-size: 10px;
+  line-height: 1;
 }
 
 .btn-dark {
@@ -435,4 +451,59 @@ td:nth-child(7) {
   text-align: center;
   font-weight: 800;
   color: #2563eb;
+}
+
+
+/* Estado informativo del mandato SEPA.
+   Nunca bloquea la generación ni la inclusión en remesas. */
+.mandato-col {
+  min-width: 0;
+  width: auto;
+}
+
+.mandato-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 84px;
+  max-width: 100%;
+  padding: 4px 7px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+.mandato-firmado {
+  color: #12633d;
+  background: #dff5e9;
+  border-color: #8fd0ad;
+}
+
+.mandato-datos {
+  color: #765100;
+  background: #fff2cf;
+  border-color: #e7c46b;
+}
+
+.mandato-pendiente {
+  color: #9b2c2c;
+  background: #fde8e8;
+  border-color: #efb2b2;
+}
+
+.mandato-no-domiciliado {
+  color: #4f5d6b;
+  background: #edf1f5;
+  border-color: #c9d1da;
+}
+
+@media (max-width: 1100px) {
+  .mandato-badge {
+    min-width: 0;
+    padding: 5px 7px;
+    font-size: 10px;
+  }
 }

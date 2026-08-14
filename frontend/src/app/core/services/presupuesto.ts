@@ -11,6 +11,9 @@ export interface PresupuestoAltaRequest {
   cuentaId: number;
   anio: number;
   importe: number;
+  metodoReparto: 'COEFICIENTE' | 'PARTES_IGUALES';
+  aplicaTodos: boolean;
+  vecinoIds: number[];
 }
 
 @Injectable({
@@ -37,6 +40,24 @@ export class PresupuestoService {
     return this.http.post<Presupuesto>(
       `${this.apiUrl}/comunidad/${comunidadId}`,
       request
+    );
+  }
+
+  modificarPartida(
+    presupuestoId: number,
+    request: PresupuestoAltaRequest
+  ): Observable<Presupuesto> {
+    return this.http.put<Presupuesto>(
+      `${this.apiUrl}/partidas/${presupuestoId}`,
+      request
+    );
+  }
+
+  eliminarPartida(
+    presupuestoId: number
+  ): Observable<void> {
+    return this.http.delete<void>(
+      `${this.apiUrl}/partidas/${presupuestoId}`
     );
   }
 

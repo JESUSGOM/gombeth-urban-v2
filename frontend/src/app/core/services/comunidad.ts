@@ -9,6 +9,7 @@ import { Comunidad } from '../models/comunidad.model';
 import { PageResponse } from '../models/page-response.model';
 import { CoeficientesResumen } from '../models/coeficientes-resumen.model';
 import { ConfiguracionReparto } from '../models/configuracion-reparto.model';
+import { CoeficienteVecinoDetalle } from '../models/coeficiente-vecino-detalle.model';
 
 @Injectable({
   providedIn: 'root'
@@ -91,6 +92,20 @@ export class ComunidadService {
       {
         params,
         responseType: 'blob'
+      }
+    );
+  }
+
+  getDetalleCoeficientes(
+    comunidadId: number
+  ): Observable<CoeficienteVecinoDetalle[]> {
+
+    return this.http.get<CoeficienteVecinoDetalle[]>(
+      `${this.apiUrl}/${comunidadId}/coeficientes/detalle`,
+      {
+        params: {
+          nocache: Date.now().toString()
+        }
       }
     );
   }

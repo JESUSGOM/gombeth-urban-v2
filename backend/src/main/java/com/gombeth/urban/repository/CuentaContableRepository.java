@@ -29,4 +29,10 @@ public interface CuentaContableRepository
             Long id,
             Long comunidadId
     );
+
+    Optional<CuentaContable>
+    findFirstByComunidad_IdAndCodigoOrderByIdAsc(
+            Long comunidadId,
+            String codigo
+    );
 }

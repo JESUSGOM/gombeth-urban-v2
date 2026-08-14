@@ -225,14 +225,67 @@
 
           </div>
 
-          <div class="form-group full">
+          <div class="form-group full mandato-panel">
 
-            <label>Ruta Mandato Firmado</label>
+            <div class="mandato-panel-header">
+
+              <div>
+
+                <label>Mandato SEPA</label>
+
+                <div
+                  class="mandato-status"
+                  [class.mandato-status-ok]="estadoMandato === 'FIRMADO'"
+                  [class.mandato-status-warning]="
+                    estadoMandato === 'PENDIENTE'
+                    || estadoMandato === 'DATOS_INFORMADOS'
+                  "
+                  [class.mandato-status-neutral]="
+                    estadoMandato === 'NO_DOMICILIADO'
+                  ">
+                  {{ textoEstadoMandato }}
+                </div>
+
+              </div>
+
+              @if (!esNuevo) {
+
+                <button
+                  type="button"
+                  class="primary-button mandato-generate-button"
+                  [disabled]="descargandoMandato"
+                  (click)="descargarMandatoSepa()">
+
+                  {{
+                    descargandoMandato
+                      ? 'GENERANDO...'
+                      : 'Generar mandato PDF'
+                  }}
+
+                </button>
+
+              }
+
+            </div>
 
             <input
               type="text"
               [(ngModel)]="vecino.rutaMandatoFirmado"
-              readonly>
+              readonly
+              placeholder="Sin mandato firmado almacenado">
+
+            @if (
+              vecino.domiciliado
+              && estadoMandato !== 'FIRMADO'
+              ) {
+
+              <p class="mandato-warning-text">
+                El propietario podrá incluirse en remesas SEPA.
+                La ausencia de mandato firmado se mostrará únicamente
+                como advertencia informativa.
+              </p>
+
+            }
 
           </div>
 
@@ -277,7 +330,7 @@
 
           <div class="documentos-upload-row">
 
-            <h3>📄 Documentación</h3>
+            <h3>📄 Documentación y mandato firmado</h3>
 
             <input
               type="file"

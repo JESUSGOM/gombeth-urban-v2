@@ -73,6 +73,16 @@
   </div>
 
   <ul
+    *ngIf="advertenciasValidacion.length > 0"
+    class="alert warning">
+
+    <li *ngFor="let mensaje of advertenciasValidacion">
+      {{ mensaje }}
+    </li>
+
+  </ul>
+
+  <ul
     *ngIf="erroresValidacion.length > 0"
     class="alert error">
 

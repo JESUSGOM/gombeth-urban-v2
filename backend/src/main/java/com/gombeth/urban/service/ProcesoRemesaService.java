@@ -254,6 +254,21 @@ public class ProcesoRemesaService {
         if (request.getFechaCobro() == null) {
             throw new RuntimeException("Debe indicar fecha de cobro.");
         }
+
+        LocalDate fechaMinimaCobro =
+                LocalDate.of(
+                        request.getAnio(),
+                        request.getMes(),
+                        1
+                );
+
+        if (request.getFechaCobro().isBefore(fechaMinimaCobro)) {
+            throw new RuntimeException(
+                    "La fecha de cobro no puede ser anterior "
+                            + "a la fecha de emisión del período: "
+                            + fechaMinimaCobro
+            );
+        }
     }
 
     private int generarRecibosSiFaltan(

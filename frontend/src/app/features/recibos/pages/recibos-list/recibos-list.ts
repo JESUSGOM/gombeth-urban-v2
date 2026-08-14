@@ -722,6 +722,69 @@ export class RecibosList implements OnInit {
     }
   }
 
+  private obtenerFechaCobroRemesaSeleccionada(): string {
+    const fechaHoy =
+      this.obtenerFechaHoyLocal();
+
+    const fechaEmisionMaxima =
+      this.recibos
+        .filter(recibo =>
+          this.recibosSeleccionados.has(
+            recibo.id
+          )
+        )
+        .map(recibo =>
+          recibo.fechaEmision
+        )
+        .filter(fecha =>
+          Boolean(fecha)
+        )
+        .reduce(
+          (
+            maxima,
+            fecha
+          ) =>
+            fecha > maxima
+              ? fecha
+              : maxima,
+          ''
+        );
+
+    if (
+      fechaEmisionMaxima !== ''
+      && fechaEmisionMaxima > fechaHoy
+    ) {
+      return fechaEmisionMaxima;
+    }
+
+    return fechaHoy;
+  }
+
+  private obtenerFechaHoyLocal(): string {
+    const hoy = new Date();
+
+    const anio =
+      hoy.getFullYear();
+
+    const mes =
+      String(
+        hoy.getMonth() + 1
+      ).padStart(
+        2,
+        '0'
+      );
+
+    const dia =
+      String(
+        hoy.getDate()
+      ).padStart(
+        2,
+        '0'
+      );
+
+    return `${anio}-${mes}-${dia}`;
+  }
+
   generarRemesa(): void {
     if (
       this.recibosSeleccionados.size === 0
@@ -744,9 +807,7 @@ export class RecibosList implements OnInit {
     }
 
     const fechaCobro =
-      new Date()
-        .toISOString()
-        .split('T')[0];
+      this.obtenerFechaCobroRemesaSeleccionada();
 
     this.remesaService
       .generarRemesaSeleccion(

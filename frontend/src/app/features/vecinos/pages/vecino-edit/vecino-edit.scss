@@ -479,3 +479,69 @@ textarea:focus {
     width: 100%;
   }
 }
+
+
+.mandato-panel {
+  padding: 12px;
+  border: 1px solid #cbd8e6;
+  border-radius: 6px;
+  background: #f8fbfe;
+}
+
+.mandato-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 10px;
+}
+
+.mandato-status {
+  display: inline-flex;
+  align-items: center;
+  margin-top: 5px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.mandato-status-ok {
+  color: #12633d;
+  background: #dff5e9;
+  border: 1px solid #8fd0ad;
+}
+
+.mandato-status-warning {
+  color: #8a5700;
+  background: #fff2cf;
+  border: 1px solid #e7c46b;
+}
+
+.mandato-status-neutral {
+  color: #4f5d6b;
+  background: #edf1f5;
+  border: 1px solid #c9d1da;
+}
+
+.mandato-generate-button {
+  flex: 0 0 auto;
+}
+
+.mandato-warning-text {
+  margin: 9px 0 0;
+  color: #6c4b00;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+@media (max-width: 760px) {
+  .mandato-panel-header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .mandato-generate-button {
+    width: 100%;
+  }
+}

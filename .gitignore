@@ -1,118 +1,150 @@
-HELP.md
+﻿# ============================================================
+# GOMBETH URBAN V2
+# Archivos que NO deben versionarse
+# ============================================================
 
+# ------------------------------------------------------------
+# Maven / Java
+# ------------------------------------------------------------
+HELP.md
 target/
+backend/target/
+*.class
+*.jar
+*.war
+
 .mvn/wrapper/maven-wrapper.jar
 
 !**/src/main/**/target/
 !**/src/test/**/target/
 
-### STS ###
-.apt_generated
+# ------------------------------------------------------------
+# Spring Tool Suite
+# ------------------------------------------------------------
+.apt_generated/
 .classpath
 .factorypath
 .project
-.settings
+.settings/
 .springBeans
-.sts4-cache
+.sts4-cache/
 
-### IntelliJ IDEA ###
+# ------------------------------------------------------------
+# IntelliJ IDEA
+# ------------------------------------------------------------
 .idea/
 *.iws
 *.iml
 *.ipr
 
-### NetBeans ###
+# ------------------------------------------------------------
+# NetBeans
+# ------------------------------------------------------------
 /nbproject/private/
 /nbbuild/
 /dist/
 /nbdist/
 /.nb-gradle/
 build/
+
 !**/src/main/**/build/
 !**/src/test/**/build/
 
-### VS Code ###
+# ------------------------------------------------------------
+# Visual Studio Code
+# ------------------------------------------------------------
 .vscode/
 
-### Frontend ###
-frontend/node_modules/
-frontend/dist/
-frontend/.angular/
-
-### Backend ###
-backend/target/
-
-### Spring local secrets ###
-backend/src/main/resources/application-local.properties
-backend/src/main/resources/application-secrets.properties
-
-### Environment files ###
-.env
-*.env
-
-### Logs ###
-*.log
-
-### Temporary files ###
-*.tmp
-*.bak
-*.swp
-
-### Compressed files ###
-*.zip
-*.rar
-*.7z
-# --- Gombeth Urban: archivos locales y generados ---
-
-# IntelliJ y editores
-.idea/
-*.iml
-.vscode/
-
-# Maven
-backend/target/
-*.jar
-
-# Angular
+# ------------------------------------------------------------
+# Angular / Node
+# ------------------------------------------------------------
 frontend/node_modules/
 frontend/node_modules_windows/
 frontend/dist/
+frontend/.angular/
 .angular/
 
-# Angular compilado y copiado al backend
+# Angular compilado copiado al backend
 backend/src/main/resources/static/
 
-# Configuración local y credenciales
+# ------------------------------------------------------------
+# Configuración local y secretos
+# ------------------------------------------------------------
 application-local.properties
+application-secrets.properties
+
 backend/application-local.properties
+backend/config/application-local.properties
 backend/src/main/resources/application-local.properties
+backend/src/main/resources/application-secrets.properties
+
 .env
 .env.*
+*.env
 
+# ------------------------------------------------------------
 # Datos privados y documentación local
+# ------------------------------------------------------------
 a_documentacion/
 a_documentaci*/
 ficheros/
 pruebas/
+
 *.sql
 !backend/src/main/resources/db/manual/*.sql
 
-# Fotografías y QR generados durante las pruebas
+# ------------------------------------------------------------
+# Fotografías y QR generados durante pruebas
+# ------------------------------------------------------------
 backend/adjunto-incidencia-*.jpg
 backend/qr-comunidad-*.png
 
+# ------------------------------------------------------------
+# Releases y paquetes generados
+# ------------------------------------------------------------
+/release/
+/release-build-*/
+/release-diagnostico-*/
+
+*.zip
+*.rar
+*.7z
+
+# ------------------------------------------------------------
+# Backups locales
+# ------------------------------------------------------------
+*.bak
+*.old
+*.backup
+*.backup-*
+*backup-*
+
+# ------------------------------------------------------------
+# Archivos auxiliares de trabajo
+# ------------------------------------------------------------
+/bloque-advertencias-mandato-sepa.txt
+
+# ------------------------------------------------------------
 # Logs y temporales
+# ------------------------------------------------------------
 *.log
+*.tmp
+*.swp
+*.pid
+
 logs/
+log/
 tmp/
 temp/
 
+# ------------------------------------------------------------
 # Sistema operativo
+# ------------------------------------------------------------
 .DS_Store
 Thumbs.db
 
-# --- Fin archivos locales y generados ---
-
+# ------------------------------------------------------------
 # Scripts locales de arranque
+# ------------------------------------------------------------
 /arrancar-backend.bat
 /frontend/arrancar-frontend.bat

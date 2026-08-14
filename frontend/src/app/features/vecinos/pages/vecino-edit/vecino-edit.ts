@@ -45,6 +45,7 @@ export class VecinoEdit implements OnInit {
   esNuevo = false;
   guardando = false;
   subiendoDocumento = false;
+  descargandoMandato = false;
   cargandoDocumentos = false;
   eliminandoDocumentoId?: number;
 
@@ -192,8 +193,22 @@ export class VecinoEdit implements OnInit {
       return;
     }
 
+    /*
+     * El backend no permite recibir un ID al crear un propietario.
+     *
+     * El modelo de Angular mantiene temporalmente id: 0 para no romper
+     * el tipado actual de Vecino, pero ese campo se elimina expresamente
+     * del cuerpo JSON antes de realizar el POST.
+     */
+    const {
+      id: _idNoEnviar,
+      ...datosNuevoPropietario
+    } = this.vecino;
+
     this.vecinoService
-      .crearVecino(this.vecino)
+      .crearVecino(
+        datosNuevoPropietario as Vecino
+      )
       .subscribe({
         next: (data) => {
           this.mensaje =
@@ -213,7 +228,14 @@ export class VecinoEdit implements OnInit {
           );
 
           this.error =
-            'No se pudo crear el propietario.';
+            err?.error?.detail
+            || err?.error?.message
+            || (
+              typeof err?.error === 'string'
+                ? err.error
+                : ''
+            )
+            || 'No se pudo crear el propietario.';
 
           this.guardando = false;
           this.cdr.detectChanges();
@@ -416,6 +438,106 @@ export class VecinoEdit implements OnInit {
           this.cdr.detectChanges();
         }
       });
+  }
+
+
+  descargarMandatoSepa(): void {
+    if (
+      !this.vecino
+      || !this.vecino.id
+    ) {
+      this.errorDocumentos =
+        'Primero debe guardar el propietario.';
+
+      this.cdr.detectChanges();
+      return;
+    }
+
+    this.descargandoMandato = true;
+    this.mensaje = '';
+    this.error = '';
+    this.errorDocumentos = '';
+
+    const vecinoId = this.vecino.id;
+
+    this.vecinoService
+      .descargarMandatoPdf(vecinoId)
+      .subscribe({
+        next: (blob) => {
+          const url =
+            window.URL.createObjectURL(blob);
+
+          const enlace =
+            document.createElement('a');
+
+          enlace.href = url;
+          enlace.download =
+            `mandato_sepa_${vecinoId}.pdf`;
+
+          document.body.appendChild(enlace);
+          enlace.click();
+          enlace.remove();
+
+          window.URL.revokeObjectURL(url);
+
+          this.mensaje =
+            'Mandato SEPA generado correctamente.';
+
+          this.descargandoMandato = false;
+          this.cdr.detectChanges();
+        },
+        error: (err) => {
+          console.error(
+            'Error generando mandato SEPA:',
+            err
+          );
+
+          this.errorDocumentos =
+            'No se pudo generar el mandato SEPA.';
+
+          this.descargandoMandato = false;
+          this.cdr.detectChanges();
+        }
+      });
+  }
+
+  get estadoMandato(): string {
+    if (!this.vecino?.domiciliado) {
+      return 'NO_DOMICILIADO';
+    }
+
+    if (
+      this.vecino.rutaMandatoFirmado
+      && this.vecino.rutaMandatoFirmado
+        .startsWith('BD:')
+    ) {
+      return 'FIRMADO';
+    }
+
+    if (
+      this.vecino.referenciaMandato
+      && this.vecino.fechaMandato
+    ) {
+      return 'DATOS_INFORMADOS';
+    }
+
+    return 'PENDIENTE';
+  }
+
+  get textoEstadoMandato(): string {
+    switch (this.estadoMandato) {
+      case 'FIRMADO':
+        return 'Mandato firmado almacenado';
+
+      case 'DATOS_INFORMADOS':
+        return 'Datos del mandato informados, sin documento firmado';
+
+      case 'NO_DOMICILIADO':
+        return 'Propietario no domiciliado';
+
+      default:
+        return 'Mandato pendiente';
+    }
   }
 
   visualizarDocumento(

@@ -132,6 +132,7 @@ export class RemesasList implements OnInit {
 
   resultadoValidacion = '';
   erroresValidacion: string[] = [];
+  advertenciasValidacion: string[] = [];
 
   remesasValidadas =
     new Set<number>();
@@ -466,6 +467,7 @@ export class RemesasList implements OnInit {
 
     this.resultadoValidacion = '';
     this.erroresValidacion = [];
+    this.advertenciasValidacion = [];
 
     this.cargando = false;
   }
@@ -731,6 +733,7 @@ export class RemesasList implements OnInit {
 
     this.resultadoValidacion = '';
     this.erroresValidacion = [];
+    this.advertenciasValidacion = [];
 
     this.http
       .get(
@@ -907,6 +910,7 @@ export class RemesasList implements OnInit {
 
     this.resultadoValidacion = '';
     this.erroresValidacion = [];
+    this.advertenciasValidacion = [];
 
     this.remesaService
       .validarRemesa(remesa.id)
@@ -922,10 +926,17 @@ export class RemesasList implements OnInit {
             this.remesasValidadas
               .add(remesa.id!);
 
+            this.advertenciasValidacion =
+              response.mensajes ?? [];
+
             this.resultadoValidacion =
-              'Remesa ' +
-              remesa.id +
-              ' validada correctamente.';
+              this.advertenciasValidacion.length > 0
+                ? 'Remesa ' +
+                  remesa.id +
+                  ' válida con advertencias.'
+                : 'Remesa ' +
+                  remesa.id +
+                  ' validada correctamente.';
 
             this.cargarRemesas();
 

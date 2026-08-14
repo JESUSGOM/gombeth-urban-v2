@@ -5,10 +5,31 @@
     <div>
       <h2>📋 Conceptos de Cobro</h2>
 
-      <p class="subtitulo">
-        Comunidad ID:
-        <strong>{{ comunidadId }}</strong>
-      </p>
+      @if (vecinoId) {
+        <p class="subtitulo">
+          Propietario:
+          <strong>
+            {{ vecinoNombre || ('ID ' + vecinoId) }}
+          </strong>
+
+          @if (vecinoVivienda) {
+            <span>
+              · Vivienda:
+              <strong>{{ vecinoVivienda }}</strong>
+            </span>
+          }
+        </p>
+
+        <p class="subtitulo">
+          Comunidad ID:
+          <strong>{{ comunidadId }}</strong>
+        </p>
+      } @else {
+        <p class="subtitulo">
+          Comunidad ID:
+          <strong>{{ comunidadId }}</strong>
+        </p>
+      }
     </div>
 
     <div class="header-actions">
@@ -18,13 +39,29 @@
         <strong>{{ totalRegistros }}</strong>
       </div>
 
-      <button
-        type="button"
-        class="btn-nuevo"
-        [disabled]="!comunidadId"
-        (click)="nuevoConcepto()">
-        ＋ Nuevo concepto
-      </button>
+      @if (vecinoId) {
+          <button
+    type="button"
+    class="btn-nuevo btn-anadir-concepto-vecino"
+    [disabled]="!comunidadId"
+    (click)="nuevoConcepto()">
+    + A&#241;adir concepto
+  </button>
+<button
+          type="button"
+          class="btn-nuevo"
+          (click)="volverAPropietarios()">
+          ← Propietarios
+        </button>
+      } @else {
+        <button
+          type="button"
+          class="btn-nuevo"
+          [disabled]="!comunidadId"
+          (click)="nuevoConcepto()">
+          ＋ Nuevo concepto
+        </button>
+      }
 
     </div>
 
@@ -147,7 +184,9 @@
           <td
             colspan="7"
             class="empty-row">
-            No hay conceptos para esta comunidad.
+            {{ vecinoId
+              ? 'No hay conceptos asignados a este propietario.'
+              : 'No hay conceptos para esta comunidad.' }}
           </td>
         </tr>
 

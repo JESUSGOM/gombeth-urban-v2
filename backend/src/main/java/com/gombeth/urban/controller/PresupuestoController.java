@@ -13,6 +13,8 @@ import com.gombeth.urban.entity.CuentaContable;
 import com.gombeth.urban.entity.CuotaPresupuesto;
 import com.gombeth.urban.entity.Presupuesto;
 import com.gombeth.urban.entity.PresupuestoRevision;
+import com.gombeth.urban.entity.PresupuestoRepartoConfiguracion;
+import com.gombeth.urban.entity.PresupuestoRepartoVecino;
 import com.gombeth.urban.entity.TipoCuenta;
 import com.gombeth.urban.entity.Vecino;
 import com.gombeth.urban.repository.ComunidadConfiguracionRepartoRepository;
@@ -22,6 +24,8 @@ import com.gombeth.urban.repository.CuentaContableRepository;
 import com.gombeth.urban.repository.CuotaPresupuestoRepository;
 import com.gombeth.urban.repository.PresupuestoRepository;
 import com.gombeth.urban.repository.PresupuestoRevisionRepository;
+import com.gombeth.urban.repository.PresupuestoRepartoConfiguracionRepository;
+import com.gombeth.urban.repository.PresupuestoRepartoVecinoRepository;
 import com.gombeth.urban.repository.VecinoRepository;
 import com.gombeth.urban.service.AccesoComunidadService;
 import com.gombeth.urban.service.ContabilidadAutomaticaService;
@@ -32,16 +36,24 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 
 @RestController
 @RequestMapping("/api/presupuestos")
@@ -62,6 +74,12 @@ public class PresupuestoController {
 
     private final PresupuestoRevisionRepository
             presupuestoRevisionRepository;
+
+    private final PresupuestoRepartoConfiguracionRepository
+            presupuestoRepartoConfiguracionRepository;
+
+    private final PresupuestoRepartoVecinoRepository
+            presupuestoRepartoVecinoRepository;
 
     private final ContabilidadReciboRepository
             contabilidadReciboRepository;
@@ -88,6 +106,10 @@ public class PresupuestoController {
                     configuracionRepartoRepository,
             PresupuestoRevisionRepository
                     presupuestoRevisionRepository,
+            PresupuestoRepartoConfiguracionRepository
+                    presupuestoRepartoConfiguracionRepository,
+            PresupuestoRepartoVecinoRepository
+                    presupuestoRepartoVecinoRepository,
             ContabilidadReciboRepository
                     contabilidadReciboRepository,
             GeneracionReciboConceptosService
@@ -119,6 +141,12 @@ public class PresupuestoController {
         this.presupuestoRevisionRepository =
                 presupuestoRevisionRepository;
 
+        this.presupuestoRepartoConfiguracionRepository =
+                presupuestoRepartoConfiguracionRepository;
+
+        this.presupuestoRepartoVecinoRepository =
+                presupuestoRepartoVecinoRepository;
+
         this.contabilidadReciboRepository =
                 contabilidadReciboRepository;
 
@@ -146,31 +174,27 @@ public class PresupuestoController {
                 comunidadId
         );
 
+        String metodoLegacy =
+                obtenerMetodoRepartoLegacy(
+                        comunidadId
+                );
+
         return obtenerPresupuestos(
                 comunidadId,
                 anio
         )
                 .stream()
                 .map(presupuesto ->
-                        new PresupuestoResponse(
-                                presupuesto.getId(),
-                                presupuesto
-                                        .getCuenta()
-                                        .getId(),
-                                presupuesto
-                                        .getCuenta()
-                                        .getCodigo(),
-                                presupuesto
-                                        .getCuenta()
-                                        .getNombre(),
-                                presupuesto.getAnio(),
-                                presupuesto.getImporte()
+                        convertirPresupuestoResponse(
+                                presupuesto,
+                                metodoLegacy
                         )
                 )
                 .toList();
     }
 
     @PostMapping("/comunidad/{comunidadId}")
+    @Transactional
     public PresupuestoResponse crearPartida(
             @PathVariable Long comunidadId,
             @RequestBody PresupuestoAltaRequest request,
@@ -181,79 +205,17 @@ public class PresupuestoController {
                 comunidadId
         );
 
-        if (request == null) {
-            throw new IllegalArgumentException(
-                    "Debe informar los datos de la partida presupuestaria."
-            );
-        }
-
-        if (request.cuentaId() == null) {
-            throw new IllegalArgumentException(
-                    "Debe seleccionar una cuenta contable."
-            );
-        }
-
-        if (request.anio() == null
-                || request.anio() < 2000
-                || request.anio() > 2100) {
-            throw new IllegalArgumentException(
-                    "El año del presupuesto no es válido."
-            );
-        }
-
-        if (request.importe() == null
-                || request.importe().compareTo(BigDecimal.ZERO) <= 0) {
-            throw new IllegalArgumentException(
-                    "El importe debe ser mayor que cero."
-            );
-        }
-
-        Comunidad comunidad =
-                comunidadRepository
-                        .findById(comunidadId)
-                        .orElseThrow(() ->
-                                new IllegalArgumentException(
-                                        "No existe la comunidad "
-                                                + comunidadId
-                                )
-                        );
-
-        CuentaContable cuenta =
-                cuentaContableRepository
-                        .findByIdAndComunidad_Id(
-                                request.cuentaId(),
-                                comunidadId
-                        )
-                        .orElseThrow(() ->
-                                new IllegalArgumentException(
-                                        "La cuenta contable seleccionada "
-                                                + "no pertenece a la comunidad."
-                                )
-                        );
-
-        if (cuenta.getTipo() != TipoCuenta.GASTO) {
-            throw new IllegalArgumentException(
-                    "Solo se pueden presupuestar cuentas de gasto."
-            );
-        }
-
-        if (
-                presupuestoRepository
-                        .existsByComunidad_IdAndCuenta_IdAndAnio(
-                                comunidadId,
-                                request.cuentaId(),
-                                request.anio()
-                        )
-        ) {
-            throw new IllegalStateException(
-                    "Ya existe una partida para esa cuenta y año."
-            );
-        }
+        DatosPartidaValidados datos =
+                validarDatosPartida(
+                        comunidadId,
+                        request,
+                        null
+                );
 
         Presupuesto presupuesto =
                 new Presupuesto(
-                        comunidad,
-                        cuenta,
+                        datos.comunidad(),
+                        datos.cuenta(),
                         request.anio(),
                         request.importe().setScale(
                                 2,
@@ -266,13 +228,191 @@ public class PresupuestoController {
                         presupuesto
                 );
 
-        return new PresupuestoResponse(
+        guardarConfiguracionPartida(
                 guardado.getId(),
-                cuenta.getId(),
-                cuenta.getCodigo(),
-                cuenta.getNombre(),
-                guardado.getAnio(),
-                guardado.getImporte()
+                datos.metodoReparto(),
+                datos.aplicaTodos(),
+                datos.vecinoIds()
+        );
+
+        return convertirPresupuestoResponse(
+                guardado,
+                datos.metodoReparto()
+        );
+    }
+
+    @PutMapping("/partidas/{presupuestoId}")
+    @Transactional
+    public PresupuestoResponse modificarPartida(
+            @PathVariable Long presupuestoId,
+            @RequestBody PresupuestoAltaRequest request,
+            Authentication authentication
+    ) {
+        Presupuesto presupuesto =
+                presupuestoRepository
+                        .findById(presupuestoId)
+                        .orElseThrow(() ->
+                                new IllegalArgumentException(
+                                        "No existe la partida presupuestaria "
+                                                + presupuestoId
+                                )
+                        );
+
+        Long comunidadId =
+                presupuesto
+                        .getComunidad()
+                        .getId();
+
+        validarAcceso(
+                authentication,
+                comunidadId
+        );
+
+        DatosPartidaValidados datos =
+                validarDatosPartida(
+                        comunidadId,
+                        request,
+                        presupuestoId
+                );
+
+        presupuesto.setCuenta(
+                datos.cuenta()
+        );
+
+        presupuesto.setAnio(
+                request.anio()
+        );
+
+        presupuesto.setImporte(
+                request.importe().setScale(
+                        2,
+                        RoundingMode.HALF_UP
+                )
+        );
+
+        Presupuesto guardado =
+                presupuestoRepository.save(
+                        presupuesto
+                );
+
+        guardarConfiguracionPartida(
+                guardado.getId(),
+                datos.metodoReparto(),
+                datos.aplicaTodos(),
+                datos.vecinoIds()
+        );
+
+        return convertirPresupuestoResponse(
+                guardado,
+                datos.metodoReparto()
+        );
+    }
+
+    @DeleteMapping("/partidas/{presupuestoId}")
+    @Transactional
+    public void eliminarPartida(
+            @PathVariable Long presupuestoId,
+            Authentication authentication
+    ) {
+        Presupuesto presupuesto =
+                presupuestoRepository
+                        .findById(presupuestoId)
+                        .orElseThrow(() ->
+                                new IllegalArgumentException(
+                                        "No existe la partida presupuestaria "
+                                                + presupuestoId
+                                )
+                        );
+
+        Long comunidadId =
+                presupuesto
+                        .getComunidad()
+                        .getId();
+
+        Integer anio =
+                presupuesto.getAnio();
+
+        validarAcceso(
+                authentication,
+                comunidadId
+        );
+
+        List<PresupuestoRevision> revisiones =
+                presupuestoRevisionRepository
+                        .findByComunidadIdAndAnioOrderByVersionAsc(
+                                comunidadId,
+                                anio
+                        );
+
+        if (!revisiones.isEmpty()) {
+            throw new IllegalStateException(
+                    "No se puede eliminar la partida porque existen "
+                            + "revisiones presupuestarias para "
+                            + anio
+                            + ". Elimine primero las revisiones en "
+                            + "borrador. Las revisiones aprobadas "
+                            + "impiden modificar el presupuesto base."
+            );
+        }
+
+        List<CuotaPresupuesto> cuotas =
+                cuotaPresupuestoRepository
+                        .findByComunidadIdAndAnioOrderByIdAsc(
+                                comunidadId,
+                                anio
+                        );
+
+        boolean existenCuotasNoBorrador =
+                cuotas.stream()
+                        .anyMatch(cuota ->
+                                !"BORRADOR".equalsIgnoreCase(
+                                        cuota.getEstado()
+                                )
+                        );
+
+        if (existenCuotasNoBorrador) {
+            throw new IllegalStateException(
+                    "No se puede eliminar la partida porque existen "
+                            + "cuotas aprobadas o consolidadas para "
+                            + anio
+                            + "."
+            );
+        }
+
+        if (!cuotas.isEmpty()) {
+            /*
+             * Las cuotas BORRADOR son datos derivados del presupuesto.
+             * Al cambiar las partidas dejan de ser válidas y se eliminan
+             * para obligar a generar un nuevo borrador coherente.
+             */
+            cuotaPresupuestoRepository.deleteAll(
+                    cuotas
+            );
+
+            cuotaPresupuestoRepository.flush();
+        }
+
+        presupuestoRepartoVecinoRepository
+                .deleteByPresupuestoId(
+                        presupuestoId
+                );
+
+        presupuestoRepartoVecinoRepository.flush();
+
+        presupuestoRepartoConfiguracionRepository
+                .findByPresupuestoId(
+                        presupuestoId
+                )
+                .ifPresent(configuracion -> {
+                    presupuestoRepartoConfiguracionRepository
+                            .delete(configuracion);
+
+                    presupuestoRepartoConfiguracionRepository
+                            .flush();
+                });
+
+        presupuestoRepository.delete(
+                presupuesto
         );
     }
 
@@ -311,6 +451,7 @@ public class PresupuestoController {
     }
 
     @PostMapping("/comunidad/{comunidadId}/generar-borrador-cuotas")
+    @Transactional
     public GeneracionCuotasResponse generarBorradorCuotas(
             @PathVariable Long comunidadId,
             @RequestParam Integer anio,
@@ -347,11 +488,43 @@ public class PresupuestoController {
                                 anio
                         );
 
-        if (!cuotasExistentes.isEmpty()) {
-            throw new IllegalStateException(
-                    "Ya existen cuotas presupuestarias para "
-                            + "la comunidad y el año indicados."
-            );
+        boolean regenerandoBorrador =
+                !cuotasExistentes.isEmpty();
+
+        if (regenerandoBorrador) {
+            boolean existenCuotasNoBorrador =
+                    cuotasExistentes.stream()
+                            .anyMatch(cuota ->
+                                    !"BORRADOR".equalsIgnoreCase(
+                                            cuota.getEstado()
+                                    )
+                            );
+
+            if (existenCuotasNoBorrador) {
+                throw new IllegalStateException(
+                        "No se puede regenerar el borrador porque "
+                                + "existen cuotas que ya no están en "
+                                + "estado BORRADOR."
+                );
+            }
+
+            boolean existenRevisiones =
+                    cuotasExistentes.stream()
+                            .anyMatch(cuota ->
+                                    cuota.getRevisionId() != null
+                                            || (
+                                            cuota.getVersion() != null
+                                                    && cuota.getVersion() > 1
+                                    )
+                            );
+
+            if (existenRevisiones) {
+                throw new IllegalStateException(
+                        "No se puede regenerar el presupuesto inicial "
+                                + "porque existen revisiones "
+                                + "presupuestarias para ese año."
+                );
+            }
         }
 
         List<RepartoPresupuestoResponse> reparto =
@@ -366,9 +539,30 @@ public class PresupuestoController {
             );
         }
 
+        if (regenerandoBorrador) {
+            cuotaPresupuestoRepository.deleteAll(
+                    cuotasExistentes
+            );
+
+            /*
+             * Elimina físicamente los borradores anteriores antes
+             * de insertar los recalculados. Toda la operación queda
+             * dentro de la misma transacción.
+             */
+            cuotaPresupuestoRepository.flush();
+        }
+
         int generadas = 0;
 
         for (RepartoPresupuestoResponse elemento : reparto) {
+            if (
+                    elemento.getImporteAnual() == null
+                            || elemento.getImporteAnual()
+                            .compareTo(BigDecimal.ZERO) <= 0
+            ) {
+                continue;
+            }
+
             CuotaPresupuesto cuota =
                     new CuotaPresupuesto();
 
@@ -440,7 +634,9 @@ public class PresupuestoController {
                 comunidadId,
                 anio,
                 generadas,
-                "Borrador de cuotas generado correctamente"
+                regenerandoBorrador
+                        ? "Borrador de cuotas regenerado correctamente"
+                        : "Borrador de cuotas generado correctamente"
         );
     }
 
@@ -781,6 +977,14 @@ public class PresupuestoController {
                 RepartoPresupuestoResponse elemento
                 : reparto
         ) {
+            if (
+                    elemento.getImporteAnual() == null
+                            || elemento.getImporteAnual()
+                            .compareTo(BigDecimal.ZERO) <= 0
+            ) {
+                continue;
+            }
+
             BigDecimal importeAnualRevision =
                     request
                             .importeRevision()
@@ -1056,11 +1260,12 @@ public class PresupuestoController {
             Long comunidadId,
             int anio
     ) {
-        BigDecimal total =
-                calcularTotalPresupuesto(
-                        comunidadId,
-                        anio
-                );
+        List<Presupuesto> partidas =
+                presupuestoRepository
+                        .findByComunidadIdAndAnioOrderByCuentaCodigoAsc(
+                                comunidadId,
+                                anio
+                        );
 
         List<Vecino> vecinos =
                 vecinoRepository
@@ -1068,84 +1273,136 @@ public class PresupuestoController {
                                 comunidadId
                         );
 
-        String metodoReparto =
-                configuracionRepartoRepository
-                        .findByComunidadId(
-                                comunidadId
-                        )
-                        .map(configuracion ->
-                                configuracion
-                                        .getMetodoReparto()
-                        )
-                        .orElse(
-                                "COEFICIENTE"
+        Map<Long, Vecino> vecinosPorId =
+                vecinos.stream()
+                        .collect(
+                                java.util.stream.Collectors.toMap(
+                                        Vecino::getId,
+                                        vecino -> vecino,
+                                        (a, b) -> a,
+                                        LinkedHashMap::new
+                                )
                         );
 
-        BigDecimal importeIgualitario =
-                BigDecimal.ZERO;
+        Map<Long, BigDecimal> importesPorVecino =
+                new LinkedHashMap<>();
 
-        if (
-                (
-                        "PARTES_IGUALES".equalsIgnoreCase(
-                                metodoReparto
-                        )
-                                || "IGUALITARIO".equalsIgnoreCase(
-                                metodoReparto
-                        )
-                )
-                        && !vecinos.isEmpty()
-        ) {
-            importeIgualitario =
-                    total.divide(
-                            new BigDecimal(
-                                    vecinos.size()
-                            ),
+        for (Vecino vecino : vecinos) {
+            importesPorVecino.put(
+                    vecino.getId(),
+                    BigDecimal.ZERO.setScale(
                             2,
                             RoundingMode.HALF_UP
-                    );
+                    )
+            );
         }
 
-        BigDecimal importeIgualitarioFinal =
-                importeIgualitario;
+        String metodoLegacy =
+                obtenerMetodoRepartoLegacy(
+                        comunidadId
+                );
+
+        for (Presupuesto partida : partidas) {
+            PresupuestoRepartoConfiguracion configuracion =
+                    presupuestoRepartoConfiguracionRepository
+                            .findByPresupuestoId(
+                                    partida.getId()
+                            )
+                            .orElse(null);
+
+            String metodo =
+                    configuracion == null
+                            ? metodoLegacy
+                            : normalizarMetodoReparto(
+                                    configuracion.getMetodoReparto(),
+                                    metodoLegacy
+                            );
+
+            boolean aplicaTodos =
+                    configuracion == null
+                            || Boolean.TRUE.equals(
+                            configuracion.getAplicaTodos()
+                    );
+
+            List<Vecino> afectados;
+
+            if (aplicaTodos) {
+                afectados =
+                        new ArrayList<>(
+                                vecinos
+                        );
+            } else {
+                Set<Long> idsAfectados =
+                        presupuestoRepartoVecinoRepository
+                                .findByPresupuestoIdOrderByVecinoIdAsc(
+                                        partida.getId()
+                                )
+                                .stream()
+                                .map(
+                                        PresupuestoRepartoVecino::getVecinoId
+                                )
+                                .collect(
+                                        java.util.stream.Collectors.toCollection(
+                                                HashSet::new
+                                        )
+                                );
+
+                afectados =
+                        vecinos.stream()
+                                .filter(vecino ->
+                                        idsAfectados.contains(
+                                                vecino.getId()
+                                        )
+                                )
+                                .toList();
+            }
+
+            if (afectados.isEmpty()) {
+                throw new IllegalStateException(
+                        "La partida "
+                                + descripcionPartida(partida)
+                                + " no tiene propietarios activos afectados."
+                );
+            }
+
+            Map<Long, BigDecimal> repartoPartida =
+                    repartirPartida(
+                            partida,
+                            afectados,
+                            metodo
+                    );
+
+            for (Map.Entry<Long, BigDecimal> entrada
+                 : repartoPartida.entrySet()) {
+                if (!vecinosPorId.containsKey(entrada.getKey())) {
+                    continue;
+                }
+
+                importesPorVecino.merge(
+                        entrada.getKey(),
+                        entrada.getValue(),
+                        BigDecimal::add
+                );
+            }
+        }
 
         return vecinos.stream()
                 .map(vecino -> {
-
                     BigDecimal coeficiente =
-                            vecino.getCoeficiente()
-                                    == null
-                                    ? BigDecimal.ZERO
-                                    : vecino
-                                    .getCoeficiente();
+                            coeficienteVecino(
+                                    vecino
+                            );
 
-                    BigDecimal importeAnual;
-
-                    if (
-                            "PARTES_IGUALES"
-                                    .equalsIgnoreCase(
-                                            metodoReparto
+                    BigDecimal importeAnual =
+                            importesPorVecino
+                                    .getOrDefault(
+                                            vecino.getId(),
+                                            BigDecimal.ZERO
                                     )
-                                    || "IGUALITARIO"
-                                    .equalsIgnoreCase(
-                                            metodoReparto
-                                    )
-                    ) {
-                        importeAnual =
-                                importeIgualitarioFinal;
-                    } else {
-                        importeAnual =
-                                total
-                                        .multiply(
-                                                coeficiente
-                                        )
-                                        .divide(
-                                                new BigDecimal(
-                                                        "100"
-                                                ),
-                                                2,
-                                                RoundingMode.HALF_UP
-                                        );
-                    }
+                                    .setScale(
+                                            2,
+                                            RoundingMode.HALF_UP
+                                    );
 
                     BigDecimal importeMensual =
                             importeAnual.divide(
@@ -1166,6 +1423,497 @@ public class PresupuestoController {
                     );
                 })
                 .toList();
+    }
+
+    private Map<Long, BigDecimal> repartirPartida(
+            Presupuesto partida,
+            List<Vecino> afectados,
+            String metodo
+    ) {
+        BigDecimal importe =
+                partida.getImporte() == null
+                        ? BigDecimal.ZERO
+                        : partida.getImporte().setScale(
+                                2,
+                                RoundingMode.HALF_UP
+                        );
+
+        Map<Long, BigDecimal> resultado =
+                new LinkedHashMap<>();
+
+        BigDecimal acumulado =
+                BigDecimal.ZERO.setScale(
+                        2,
+                        RoundingMode.HALF_UP
+                );
+
+        BigDecimal totalCoeficientes =
+                BigDecimal.ZERO;
+
+        if (
+                "COEFICIENTE".equalsIgnoreCase(
+                        metodo
+                )
+        ) {
+            totalCoeficientes =
+                    afectados.stream()
+                            .map(
+                                    this::coeficienteVecino
+                            )
+                            .reduce(
+                                    BigDecimal.ZERO,
+                                    BigDecimal::add
+                            );
+
+            if (
+                    totalCoeficientes.compareTo(
+                            BigDecimal.ZERO
+                    ) <= 0
+            ) {
+                throw new IllegalStateException(
+                        "La partida "
+                                + descripcionPartida(partida)
+                                + " se reparte por coeficiente, "
+                                + "pero los propietarios afectados "
+                                + "no tienen coeficientes positivos."
+                );
+            }
+        }
+
+        for (int i = 0; i < afectados.size(); i++) {
+            Vecino vecino =
+                    afectados.get(i);
+
+            BigDecimal importeVecino;
+
+            if (i == afectados.size() - 1) {
+                importeVecino =
+                        importe.subtract(
+                                acumulado
+                        );
+            } else if (
+                    "PARTES_IGUALES".equalsIgnoreCase(
+                            metodo
+                    )
+            ) {
+                importeVecino =
+                        importe.divide(
+                                BigDecimal.valueOf(
+                                        afectados.size()
+                                ),
+                                2,
+                                RoundingMode.HALF_UP
+                        );
+            } else {
+                importeVecino =
+                        importe
+                                .multiply(
+                                        coeficienteVecino(
+                                                vecino
+                                        )
+                                )
+                                .divide(
+                                        totalCoeficientes,
+                                        2,
+                                        RoundingMode.HALF_UP
+                                );
+            }
+
+            importeVecino =
+                    importeVecino.setScale(
+                            2,
+                            RoundingMode.HALF_UP
+                    );
+
+            resultado.put(
+                    vecino.getId(),
+                    importeVecino
+            );
+
+            acumulado =
+                    acumulado.add(
+                            importeVecino
+                    );
+        }
+
+        return resultado;
+    }
+
+    private BigDecimal coeficienteVecino(
+            Vecino vecino
+    ) {
+        return vecino.getCoeficiente() == null
+                ? BigDecimal.ZERO
+                : vecino.getCoeficiente();
+    }
+
+    private String descripcionPartida(
+            Presupuesto presupuesto
+    ) {
+        if (
+                presupuesto.getCuenta() != null
+                        && presupuesto.getCuenta().getNombre() != null
+        ) {
+            return "'"
+                    + presupuesto.getCuenta().getNombre()
+                    + "'";
+        }
+
+        return "#"
+                + presupuesto.getId();
+    }
+
+    private PresupuestoResponse convertirPresupuestoResponse(
+            Presupuesto presupuesto,
+            String metodoLegacy
+    ) {
+        PresupuestoRepartoConfiguracion configuracion =
+                presupuestoRepartoConfiguracionRepository
+                        .findByPresupuestoId(
+                                presupuesto.getId()
+                        )
+                        .orElse(null);
+
+        String metodo =
+                configuracion == null
+                        ? metodoLegacy
+                        : normalizarMetodoReparto(
+                                configuracion.getMetodoReparto(),
+                                metodoLegacy
+                        );
+
+        boolean aplicaTodos =
+                configuracion == null
+                        || Boolean.TRUE.equals(
+                        configuracion.getAplicaTodos()
+                );
+
+        List<Long> vecinoIds =
+                aplicaTodos
+                        ? List.of()
+                        : presupuestoRepartoVecinoRepository
+                        .findByPresupuestoIdOrderByVecinoIdAsc(
+                                presupuesto.getId()
+                        )
+                        .stream()
+                        .map(
+                                PresupuestoRepartoVecino::getVecinoId
+                        )
+                        .toList();
+
+        return new PresupuestoResponse(
+                presupuesto.getId(),
+                presupuesto.getCuenta().getId(),
+                presupuesto.getCuenta().getCodigo(),
+                presupuesto.getCuenta().getNombre(),
+                presupuesto.getAnio(),
+                presupuesto.getImporte(),
+                metodo,
+                aplicaTodos,
+                vecinoIds,
+                aplicaTodos
+                        ? null
+                        : vecinoIds.size()
+        );
+    }
+
+    private DatosPartidaValidados validarDatosPartida(
+            Long comunidadId,
+            PresupuestoAltaRequest request,
+            Long presupuestoIdActual
+    ) {
+        if (request == null) {
+            throw new IllegalArgumentException(
+                    "Debe informar los datos de la partida presupuestaria."
+            );
+        }
+
+        if (request.cuentaId() == null) {
+            throw new IllegalArgumentException(
+                    "Debe seleccionar una cuenta contable."
+            );
+        }
+
+        if (request.anio() == null
+                || request.anio() < 2000
+                || request.anio() > 2100) {
+            throw new IllegalArgumentException(
+                    "El año del presupuesto no es válido."
+            );
+        }
+
+        if (request.importe() == null
+                || request.importe().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException(
+                    "El importe debe ser mayor que cero."
+            );
+        }
+
+        Comunidad comunidad =
+                comunidadRepository
+                        .findById(comunidadId)
+                        .orElseThrow(() ->
+                                new IllegalArgumentException(
+                                        "No existe la comunidad "
+                                                + comunidadId
+                                )
+                        );
+
+        CuentaContable cuenta =
+                cuentaContableRepository
+                        .findByIdAndComunidad_Id(
+                                request.cuentaId(),
+                                comunidadId
+                        )
+                        .orElseThrow(() ->
+                                new IllegalArgumentException(
+                                        "La cuenta contable seleccionada "
+                                                + "no pertenece a la comunidad."
+                                )
+                        );
+
+        boolean esCuentaGasto =
+                cuenta.getTipo() == TipoCuenta.GASTO;
+
+        boolean esFondoReserva =
+                "10200000".equals(
+                        cuenta.getCodigo()
+                );
+
+        if (!esCuentaGasto && !esFondoReserva) {
+            throw new IllegalArgumentException(
+                    "Solo se pueden presupuestar cuentas de gasto "
+                            + "o la cuenta 10200000 Fondo de Reserva."
+            );
+        }
+
+        boolean existeDuplicada;
+
+        if (presupuestoIdActual == null) {
+            existeDuplicada =
+                    presupuestoRepository
+                            .existsByComunidad_IdAndCuenta_IdAndAnio(
+                                    comunidadId,
+                                    request.cuentaId(),
+                                    request.anio()
+                            );
+        } else {
+            existeDuplicada =
+                    presupuestoRepository
+                            .existsByComunidad_IdAndCuenta_IdAndAnioAndIdNot(
+                                    comunidadId,
+                                    request.cuentaId(),
+                                    request.anio(),
+                                    presupuestoIdActual
+                            );
+        }
+
+        if (existeDuplicada) {
+            throw new IllegalStateException(
+                    "Ya existe una partida para esa cuenta y año."
+            );
+        }
+
+        String metodoReparto =
+                normalizarMetodoReparto(
+                        request.metodoReparto(),
+                        obtenerMetodoRepartoLegacy(
+                                comunidadId
+                        )
+                );
+
+        boolean aplicaTodos =
+                request.aplicaTodos() == null
+                        || Boolean.TRUE.equals(
+                        request.aplicaTodos()
+                );
+
+        List<Long> vecinoIds =
+                request.vecinoIds() == null
+                        ? List.of()
+                        : request.vecinoIds()
+                        .stream()
+                        .filter(Objects::nonNull)
+                        .distinct()
+                        .toList();
+
+        if (!aplicaTodos && vecinoIds.isEmpty()) {
+            throw new IllegalArgumentException(
+                    "Debe seleccionar al menos un propietario "
+                            + "afectado por la partida."
+            );
+        }
+
+        if (!aplicaTodos) {
+            List<Vecino> vecinos =
+                    vecinoRepository
+                            .findAllById(
+                                    vecinoIds
+                            );
+
+            Map<Long, Vecino> porId =
+                    vecinos.stream()
+                            .collect(
+                                    java.util.stream.Collectors.toMap(
+                                            Vecino::getId,
+                                            vecino -> vecino
+                                    )
+                            );
+
+            for (Long vecinoId : vecinoIds) {
+                Vecino vecino =
+                        porId.get(
+                                vecinoId
+                        );
+
+                if (
+                        vecino == null
+                                || !Objects.equals(
+                                comunidadId,
+                                vecino.getComunidadId()
+                        )
+                                || !vecino.isActivo()
+                ) {
+                    throw new IllegalArgumentException(
+                            "El propietario "
+                                    + vecinoId
+                                    + " no pertenece a la comunidad "
+                                    + "o no está activo."
+                    );
+                }
+            }
+        }
+
+        return new DatosPartidaValidados(
+                comunidad,
+                cuenta,
+                metodoReparto,
+                aplicaTodos,
+                vecinoIds
+        );
+    }
+
+    private void guardarConfiguracionPartida(
+            Long presupuestoId,
+            String metodoReparto,
+            boolean aplicaTodos,
+            List<Long> vecinoIds
+    ) {
+        PresupuestoRepartoConfiguracion configuracion =
+                presupuestoRepartoConfiguracionRepository
+                        .findByPresupuestoId(
+                                presupuestoId
+                        )
+                        .orElseGet(
+                                PresupuestoRepartoConfiguracion::new
+                        );
+
+        configuracion.setPresupuestoId(
+                presupuestoId
+        );
+
+        configuracion.setMetodoReparto(
+                metodoReparto
+        );
+
+        configuracion.setAplicaTodos(
+                aplicaTodos
+        );
+
+        presupuestoRepartoConfiguracionRepository.save(
+                configuracion
+        );
+
+        presupuestoRepartoVecinoRepository
+                .deleteByPresupuestoId(
+                        presupuestoId
+                );
+
+        /*
+         * La eliminacion derivada queda pendiente en el contexto JPA.
+         * Debe ejecutarse antes de volver a insertar las relaciones,
+         * porque la tabla tiene una restriccion UNIQUE
+         * (presupuesto_id, vecino_id).
+         */
+        presupuestoRepartoVecinoRepository.flush();
+
+        if (aplicaTodos) {
+            return;
+        }
+
+        for (Long vecinoId : vecinoIds) {
+            PresupuestoRepartoVecino relacion =
+                    new PresupuestoRepartoVecino();
+
+            relacion.setPresupuestoId(
+                    presupuestoId
+            );
+
+            relacion.setVecinoId(
+                    vecinoId
+            );
+
+            presupuestoRepartoVecinoRepository.save(
+                    relacion
+            );
+        }
+    }
+
+    private String obtenerMetodoRepartoLegacy(
+            Long comunidadId
+    ) {
+        return configuracionRepartoRepository
+                .findByComunidadId(
+                        comunidadId
+                )
+                .map(configuracion ->
+                        normalizarMetodoReparto(
+                                configuracion.getMetodoReparto(),
+                                "COEFICIENTE"
+                        )
+                )
+                .orElse(
+                        "COEFICIENTE"
+                );
+    }
+
+    private String normalizarMetodoReparto(
+            String metodo,
+            String defecto
+    ) {
+        String valor =
+                metodo == null
+                        ? ""
+                        : metodo.trim().toUpperCase();
+
+        if (
+                "PARTES_IGUALES".equals(valor)
+                        || "IGUALITARIO".equals(valor)
+        ) {
+            return "PARTES_IGUALES";
+        }
+
+        if ("COEFICIENTE".equals(valor)) {
+            return "COEFICIENTE";
+        }
+
+        if (defecto == null || defecto.isBlank()) {
+            return "COEFICIENTE";
+        }
+
+        return normalizarMetodoReparto(
+                defecto,
+                "COEFICIENTE"
+        );
+    }
+
+    private record DatosPartidaValidados(
+            Comunidad comunidad,
+            CuentaContable cuenta,
+            String metodoReparto,
+            boolean aplicaTodos,
+            List<Long> vecinoIds
+    ) {
     }
 
     private boolean cuotaAplicaAlMes(

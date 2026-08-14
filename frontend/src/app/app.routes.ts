@@ -138,6 +138,11 @@ export const routes: Routes = [
       },
 
       {
+        path: 'conceptos/comunidad/:id/vecino/:vecinoId',
+        component: ConceptosList
+      },
+
+      {
         path: 'conceptos/comunidad/:id',
         component: ConceptosList
       },

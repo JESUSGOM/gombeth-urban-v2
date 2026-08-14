@@ -42,4 +42,29 @@ public class CuentaContableController {
 
         return service.findByComunidad(id);
     }
+
+    /**
+     * Catálogo global de códigos contables.
+     *
+     * El usuario debe tener acceso a la comunidad sobre la que
+     * está trabajando, pero el catálogo reúne los códigos que
+     * existen en cualquier comunidad.
+     *
+     * No devuelve la propiedad comunidad porque CuentaContable
+     * la mantiene protegida con @JsonIgnore.
+     */
+    @GetMapping("/catalogo/comunidad/{id}")
+    public List<CuentaContable> findCatalogoGlobal(
+            @PathVariable Long id,
+            Authentication authentication
+    ) {
+        accesoComunidadService.validarAcceso(
+                authentication,
+                id
+        );
+
+        return service.findCatalogoGlobalParaComunidad(
+                id
+        );
+    }
 }

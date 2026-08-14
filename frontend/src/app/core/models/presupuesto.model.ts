@@ -5,4 +5,8 @@ export interface Presupuesto {
   cuentaDescripcion: string;
   anio: number;
   importe: number;
+  metodoReparto: 'COEFICIENTE' | 'PARTES_IGUALES';
+  aplicaTodos: boolean;
+  vecinoIds: number[];
+  numeroPropietariosAfectados: number | null;
 }

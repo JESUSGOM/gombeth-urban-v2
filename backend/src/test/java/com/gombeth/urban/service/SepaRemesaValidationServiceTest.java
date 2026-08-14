@@ -152,7 +152,7 @@ class SepaRemesaValidationServiceTest {
     }
 
     @Test
-    void rechazaVecinoSinMandatoFirmado() {
+    void advierteVecinoSinMandatoFirmadoSinBloquear() {
 
         Contexto contexto =
                 crearContextoValido(
@@ -162,14 +162,20 @@ class SepaRemesaValidationServiceTest {
         SepaValidacionResultado resultado =
                 validar(contexto);
 
-        assertContieneError(
+        assertContieneAdvertencia(
                 resultado,
                 "mandato firmado"
+        );
+
+        assertTrue(
+                resultado.isValida(),
+                () -> "La advertencia de mandato no debe bloquear la remesa: "
+                        + resultado.getErrores()
         );
     }
 
     @Test
-    void rechazaReferenciaDeDocumentoNoValida() {
+    void advierteReferenciaDeDocumentoNoValidaSinBloquear() {
 
         Contexto contexto =
                 crearContextoValido(
@@ -179,14 +185,20 @@ class SepaRemesaValidationServiceTest {
         SepaValidacionResultado resultado =
                 validar(contexto);
 
-        assertContieneError(
+        assertContieneAdvertencia(
                 resultado,
                 "referencia"
+        );
+
+        assertTrue(
+                resultado.isValida(),
+                () -> "La advertencia de mandato no debe bloquear la remesa: "
+                        + resultado.getErrores()
         );
     }
 
     @Test
-    void rechazaDocumentoDeMandatoInexistente() {
+    void advierteDocumentoDeMandatoInexistenteSinBloquear() {
 
         Contexto contexto =
                 crearContextoValido(
@@ -204,14 +216,20 @@ class SepaRemesaValidationServiceTest {
         SepaValidacionResultado resultado =
                 validar(contexto);
 
-        assertContieneError(
+        assertContieneAdvertencia(
                 resultado,
                 "no existe"
+        );
+
+        assertTrue(
+                resultado.isValida(),
+                () -> "La advertencia de mandato no debe bloquear la remesa: "
+                        + resultado.getErrores()
         );
     }
 
     @Test
-    void rechazaDocumentoDeOtroPropietario() {
+    void advierteDocumentoDeOtroPropietarioSinBloquear() {
 
         Contexto contexto =
                 crearContextoValido(
@@ -237,14 +255,20 @@ class SepaRemesaValidationServiceTest {
         SepaValidacionResultado resultado =
                 validar(contexto);
 
-        assertContieneError(
+        assertContieneAdvertencia(
                 resultado,
                 "no pertenece"
+        );
+
+        assertTrue(
+                resultado.isValida(),
+                () -> "La advertencia de mandato no debe bloquear la remesa: "
+                        + resultado.getErrores()
         );
     }
 
     @Test
-    void rechazaDocumentoQueNoEsUnMandato() {
+    void advierteDocumentoQueNoEsUnMandatoSinBloquear() {
 
         Contexto contexto =
                 crearContextoValido(
@@ -270,14 +294,20 @@ class SepaRemesaValidationServiceTest {
         SepaValidacionResultado resultado =
                 validar(contexto);
 
-        assertContieneError(
+        assertContieneAdvertencia(
                 resultado,
                 "no es un mandato"
+        );
+
+        assertTrue(
+                resultado.isValida(),
+                () -> "La advertencia de mandato no debe bloquear la remesa: "
+                        + resultado.getErrores()
         );
     }
 
     @Test
-    void rechazaDocumentoDeMandatoVacio() {
+    void advierteDocumentoDeMandatoVacioSinBloquear() {
 
         Contexto contexto =
                 crearContextoValido(
@@ -303,9 +333,15 @@ class SepaRemesaValidationServiceTest {
         SepaValidacionResultado resultado =
                 validar(contexto);
 
-        assertContieneError(
+        assertContieneAdvertencia(
                 resultado,
                 "está vacío"
+        );
+
+        assertTrue(
+                resultado.isValida(),
+                () -> "La advertencia de mandato no debe bloquear la remesa: "
+                        + resultado.getErrores()
         );
     }
 
@@ -491,8 +527,8 @@ class SepaRemesaValidationServiceTest {
                         "no tiene fecha de mandato"
                 );
 
-        long erroresDocumento =
-                contarErroresQueContienen(
+        long advertenciasDocumento =
+                contarAdvertenciasQueContienen(
                         resultado,
                         "no tiene mandato firmado"
                 );
@@ -506,9 +542,9 @@ class SepaRemesaValidationServiceTest {
 
         assertEquals(
                 1L,
-                erroresDocumento,
-                () -> "El mandato firmado se informó repetido: "
-                        + resultado.getErrores()
+                advertenciasDocumento,
+                () -> "La advertencia de mandato firmado se informó repetida: "
+                        + resultado.getAdvertencias()
         );
     }
 
@@ -692,6 +728,43 @@ class SepaRemesaValidationServiceTest {
                         + "' en los errores: "
                         + resultado.getErrores()
         );
+    }
+
+    private void assertContieneAdvertencia(
+            SepaValidacionResultado resultado,
+            String fragmento
+    ) {
+
+        assertTrue(
+                resultado.getAdvertencias()
+                        .stream()
+                        .anyMatch(advertencia ->
+                                advertencia.toLowerCase()
+                                        .contains(
+                                                fragmento.toLowerCase()
+                                        )
+                        ),
+                () -> "No se encontró el texto '"
+                        + fragmento
+                        + "' en las advertencias: "
+                        + resultado.getAdvertencias()
+        );
+    }
+
+    private long contarAdvertenciasQueContienen(
+            SepaValidacionResultado resultado,
+            String fragmento
+    ) {
+
+        return resultado.getAdvertencias()
+                .stream()
+                .filter(advertencia ->
+                        advertencia.toLowerCase()
+                                .contains(
+                                        fragmento.toLowerCase()
+                                )
+                )
+                .count();
     }
 
     private long contarErroresQueContienen(

@@ -4,14 +4,122 @@
     <h1>Gombeth Urban</h1>
   </div>
 
-  <!-- 🔥 NUEVO CENTRO -->
   <div class="center-section">
     <app-comunidad-activa-bar></app-comunidad-activa-bar>
   </div>
 
   <div class="right-section">
-    <div class="search-box">
-      <input type="text" placeholder="Buscar..." />
+
+    <div
+      class="search-box"
+      (click)="$event.stopPropagation()">
+
+      <span
+        class="search-icon"
+        aria-hidden="true">
+        🔎
+      </span>
+
+      <input
+        type="search"
+        name="busquedaGlobal"
+        autocomplete="off"
+        aria-label="Buscar en Gombeth Urban"
+        placeholder="Buscar comunidad, propietario, recibo..."
+        [(ngModel)]="textoBusqueda"
+        (focus)="abrirBuscador()"
+        (input)="alCambiarTexto()"
+        (keydown.enter)="abrirPrimerResultado()"
+        (keydown.escape)="cerrarBuscador()" />
+
+      <button
+        *ngIf="textoBusqueda"
+        type="button"
+        class="clear-search"
+        title="Limpiar búsqueda"
+        aria-label="Limpiar búsqueda"
+        (click)="limpiarBusqueda()">
+        ×
+      </button>
+
+      <div
+        *ngIf="mostrarResultados"
+        class="search-panel">
+
+        <div
+          *ngIf="textoBusqueda.trim().length < 2"
+          class="search-message">
+
+          Escriba al menos 2 caracteres.
+
+          <small>
+            Busca secciones, comunidades y datos de la comunidad activa.
+          </small>
+        </div>
+
+        <div
+          *ngIf="
+            textoBusqueda.trim().length >= 2
+            && cargandoBusqueda
+          "
+          class="search-message loading">
+
+          Buscando...
+        </div>
+
+        <button
+          *ngFor="
+            let resultado of resultados;
+            trackBy: trackByResultado
+          "
+          type="button"
+          class="search-result"
+          (click)="seleccionarResultado(resultado)">
+
+          <span
+            class="result-icon"
+            aria-hidden="true">
+            {{ resultado.icono }}
+          </span>
+
+          <span class="result-content">
+
+            <span class="result-title">
+              {{ resultado.titulo }}
+            </span>
+
+            <span class="result-detail">
+              {{ resultado.detalle }}
+            </span>
+
+          </span>
+
+          <span
+            class="result-type"
+            [attr.data-type]="resultado.tipo">
+            {{ etiquetaTipo(resultado.tipo) }}
+          </span>
+
+        </button>
+
+        <div
+          *ngIf="
+            textoBusqueda.trim().length >= 2
+            && !cargandoBusqueda
+            && resultados.length === 0
+          "
+          class="search-message">
+
+          No se encontraron resultados.
+
+          <small>
+            Los propietarios, recibos, remesas e incidencias se buscan
+            dentro de la comunidad activa.
+          </small>
+        </div>
+
+      </div>
+
     </div>
 
     <div class="user-info">
@@ -19,6 +127,7 @@
         {{ administradorNombre }}
       </span>
     </div>
+
   </div>
 
 </header>

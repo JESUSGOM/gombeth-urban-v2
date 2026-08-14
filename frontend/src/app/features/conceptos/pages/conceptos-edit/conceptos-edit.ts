@@ -236,7 +236,7 @@ export class ConceptosEdit
     this.actualizarVista();
 
     this.cuentasService
-      .getByComunidad(this.comunidadId)
+      .getCatalogoGlobal(this.comunidadId)
       .pipe(
         timeout(15000),
 
@@ -291,7 +291,7 @@ export class ConceptosEdit
           }
 
           this.error =
-            'No se pudieron cargar las cuentas contables de la comunidad.';
+            'No se pudo cargar el catálogo global de cuentas contables.';
 
           this.actualizarVista();
         }
@@ -345,6 +345,25 @@ export class ConceptosEdit
 
     this.concepto.comunidadId =
       this.comunidadId;
+    /*
+     * VINCULO_PROPIETARIO_CONCEPTO_V5
+     * El vecino solo se informa en altas iniciadas
+     * desde la pantalla de conceptos del propietario.
+     */
+    const vecinoIdContexto = Number(
+      this.route.snapshot.queryParamMap.get(
+        'vecinoId'
+      )
+    );
+
+    if (
+      !this.conceptoId &&
+      Number.isInteger(vecinoIdContexto) &&
+      vecinoIdContexto > 0
+    ) {
+      (this.concepto as any).vecinoId =
+        vecinoIdContexto;
+    }
 
     if (
       this.concepto.cuentaContableId === '' ||
@@ -384,13 +403,7 @@ export class ConceptosEdit
           /*
            * El vídeo confirma que esta navegación funciona.
            */
-          void this.router
-            .navigateByUrl(
-              '/conceptos',
-              {
-                replaceUrl: true
-              }
-            )
+          void this.navegarAlListado(true)
             .then(navegacionCorrecta => {
               if (!navegacionCorrecta) {
                 this.error =
@@ -440,11 +453,57 @@ export class ConceptosEdit
   }
 
   volver(): void {
-    void this.router.navigateByUrl(
-      '/conceptos'
-    );
+    void this.navegarAlListado(false);
   }
 
+  private navegarAlListado(
+    replaceUrl: boolean
+  ): Promise<boolean> {
+
+    const vecinoIdContexto = Number(
+      this.route.snapshot.queryParamMap.get(
+        'vecinoId'
+      )
+    );
+
+    if (
+      Number.isInteger(vecinoIdContexto) &&
+      vecinoIdContexto > 0 &&
+      this.comunidadId > 0
+    ) {
+      return this.router.navigate(
+        [
+          '/conceptos/comunidad',
+          this.comunidadId,
+          'vecino',
+          vecinoIdContexto
+        ],
+        {
+          queryParams: {
+            propietario:
+              this.route.snapshot.queryParamMap.get(
+                'propietario'
+              ) ?? '',
+            vivienda:
+              this.route.snapshot.queryParamMap.get(
+                'vivienda'
+              ) ?? ''
+          },
+          replaceUrl
+        }
+      );
+    }
+
+    return this.router.navigate(
+      [
+        '/conceptos/comunidad',
+        this.comunidadId
+      ],
+      {
+        replaceUrl
+      }
+    );
+  }
   get tituloPantalla(): string {
     if (!this.conceptoId) {
       return 'Nuevo concepto de cobro';

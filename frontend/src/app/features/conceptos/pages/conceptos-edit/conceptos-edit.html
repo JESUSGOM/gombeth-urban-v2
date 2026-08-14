@@ -166,15 +166,16 @@
           *ngIf="!cargandoCuentas && cuentas.length === 0"
           class="warning-text">
 
-          La comunidad no tiene cuentas contables disponibles.
+          No existen cuentas contables disponibles en el catálogo global.
 
         </small>
 
         <small
           *ngIf="!cargandoCuentas && cuentas.length > 0">
 
-          Se muestran únicamente las cuentas contables
-          pertenecientes a esta comunidad.
+          Se muestran todas las cuentas contables disponibles,
+          sin duplicados por código. Al guardar se asignará
+          automáticamente la cuenta equivalente de esta comunidad.
 
         </small>
 

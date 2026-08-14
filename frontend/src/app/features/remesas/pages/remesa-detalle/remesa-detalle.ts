@@ -74,6 +74,7 @@ export class RemesaDetalle implements OnInit {
   error = '';
   mensajeValidacion = '';
   erroresValidacion: string[] = [];
+  advertenciasValidacion: string[] = [];
 
   paginaActual = 1;
   tamanioPagina = 10;
@@ -228,6 +229,7 @@ export class RemesaDetalle implements OnInit {
 
     this.mensajeValidacion = '';
     this.erroresValidacion = [];
+    this.advertenciasValidacion = [];
 
     this.remesaService
       .validarRemesa(this.remesaId)
@@ -241,8 +243,20 @@ export class RemesaDetalle implements OnInit {
       .subscribe({
         next: resultado => {
           if (resultado.valida) {
+            this.advertenciasValidacion =
+              resultado.mensajes ?? [];
+
             this.mensajeValidacion =
-              'La remesa ha sido validada correctamente.';
+              this.advertenciasValidacion.length > 0
+                ? 'La remesa es válida, pero contiene advertencias.'
+                : 'La remesa ha sido validada correctamente.';
+
+            /*
+             * La validación correcta cambia el estado de la remesa
+             * en backend. Recarga el detalle para reflejar inmediatamente
+             * el nuevo estado sin perder los mensajes de validación.
+             */
+            this.cargarDetalle();
 
             return;
           }

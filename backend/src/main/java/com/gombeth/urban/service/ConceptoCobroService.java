@@ -40,6 +40,30 @@ public class ConceptoCobroService {
                         comunidadId
                 );
 
+        return convertirListaConCuentas(
+                conceptos
+        );
+    }
+
+    @Transactional(readOnly = true)
+    public List<ConceptoCobroDTO> findByComunidadYVecino(
+            Long comunidadId,
+            Long vecinoId) {
+
+        List<ConceptoCobro> conceptos =
+                repository.findByComunidadIdAndVecinoIdOrderByDescripcionAsc(
+                        comunidadId,
+                        vecinoId
+                );
+
+        return convertirListaConCuentas(
+                conceptos
+        );
+    }
+
+    private List<ConceptoCobroDTO> convertirListaConCuentas(
+            List<ConceptoCobro> conceptos) {
+
         if (conceptos.isEmpty()) {
             return Collections.emptyList();
         }
@@ -94,6 +118,27 @@ public class ConceptoCobroService {
             ConceptoCobro conceptoRecibido) {
 
         conceptoRecibido.setId(null);
+
+        /*
+         * MES_INICIO_ALTA_CONCEPTO_V6
+         *
+         * La tabla conceptos_cobro exige mes_inicio NOT NULL.
+         * El formulario Angular actual no informa este dato
+         * al crear un concepto. Para mantener compatibilidad
+         * con la lógica histórica, el mes inicial por defecto
+         * es enero (1).
+         */
+        if (conceptoRecibido.getMesInicio() == null) {
+            conceptoRecibido.setMesInicio(1);
+        }
+
+        if (conceptoRecibido.getMesInicio() < 1
+                || conceptoRecibido.getMesInicio() > 12) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "El mes de inicio debe estar comprendido entre 1 y 12."
+            );
+        }
 
         validarCuentaContable(
                 conceptoRecibido.getCuentaContableId(),

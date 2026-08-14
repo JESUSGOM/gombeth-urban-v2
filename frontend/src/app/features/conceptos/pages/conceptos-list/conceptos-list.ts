@@ -41,6 +41,9 @@ export class ConceptosList implements OnInit {
   private cargaActual?: Subscription;
 
   comunidadId: number | null = null;
+  vecinoId: number | null = null;
+  vecinoNombre = '';
+  vecinoVivienda = '';
 
   conceptos: ConceptoCobroListado[] = [];
   conceptosOrdenados: ConceptoCobroListado[] = [];
@@ -63,6 +66,25 @@ export class ConceptosList implements OnInit {
     const idRuta = Number(
       this.route.snapshot.paramMap.get('id')
     );
+
+    const vecinoIdRuta = Number(
+      this.route.snapshot.paramMap.get('vecinoId')
+    );
+
+    if (
+      Number.isInteger(vecinoIdRuta)
+      && vecinoIdRuta > 0
+    ) {
+      this.vecinoId = vecinoIdRuta;
+      this.vecinoNombre =
+        this.route.snapshot.queryParamMap.get(
+          'propietario'
+        ) ?? '';
+      this.vecinoVivienda =
+        this.route.snapshot.queryParamMap.get(
+          'vivienda'
+        ) ?? '';
+    }
 
     /*
      * Compatibilidad con la ruta antigua:
@@ -111,13 +133,25 @@ export class ConceptosList implements OnInit {
     this.error = '';
 
     const comunidadSolicitada = this.comunidadId;
+    const vecinoSolicitado = this.vecinoId;
 
-    this.cargaActual = this.service
-      .getByComunidad(comunidadSolicitada)
+    const solicitud = vecinoSolicitado
+      ? this.service.getByVecino(
+        comunidadSolicitada,
+        vecinoSolicitado
+      )
+      : this.service.getByComunidad(
+        comunidadSolicitada
+      );
+
+    this.cargaActual = solicitud
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: data => {
-          if (this.comunidadId !== comunidadSolicitada) {
+          if (
+            this.comunidadId !== comunidadSolicitada
+            || this.vecinoId !== vecinoSolicitado
+          ) {
             return;
           }
 
@@ -129,7 +163,10 @@ export class ConceptosList implements OnInit {
           this.cargando = false;
         },
         error: error => {
-          if (this.comunidadId !== comunidadSolicitada) {
+          if (
+            this.comunidadId !== comunidadSolicitada
+            || this.vecinoId !== vecinoSolicitado
+          ) {
             return;
           }
 
@@ -140,12 +177,24 @@ export class ConceptosList implements OnInit {
 
           this.limpiarListado();
 
-          this.error =
-            'No se pudieron cargar los conceptos de la comunidad.';
+          this.error = this.vecinoId
+            ? 'No se pudieron cargar los conceptos del propietario.'
+            : 'No se pudieron cargar los conceptos de la comunidad.';
 
           this.cargando = false;
         }
       });
+  }
+
+  volverAPropietarios(): void {
+    if (!this.comunidadId) {
+      return;
+    }
+
+    this.router.navigate([
+      '/vecinos/comunidad',
+      this.comunidadId
+    ]);
   }
 
   nuevoConcepto(): void {
@@ -155,13 +204,32 @@ export class ConceptosList implements OnInit {
       return;
     }
 
-    this.router.navigate([
+    if (this.vecinoId) {
+      void this.router.navigate(
+        [
+          '/conceptos/comunidad',
+          this.comunidadId,
+          'nuevo'
+        ],
+        {
+          queryParams: {
+            vecinoId: this.vecinoId,
+            propietario: this.vecinoNombre,
+            vivienda: this.vecinoVivienda,
+            origen: 'vecino'
+          }
+        }
+      );
+
+      return;
+    }
+
+    void this.router.navigate([
       '/conceptos/comunidad',
       this.comunidadId,
       'nuevo'
     ]);
   }
-
   editarConcepto(concepto: ConceptoCobroListado): void {
     if (!this.comunidadId || !concepto.id) {
       return;

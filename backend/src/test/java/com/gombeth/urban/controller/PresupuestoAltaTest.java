@@ -13,6 +13,8 @@ import com.gombeth.urban.repository.CuentaContableRepository;
 import com.gombeth.urban.repository.CuotaPresupuestoRepository;
 import com.gombeth.urban.repository.PresupuestoRepository;
 import com.gombeth.urban.repository.PresupuestoRevisionRepository;
+import com.gombeth.urban.repository.PresupuestoRepartoConfiguracionRepository;
+import com.gombeth.urban.repository.PresupuestoRepartoVecinoRepository;
 import com.gombeth.urban.repository.VecinoRepository;
 import com.gombeth.urban.service.AccesoComunidadService;
 import com.gombeth.urban.service.ContabilidadAutomaticaService;
@@ -62,6 +64,14 @@ class PresupuestoAltaTest {
     @Mock
     private PresupuestoRevisionRepository
             presupuestoRevisionRepository;
+
+    @Mock
+    private PresupuestoRepartoConfiguracionRepository
+            presupuestoRepartoConfiguracionRepository;
+
+    @Mock
+    private PresupuestoRepartoVecinoRepository
+            presupuestoRepartoVecinoRepository;
 
     @Mock
     private ContabilidadReciboRepository
@@ -196,6 +206,9 @@ class PresupuestoAltaTest {
                 new BigDecimal("906.00"),
                 response.importe()
         );
+
+        verify(presupuestoRepartoVecinoRepository)
+                .flush();
 
         verify(accesoComunidadService)
                 .validarAcceso(

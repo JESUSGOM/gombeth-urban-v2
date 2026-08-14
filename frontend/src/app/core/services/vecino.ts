@@ -71,6 +71,19 @@ export class VecinoService {
     );
   }
 
+
+  descargarMandatoPdf(
+    id: number
+  ): Observable<Blob> {
+
+    return this.http.get(
+      `${this.apiUrl}/${id}/mandato-pdf`,
+      {
+        responseType: 'blob'
+      }
+    );
+  }
+
   eliminarVecino(
     id: number
   ): Observable<void> {

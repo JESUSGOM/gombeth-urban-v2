@@ -30,4 +30,18 @@ export class CuentasContablesService {
   ): Observable<CuentaContable[]> {
     return this.listarPorComunidad(comunidadId);
   }
+
+  /**
+   * Catálogo global sin duplicados por código.
+   *
+   * El backend da prioridad al ID de la cuenta perteneciente
+   * a la comunidad actual cuando ese código ya existe en ella.
+   */
+  getCatalogoGlobal(
+    comunidadId: number
+  ): Observable<CuentaContable[]> {
+    return this.http.get<CuentaContable[]>(
+      `${this.api}/catalogo/comunidad/${comunidadId}`
+    );
+  }
 }

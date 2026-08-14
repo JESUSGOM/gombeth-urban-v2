@@ -21,34 +21,7 @@
           [(ngModel)]="anio">
       </div>
 
-      <div class="toolbar-item reparto-item">
-        <label>Método de reparto</label>
-
-        <select [(ngModel)]="metodoReparto">
-          <option value="COEFICIENTE">
-            Por coeficiente
-          </option>
-
-          <option value="PARTES_IGUALES">
-            A partes iguales
-          </option>
-        </select>
-      </div>
-
       <div class="toolbar-buttons">
-
-        <button
-          class="primary-button"
-          type="button"
-          (click)="guardarMetodoReparto()"
-          [disabled]="guardandoMetodo">
-
-          {{
-            guardandoMetodo
-              ? 'Guardando...'
-              : 'Guardar método'
-          }}
-        </button>
 
         <button
           class="primary-button"
@@ -81,45 +54,6 @@
     </div>
   }
 
-  @if (
-    resumenCoeficientes &&
-    !resumenCoeficientes.correcto &&
-    metodoReparto === 'COEFICIENTE'
-    ) {
-    <div class="error-card">
-
-      <strong>
-        ⚠ Coeficientes incorrectos
-      </strong>
-
-      <br>
-
-      Total actual:
-      {{
-        resumenCoeficientes.totalCoeficiente
-          | number:'1.4-4'
-      }}
-      %
-
-      <br>
-
-      Deben sumar exactamente 100 %.
-
-      <br>
-
-      Faltan:
-      {{
-        (
-          100 -
-          resumenCoeficientes.totalCoeficiente
-        )
-          | number:'1.4-4'
-      }}
-      %
-
-    </div>
-  }
-
   <div class="summary-card">
 
     <span>
@@ -132,36 +66,38 @@
 
   </div>
 
-  <div class="table-card">
+  <div class="table-card budget-entry-card">
 
     <div class="section-header">
 
       <h3>
-        ➕ Nueva partida presupuestaria
+        {{
+          partidaEditandoId === null
+            ? '➕ Nueva partida presupuestaria'
+            : '✏️ Editar partida presupuestaria'
+        }}
       </h3>
+
+      @if (partidaEditandoId !== null) {
+        <button
+          class="secondary-button"
+          type="button"
+          (click)="cancelarEdicionPartida()"
+          [disabled]="guardandoPartida">
+          Cancelar edición
+        </button>
+      }
 
     </div>
 
-    <div
-      class="toolbar-card"
-      style="
-        justify-content: flex-start;
-        box-shadow: none;
-        padding: 0;
-        flex-wrap: wrap;
-      ">
+    <div class="budget-entry-grid">
 
-      <div
-        class="toolbar-item"
-        style="min-width: 360px;">
-
-        <label>
-          Cuenta de gasto
-        </label>
+      <div class="toolbar-item account-field">
+        <label>Cuenta presupuestaria</label>
 
         <select
           [(ngModel)]="nuevaCuentaId"
-          [disabled]="cuentasGasto.length === 0">
+          [disabled]="cuentasGasto.length === 0 || guardandoPartida">
 
           @for (
             cuenta of cuentasGasto;
@@ -175,51 +111,160 @@
           }
 
         </select>
-
       </div>
 
-      <div class="toolbar-item">
-
-        <label>
-          Importe anual (€)
-        </label>
+      <div class="toolbar-item amount-field">
+        <label>Importe anual (€)</label>
 
         <input
           type="number"
           min="0.01"
           step="0.01"
-          [(ngModel)]="nuevoImporte">
-
+          [(ngModel)]="nuevoImporte"
+          [disabled]="guardandoPartida">
       </div>
 
-      <div class="toolbar-buttons">
+      <div class="toolbar-item distribution-field">
+        <label>Método de reparto de esta partida</label>
 
+        <select
+          [(ngModel)]="nuevoMetodoReparto"
+          [disabled]="guardandoPartida">
+          <option value="COEFICIENTE">
+            Por coeficiente
+          </option>
+          <option value="PARTES_IGUALES">
+            A partes iguales
+          </option>
+        </select>
+      </div>
+
+      <div class="toolbar-item scope-field">
+        <label>Propietarios afectados</label>
+
+        <select
+          [(ngModel)]="nuevoAplicaTodos"
+          (ngModelChange)="cambiarAlcancePartida()"
+          [disabled]="guardandoPartida">
+          <option [ngValue]="true">
+            Todos los propietarios
+          </option>
+          <option [ngValue]="false">
+            Seleccionar propietarios
+          </option>
+        </select>
+      </div>
+
+      <div class="budget-entry-actions">
         <button
           class="primary-button"
           type="button"
-          (click)="crearPartida()"
+          (click)="guardarPartida()"
           [disabled]="
             guardandoPartida ||
             !nuevaCuentaId ||
             nuevoImporte === null ||
-            nuevoImporte <= 0
+            nuevoImporte <= 0 ||
+            (
+              !nuevoAplicaTodos &&
+              vecinosSeleccionados.length === 0
+            )
           ">
 
           {{
             guardandoPartida
               ? 'Guardando...'
-              : 'Añadir partida'
+              : (
+                  partidaEditandoId === null
+                    ? 'Añadir partida'
+                    : 'Guardar cambios'
+                )
           }}
 
         </button>
-
       </div>
 
     </div>
 
+    <div class="distribution-help">
+      Cada partida se reparte de forma independiente.
+      Si se seleccionan solo algunos propietarios y el reparto es por
+      coeficiente, sus coeficientes se ponderan dentro del grupo seleccionado.
+    </div>
+
+    @if (!nuevoAplicaTodos) {
+      <div class="owners-selector">
+
+        <div class="owners-selector-header">
+          <div>
+            <strong>Seleccionar propietarios</strong>
+            <span>
+              {{ vecinosSeleccionados.length }}
+              de
+              {{ propietarios.length }}
+              seleccionados
+            </span>
+          </div>
+
+          <div class="owners-selector-actions">
+            <button
+              type="button"
+              class="secondary-button"
+              (click)="seleccionarTodosPropietarios()">
+              Seleccionar todos
+            </button>
+
+            <button
+              type="button"
+              class="secondary-button"
+              (click)="limpiarPropietariosSeleccionados()">
+              Limpiar
+            </button>
+          </div>
+        </div>
+
+        <div class="selected-coefficient">
+          Coeficiente total seleccionado:
+          <strong>
+            {{ totalCoeficienteSeleccionado | number:'1.4-4' }} %
+          </strong>
+        </div>
+
+        <div class="owners-grid">
+          @for (
+            propietario of propietarios;
+            track propietario.vecinoId
+            ) {
+            <label class="owner-option">
+              <input
+                type="checkbox"
+                [checked]="estaPropietarioSeleccionado(propietario.vecinoId)"
+                (change)="cambiarPropietarioSeleccionado(
+                  propietario.vecinoId,
+                  $event
+                )">
+
+              <span class="owner-property">
+                {{ propietario.vivienda || 'Sin vivienda' }}
+              </span>
+
+              <span class="owner-name">
+                {{ propietario.nombre }}
+              </span>
+
+              <span class="owner-coefficient">
+                {{ propietario.coeficiente | number:'1.4-4' }} %
+              </span>
+            </label>
+          }
+        </div>
+
+      </div>
+    }
+
     @if (cuentasGasto.length === 0) {
       <div class="error-card">
-        Esta comunidad no tiene cuentas contables de gasto.
+        Esta comunidad no tiene cuentas contables presupuestarias.
       </div>
     }
 
@@ -322,8 +367,7 @@
     <div class="table-card">
 
       <h3>
-        Reparto del presupuesto
-        ({{ metodoReparto }})
+        Reparto total resultante por propietario
       </h3>
 
       <table>
@@ -390,7 +434,7 @@
     <div class="table-card">
 
       <h3>
-        Presupuesto anual
+        Presupuesto anual por partidas
       </h3>
 
       <table>
@@ -399,8 +443,10 @@
         <tr>
           <th>Cuenta</th>
           <th>Descripción</th>
-          <th>Año</th>
           <th class="right">Importe</th>
+          <th>Reparto</th>
+          <th>Propietarios afectados</th>
+          <th class="center">Acciones</th>
         </tr>
         </thead>
 
@@ -420,16 +466,53 @@
                 {{ presupuesto.cuentaDescripcion }}
               </td>
 
-              <td>
-                {{ presupuesto.anio }}
+              <td class="right">
+                {{ presupuesto.importe | number:'1.2-2' }} €
               </td>
 
-              <td class="right">
+              <td>
                 {{
-                  presupuesto.importe
-                    | number:'1.2-2'
+                  presupuesto.metodoReparto === 'COEFICIENTE'
+                    ? 'Por coeficiente'
+                    : 'A partes iguales'
                 }}
-                €
+              </td>
+
+              <td>
+                @if (presupuesto.aplicaTodos) {
+                  Todos
+                } @else {
+                  {{ presupuesto.numeroPropietariosAfectados || 0 }}
+                  seleccionados
+                }
+              </td>
+
+              <td class="center">
+                <div class="budget-row-actions">
+                  <button
+                    type="button"
+                    class="edit-button"
+                    (click)="editarPartida(presupuesto)"
+                    [disabled]="
+                      eliminandoPartidaId === presupuesto.id
+                    ">
+                    Editar
+                  </button>
+
+                  <button
+                    type="button"
+                    class="delete-button"
+                    (click)="eliminarPartida(presupuesto)"
+                    [disabled]="
+                      eliminandoPartidaId === presupuesto.id
+                    ">
+                    {{
+                      eliminandoPartidaId === presupuesto.id
+                        ? 'Eliminando...'
+                        : 'Eliminar'
+                    }}
+                  </button>
+                </div>
               </td>
 
             </tr>
@@ -465,17 +548,11 @@
 
         <button
           class="generate-button"
-          this.comunidadId,
-          this type="button"
+          type="button"
           (click)="generarBorradorCuotas()"
           [disabled]="
             generandoCuotas ||
-            presupuestos.length === 0 ||
-            (
-              metodoReparto === 'COEFICIENTE' &&
-              resumenCoeficientes &&
-              !resumenCoeficientes.correcto
-            )
+            presupuestos.length === 0
           ">
 
           {{
@@ -516,17 +593,6 @@
       </div>
 
     </div>
-
-    @if (
-      metodoReparto === 'COEFICIENTE' &&
-      resumenCoeficientes &&
-      !resumenCoeficientes.correcto
-      ) {
-      <div class="error-card">
-        No se pueden generar cuotas por coeficiente
-        hasta que los coeficientes sumen 100 %.
-      </div>
-    }
 
     <table>
 

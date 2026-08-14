@@ -9,6 +9,8 @@ import com.gombeth.urban.repository.ContabilidadReciboRepository;
 import com.gombeth.urban.repository.CuotaPresupuestoRepository;
 import com.gombeth.urban.repository.PresupuestoRepository;
 import com.gombeth.urban.repository.PresupuestoRevisionRepository;
+import com.gombeth.urban.repository.PresupuestoRepartoConfiguracionRepository;
+import com.gombeth.urban.repository.PresupuestoRepartoVecinoRepository;
 import com.gombeth.urban.repository.VecinoRepository;
 import com.gombeth.urban.service.AccesoComunidadService;
 import com.gombeth.urban.service.ContabilidadAutomaticaService;
@@ -48,6 +50,14 @@ class PresupuestoRepartoPartesIgualesTest {
     @Mock
     private PresupuestoRevisionRepository
             presupuestoRevisionRepository;
+
+    @Mock
+    private PresupuestoRepartoConfiguracionRepository
+            presupuestoRepartoConfiguracionRepository;
+
+    @Mock
+    private PresupuestoRepartoVecinoRepository
+            presupuestoRepartoVecinoRepository;
 
     @Mock
     private ContabilidadReciboRepository

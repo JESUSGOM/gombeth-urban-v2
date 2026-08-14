@@ -35,6 +35,7 @@ import com.gombeth.urban.service.SepaRemesaValidationService;
 import com.gombeth.urban.service.SepaXmlValidationService;
 import com.gombeth.urban.service.storage.DocumentStorageService;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -45,6 +46,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
@@ -155,6 +157,11 @@ public class RemesaController {
                     "No existen recibos pendientes para generar remesa en el periodo indicado"
             );
         }
+        validarFechaCobroNoAnteriorARecibos(
+                fechaCobroDate,
+                recibosPendientes,
+                comunidadId
+        );
         BigDecimal total =
                 BigDecimal.ZERO;
         BigDecimal totalDomiciliado =
@@ -293,6 +300,11 @@ public class RemesaController {
                     "No se encontraron recibos seleccionados"
             );
         }
+        validarFechaCobroNoAnteriorARecibos(
+                request.fechaCobro(),
+                recibosSeleccionados,
+                request.comunidadId()
+        );
         BigDecimal total =
                 BigDecimal.ZERO;
         BigDecimal totalDomiciliado =
@@ -411,6 +423,75 @@ public class RemesaController {
                 "Remesa generada correctamente desde recibos seleccionados"
         );
     }
+
+    private void validarFechaCobroNoAnteriorARecibos(
+            LocalDate fechaCobro,
+            List<ContabilidadRecibo> recibos,
+            Long comunidadId
+    ) {
+        if (fechaCobro == null) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "La fecha de cobro es obligatoria."
+            );
+        }
+
+        LocalDate fechaEmisionMaxima = null;
+
+        for (ContabilidadRecibo recibo : recibos) {
+            if (!remesaService.perteneceAComunidad(
+                    recibo,
+                    comunidadId
+            )) {
+                continue;
+            }
+
+            if (!remesaService.esReciboPendiente(
+                    recibo
+            )) {
+                continue;
+            }
+
+            if (remesaService.reciboYaIncluidoEnRemesa(
+                    recibo.getId()
+            )) {
+                continue;
+            }
+
+            LocalDate fechaEmision =
+                    recibo.getFechaEmision();
+
+            if (
+                    fechaEmision != null
+                            && (
+                            fechaEmisionMaxima == null
+                                    || fechaEmision.isAfter(
+                                    fechaEmisionMaxima
+                            )
+                    )
+            ) {
+                fechaEmisionMaxima =
+                        fechaEmision;
+            }
+        }
+
+        if (
+                fechaEmisionMaxima != null
+                        && fechaCobro.isBefore(
+                        fechaEmisionMaxima
+                )
+        ) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "La fecha de cobro ("
+                            + fechaCobro
+                            + ") no puede ser anterior a la fecha de emisión más reciente de los recibos que se van a incluir ("
+                            + fechaEmisionMaxima
+                            + ")."
+            );
+        }
+    }
+
     @GetMapping("/{id}/xml")
     public ResponseEntity<byte[]> generarXml(
             @PathVariable Long id,

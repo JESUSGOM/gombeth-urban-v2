@@ -1,5 +1,7 @@
 package com.gombeth.urban.config;
 
+import com.gombeth.urban.audit.AuditLogService;
+import com.gombeth.urban.audit.AuditRequestFilter;
 import jakarta.servlet.DispatcherType;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -19,6 +21,7 @@ import org.springframework.security.web.context.DelegatingSecurityContextReposit
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.security.web.context.RequestAttributeSecurityContextRepository;
 import org.springframework.security.web.context.SecurityContextRepository;
+import org.springframework.security.web.context.SecurityContextHolderFilter;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
@@ -36,7 +39,8 @@ public class SecurityConfig {
             HttpSecurity http,
             SecurityContextRepository securityContextRepository,
             CookieCsrfTokenRepository csrfTokenRepository,
-            CorsConfigurationSource corsConfigurationSource
+            CorsConfigurationSource corsConfigurationSource,
+            AuditLogService auditLogService
     ) throws Exception {
 
         return http
@@ -69,6 +73,18 @@ public class SecurityConfig {
                         .sessionFixation(fixation ->
                                 fixation.changeSessionId()
                         )
+                )
+
+                /*
+                 * Auditoría transversal: se inserta justo después
+                 * de cargar el SecurityContext para poder registrar
+                 * usuario, login, logout, errores y todas las APIs.
+                 */
+                .addFilterAfter(
+                        new AuditRequestFilter(
+                                auditLogService
+                        ),
+                        SecurityContextHolderFilter.class
                 )
 
                 .authorizeHttpRequests(auth -> auth

@@ -10,11 +10,10 @@ import { FormsModule } from '@angular/forms';
 
 import { Presupuesto } from '../../../../core/models/presupuesto.model';
 import { RepartoPresupuesto } from '../../../../core/models/reparto-presupuesto.model';
-import { CoeficientesResumen } from '../../../../core/models/coeficientes-resumen.model';
 import { CuotaPresupuesto } from '../../../../core/models/cuota-presupuesto.model';
-import { ConfiguracionReparto } from '../../../../core/models/configuracion-reparto.model';
 import { Comunidad } from '../../../../core/models/comunidad.model';
 import { PresupuestoRevision } from '../../../../core/models/presupuesto-revision.model';
+import { CoeficienteVecinoDetalle } from '../../../../core/models/coeficiente-vecino-detalle.model';
 
 import { PresupuestoService } from '../../../../core/services/presupuesto';
 import {
@@ -45,28 +44,32 @@ export class PresupuestosList implements OnInit {
   mesRecibos = new Date().getMonth() + 1;
   generandoRecibos = false;
 
-  metodoReparto = 'IGUALITARIO';
-  configuracionReparto?: ConfiguracionReparto;
+  metodoRepartoPredeterminado: 'COEFICIENTE' | 'PARTES_IGUALES' =
+    'PARTES_IGUALES';
 
   presupuestos: Presupuesto[] = [];
   cuentasGasto: CuentaContable[] = [];
+  propietarios: CoeficienteVecinoDetalle[] = [];
 
+  partidaEditandoId: number | null = null;
   nuevaCuentaId: number | null = null;
   nuevoImporte: number | null = null;
+  nuevoMetodoReparto: 'COEFICIENTE' | 'PARTES_IGUALES' =
+    'PARTES_IGUALES';
+  nuevoAplicaTodos = true;
+  vecinosSeleccionados: number[] = [];
   guardandoPartida = false;
+  eliminandoPartidaId: number | null = null;
 
   reparto: RepartoPresupuesto[] = [];
   cuotasBorrador: CuotaPresupuesto[] = [];
   revisiones: PresupuestoRevision[] = [];
-
-  resumenCoeficientes?: CoeficientesResumen;
 
   total = 0;
   error = '';
   mensaje = '';
   cargando = false;
   generandoCuotas = false;
-  guardandoMetodo = false;
 
   ngOnInit(): void {
     this.comunidadState.init();
@@ -95,15 +98,21 @@ export class PresupuestosList implements OnInit {
     this.presupuestos = [];
     this.cuentasGasto = [];
 
+    this.propietarios = [];
+
+    this.partidaEditandoId = null;
     this.nuevaCuentaId = null;
     this.nuevoImporte = null;
+    this.nuevoMetodoReparto =
+      this.metodoRepartoPredeterminado;
+    this.nuevoAplicaTodos = true;
+    this.vecinosSeleccionados = [];
     this.guardandoPartida = false;
+    this.eliminandoPartidaId = null;
 
     this.reparto = [];
     this.cuotasBorrador = [];
     this.revisiones = [];
-
-    this.resumenCoeficientes = undefined;
 
     this.total = 0;
     this.error = '';
@@ -117,7 +126,7 @@ export class PresupuestosList implements OnInit {
     }
 
     this.cargarComunidad();
-    this.cargarConfiguracionReparto();
+    this.cargarPropietarios();
     this.cargarCuentasGasto();
     this.cargarPresupuestos();
   }
@@ -131,16 +140,21 @@ export class PresupuestosList implements OnInit {
 
           switch (data.tipoReparto) {
             case 'COEFICIENTE':
-              this.metodoReparto = 'COEFICIENTE';
+              this.metodoRepartoPredeterminado = 'COEFICIENTE';
               break;
 
             case 'PARTES_IGUALES':
-              this.metodoReparto = 'PARTES_IGUALES';
+              this.metodoRepartoPredeterminado = 'PARTES_IGUALES';
               break;
 
             default:
-              this.metodoReparto = 'PARTES_IGUALES';
+              this.metodoRepartoPredeterminado = 'PARTES_IGUALES';
               break;
+          }
+
+          if (this.partidaEditandoId === null) {
+            this.nuevoMetodoReparto =
+              this.metodoRepartoPredeterminado;
           }
 
           this.cdr.detectChanges();
@@ -155,11 +169,43 @@ export class PresupuestosList implements OnInit {
       });
   }
 
-  cargarConfiguracionReparto(): void {
-    /*
-     * El método de reparto se toma actualmente
-     * desde comunidades.tipo_reparto.
-     */
+  cargarPropietarios(): void {
+    this.comunidadService
+      .getDetalleCoeficientes(this.comunidadId)
+      .subscribe({
+        next: data => {
+          this.propietarios = (data ?? [])
+            .filter(propietario => propietario.activo)
+            .sort((a, b) =>
+              (a.vivienda || '').localeCompare(
+                b.vivienda || '',
+                'es',
+                { numeric: true }
+              ) ||
+              (a.nombre || '').localeCompare(
+                b.nombre || '',
+                'es'
+              )
+            );
+
+          this.cdr.detectChanges();
+        },
+
+        error: err => {
+          console.error(
+            'Error cargando propietarios del presupuesto:',
+            err
+          );
+
+          this.propietarios = [];
+          this.error = this.obtenerMensajeError(
+            err,
+            'No se pudieron cargar los propietarios de la comunidad.'
+          );
+
+          this.cdr.detectChanges();
+        }
+      });
   }
 
   cargarCuentasGasto(): void {
@@ -168,7 +214,10 @@ export class PresupuestosList implements OnInit {
       .subscribe({
         next: data => {
           this.cuentasGasto = data
-            .filter(cuenta => cuenta.tipo === 'GASTO')
+            .filter(cuenta =>
+              cuenta.tipo === 'GASTO' ||
+              cuenta.codigo === '10200000'
+            )
             .sort((cuentaA, cuentaB) =>
               cuentaA.codigo.localeCompare(
                 cuentaB.codigo,
@@ -201,24 +250,24 @@ export class PresupuestosList implements OnInit {
             err
           );
 
-          this.error =
-            err?.error?.message ||
-            err?.error ||
-            'No se pudieron cargar las cuentas de gasto.';
+          this.error = this.obtenerMensajeError(
+            err,
+            'No se pudieron cargar las cuentas presupuestarias.'
+          );
 
           this.cdr.detectChanges();
         }
       });
   }
 
-  crearPartida(): void {
+  guardarPartida(): void {
     if (this.comunidadId <= 0) {
       return;
     }
 
     if (!this.nuevaCuentaId) {
       this.error =
-        'Debe seleccionar una cuenta de gasto.';
+        'Debe seleccionar una cuenta presupuestaria.';
 
       this.mensaje = '';
       return;
@@ -235,96 +284,287 @@ export class PresupuestosList implements OnInit {
       return;
     }
 
+    if (
+      !this.nuevoAplicaTodos &&
+      this.vecinosSeleccionados.length === 0
+    ) {
+      this.error =
+        'Debe seleccionar al menos un propietario afectado.';
+
+      this.mensaje = '';
+      return;
+    }
+
+    if (this.partidaEditandoId === null) {
+      const partidaDuplicada =
+        this.presupuestos.find(
+          presupuesto =>
+            presupuesto.cuentaId === this.nuevaCuentaId &&
+            presupuesto.anio === this.anio
+        );
+
+      if (partidaDuplicada) {
+        const cuenta =
+          this.cuentasGasto.find(
+            elemento =>
+              elemento.id === this.nuevaCuentaId
+          );
+
+        const descripcionCuenta =
+          cuenta?.nombre ||
+          partidaDuplicada.cuentaDescripcion ||
+          'esa cuenta';
+
+        this.error =
+          `Ya existe una partida para ${descripcionCuenta} ` +
+          `en ${this.anio}. Utilice Editar para modificarla.`;
+
+        this.mensaje = '';
+        return;
+      }
+    }
+
+    const request = {
+      cuentaId: this.nuevaCuentaId,
+      anio: this.anio,
+      importe: Number(this.nuevoImporte),
+      metodoReparto: this.nuevoMetodoReparto,
+      aplicaTodos: this.nuevoAplicaTodos,
+      vecinoIds: this.nuevoAplicaTodos
+        ? []
+        : [...this.vecinosSeleccionados]
+    };
+
     this.guardandoPartida = true;
     this.error = '';
     this.mensaje = '';
 
+    const operacion =
+      this.partidaEditandoId === null
+        ? this.presupuestoService.crearPartida(
+          this.comunidadId,
+          request
+        )
+        : this.presupuestoService.modificarPartida(
+          this.partidaEditandoId,
+          request
+        );
+
+    operacion.subscribe({
+      next: () => {
+        const editando =
+          this.partidaEditandoId !== null;
+
+        this.guardandoPartida = false;
+        this.resetFormularioPartida();
+
+        this.mensaje = editando
+          ? 'Partida presupuestaria modificada correctamente.'
+          : 'Partida presupuestaria creada correctamente.';
+
+        this.cargarPresupuestos(false);
+      },
+
+      error: err => {
+        console.error(
+          'Error guardando partida presupuestaria:',
+          err
+        );
+
+        this.error = this.obtenerMensajeError(
+          err,
+          'No se pudo guardar la partida presupuestaria.'
+        );
+
+        this.guardandoPartida = false;
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  editarPartida(
+    presupuesto: Presupuesto
+  ): void {
+    this.partidaEditandoId =
+      presupuesto.id;
+
+    this.nuevaCuentaId =
+      presupuesto.cuentaId;
+
+    this.nuevoImporte =
+      Number(presupuesto.importe);
+
+    this.nuevoMetodoReparto =
+      presupuesto.metodoReparto === 'COEFICIENTE'
+        ? 'COEFICIENTE'
+        : 'PARTES_IGUALES';
+
+    this.nuevoAplicaTodos =
+      presupuesto.aplicaTodos !== false;
+
+    this.vecinosSeleccionados =
+      this.nuevoAplicaTodos
+        ? []
+        : [...(presupuesto.vecinoIds ?? [])];
+
+    this.error = '';
+    this.mensaje = '';
+  }
+
+  cancelarEdicionPartida(): void {
+    this.resetFormularioPartida();
+    this.error = '';
+    this.mensaje = '';
+  }
+
+  eliminarPartida(
+    presupuesto: Presupuesto
+  ): void {
+    const descripcion =
+      `${presupuesto.cuentaCodigo} — ` +
+      `${presupuesto.cuentaDescripcion}`;
+
+    if (
+      !confirm(
+        `¿Desea eliminar la partida ${descripcion}?\n\n` +
+        'Si existen cuotas en BORRADOR para este año, ' +
+        'se eliminarán porque deben recalcularse con el ' +
+        'nuevo presupuesto.'
+      )
+    ) {
+      return;
+    }
+
+    this.eliminandoPartidaId =
+      presupuesto.id;
+
+    this.error = '';
+    this.mensaje = '';
+
     this.presupuestoService
-      .crearPartida(
-        this.comunidadId,
-        {
-          cuentaId: this.nuevaCuentaId,
-          anio: this.anio,
-          importe: Number(this.nuevoImporte)
-        }
+      .eliminarPartida(
+        presupuesto.id
       )
       .subscribe({
         next: () => {
-          this.guardandoPartida = false;
-          this.nuevoImporte = null;
+          this.eliminandoPartidaId = null;
+
+          if (
+            this.partidaEditandoId ===
+            presupuesto.id
+          ) {
+            this.resetFormularioPartida();
+          }
 
           this.mensaje =
-            'Partida presupuestaria creada correctamente.';
+            `Partida ${descripcion} eliminada correctamente. ` +
+            'Si había cuotas en BORRADOR, se han eliminado. ' +
+            'Genere un nuevo borrador de cuotas cuando el ' +
+            'presupuesto esté definitivo.';
 
-          /*
-           * false conserva el mensaje después
-           * de recargar las tablas.
-           */
           this.cargarPresupuestos(false);
         },
 
         error: err => {
           console.error(
-            'Error creando partida presupuestaria:',
+            'Error eliminando partida presupuestaria:',
             err
           );
 
-          this.error =
-            err?.error?.message ||
-            err?.error ||
-            'No se pudo crear la partida presupuestaria.';
+          this.error = this.obtenerMensajeError(
+            err,
+            'No se pudo eliminar la partida presupuestaria.'
+          );
 
-          this.guardandoPartida = false;
+          this.eliminandoPartidaId = null;
           this.cdr.detectChanges();
         }
       });
   }
 
-  guardarMetodoReparto(): void {
-    if (this.comunidadId <= 0) {
+  cambiarAlcancePartida(): void {
+    if (this.nuevoAplicaTodos) {
+      this.vecinosSeleccionados = [];
+    }
+  }
+
+  estaPropietarioSeleccionado(
+    vecinoId: number
+  ): boolean {
+    return this.vecinosSeleccionados
+      .includes(vecinoId);
+  }
+
+  cambiarPropietarioSeleccionado(
+    vecinoId: number,
+    event: Event
+  ): void {
+    const marcado =
+      (event.target as HTMLInputElement)
+        .checked;
+
+    if (marcado) {
+      if (
+        !this.vecinosSeleccionados
+          .includes(vecinoId)
+      ) {
+        this.vecinosSeleccionados = [
+          ...this.vecinosSeleccionados,
+          vecinoId
+        ];
+      }
       return;
     }
 
-    this.guardandoMetodo = true;
-    this.error = '';
-    this.mensaje = '';
+    this.vecinosSeleccionados =
+      this.vecinosSeleccionados
+        .filter(id => id !== vecinoId);
+  }
 
-    this.comunidadService
-      .guardarConfiguracionReparto(
-        this.comunidadId,
-        this.metodoReparto
+  seleccionarTodosPropietarios(): void {
+    this.vecinosSeleccionados =
+      this.propietarios.map(
+        propietario => propietario.vecinoId
+      );
+  }
+
+  limpiarPropietariosSeleccionados(): void {
+    this.vecinosSeleccionados = [];
+  }
+
+  get totalCoeficienteSeleccionado(): number {
+    if (this.nuevoAplicaTodos) {
+      return this.propietarios.reduce(
+        (total, propietario) =>
+          total + Number(propietario.coeficiente || 0),
+        0
+      );
+    }
+
+    return this.propietarios
+      .filter(propietario =>
+        this.vecinosSeleccionados
+          .includes(propietario.vecinoId)
       )
-      .subscribe({
-        next: data => {
-          this.configuracionReparto = data;
+      .reduce(
+        (total, propietario) =>
+          total + Number(propietario.coeficiente || 0),
+        0
+      );
+  }
 
-          this.mensaje =
-            'Método de reparto guardado correctamente.';
+  private resetFormularioPartida(): void {
+    this.partidaEditandoId = null;
+    this.nuevoImporte = null;
+    this.nuevoMetodoReparto =
+      this.metodoRepartoPredeterminado;
+    this.nuevoAplicaTodos = true;
+    this.vecinosSeleccionados = [];
 
-          this.guardandoMetodo = false;
-
-          /*
-           * Conservamos el mensaje de éxito
-           * durante la recarga.
-           */
-          this.cargarPresupuestos(false);
-        },
-
-        error: err => {
-          console.error(
-            'Error guardando método de reparto:',
-            err
-          );
-
-          this.error =
-            err?.error?.message ||
-            err?.error ||
-            'No se pudo guardar el método de reparto.';
-
-          this.guardandoMetodo = false;
-          this.cdr.detectChanges();
-        }
-      });
+    if (this.cuentasGasto.length > 0) {
+      this.nuevaCuentaId =
+        this.cuentasGasto[0].id;
+    }
   }
 
   cargarPresupuestos(
@@ -370,10 +610,10 @@ export class PresupuestosList implements OnInit {
             err
           );
 
-          this.error =
-            err?.error?.message ||
-            err?.error ||
-            'No se pudo cargar el presupuesto.';
+          this.error = this.obtenerMensajeError(
+            err,
+            'No se pudo cargar el presupuesto.'
+          );
 
           this.cargando = false;
           this.cdr.detectChanges();
@@ -420,10 +660,10 @@ export class PresupuestosList implements OnInit {
             err
           );
 
-          this.error =
-            err?.error?.message ||
-            err?.error ||
-            'No se pudo cargar el reparto.';
+          this.error = this.obtenerMensajeError(
+            err,
+            'No se pudo cargar el reparto.'
+          );
 
           this.cargando = false;
           this.cdr.detectChanges();
@@ -440,7 +680,8 @@ export class PresupuestosList implements OnInit {
       .subscribe({
         next: data => {
           this.cuotasBorrador = data;
-          this.cargarResumenCoeficientes();
+          this.cargando = false;
+          this.cdr.detectChanges();
         },
 
         error: err => {
@@ -449,32 +690,9 @@ export class PresupuestosList implements OnInit {
             err
           );
 
-          this.error =
-            err?.error?.message ||
-            err?.error ||
-            'No se pudieron cargar las cuotas.';
-
-          this.cargarResumenCoeficientes();
-        }
-      });
-  }
-
-  cargarResumenCoeficientes(): void {
-    this.comunidadService
-      .getResumenCoeficientes(
-        this.comunidadId
-      )
-      .subscribe({
-        next: data => {
-          this.resumenCoeficientes = data;
-          this.cargando = false;
-          this.cdr.detectChanges();
-        },
-
-        error: err => {
-          console.error(
-            'Error cargando resumen de coeficientes:',
-            err
+          this.error = this.obtenerMensajeError(
+            err,
+            'No se pudieron cargar las cuotas.'
           );
 
           this.cargando = false;
@@ -515,10 +733,10 @@ export class PresupuestosList implements OnInit {
             err
           );
 
-          this.error =
-            err?.error?.message ||
-            err?.error ||
-            'No se pudo generar el borrador de cuotas.';
+          this.error = this.obtenerMensajeError(
+            err,
+            'No se pudo generar el borrador de cuotas.'
+          );
 
           this.generandoCuotas = false;
           this.cdr.detectChanges();
@@ -556,10 +774,10 @@ export class PresupuestosList implements OnInit {
             err
           );
 
-          this.error =
-            err?.error?.message ||
-            err?.error ||
-            'No se pudieron aprobar las cuotas.';
+          this.error = this.obtenerMensajeError(
+            err,
+            'No se pudieron aprobar las cuotas.'
+          );
 
           this.cdr.detectChanges();
         }
@@ -597,10 +815,10 @@ export class PresupuestosList implements OnInit {
             err
           );
 
-          this.error =
-            err?.error?.message ||
-            err?.error ||
-            'No se pudo aprobar la revisión.';
+          this.error = this.obtenerMensajeError(
+            err,
+            'No se pudo aprobar la revisión.'
+          );
 
           this.cdr.detectChanges();
         }
@@ -637,14 +855,62 @@ export class PresupuestosList implements OnInit {
             err
           );
 
-          this.error =
-            err?.error?.message ||
-            err?.error ||
-            'No se pudo eliminar la revisión.';
+          this.error = this.obtenerMensajeError(
+            err,
+            'No se pudo eliminar la revisión.'
+          );
 
           this.cdr.detectChanges();
         }
       });
+  }
+
+  private obtenerMensajeError(
+    err: unknown,
+    mensajePredeterminado: string
+  ): string {
+    const errorHttp = err as {
+      error?: unknown;
+      message?: unknown;
+    };
+
+    const cuerpo = errorHttp?.error;
+
+    if (typeof cuerpo === 'string' && cuerpo.trim()) {
+      return cuerpo.trim();
+    }
+
+    if (cuerpo && typeof cuerpo === 'object') {
+      const objeto =
+        cuerpo as Record<string, unknown>;
+
+      const candidatos = [
+        objeto['message'],
+        objeto['mensaje'],
+        objeto['detail']
+      ];
+
+      for (const candidato of candidatos) {
+        if (
+          typeof candidato === 'string' &&
+          candidato.trim()
+        ) {
+          return candidato.trim();
+        }
+      }
+    }
+
+    if (
+      typeof errorHttp?.message === 'string' &&
+      errorHttp.message.trim() &&
+      !errorHttp.message.startsWith(
+        'Http failure response for'
+      )
+    ) {
+      return errorHttp.message.trim();
+    }
+
+    return mensajePredeterminado;
   }
 
   tieneCuotasBorrador(): boolean {
@@ -700,10 +966,10 @@ export class PresupuestosList implements OnInit {
             err
           );
 
-          this.error =
-            err?.error?.message ||
-            err?.error ||
-            'No se pudieron generar los recibos.';
+          this.error = this.obtenerMensajeError(
+            err,
+            'No se pudieron generar los recibos.'
+          );
 
           this.generandoRecibos = false;
           this.cdr.detectChanges();

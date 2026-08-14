@@ -290,6 +290,29 @@ export class VecinosList implements OnInit {
     ]);
   }
 
+  verConceptos(
+    vecino: Vecino
+  ): void {
+    if (!this.comunidadId || !vecino.id) {
+      return;
+    }
+
+    this.router.navigate(
+      [
+        '/conceptos/comunidad',
+        this.comunidadId,
+        'vecino',
+        vecino.id
+      ],
+      {
+        queryParams: {
+          propietario: vecino.nombre ?? '',
+          vivienda: vecino.vivienda ?? ''
+        }
+      }
+    );
+  }
+
   editarVecino(
     id?: number
   ): void {
@@ -345,6 +368,70 @@ export class VecinosList implements OnInit {
           this.cdr.detectChanges();
         }
       });
+  }
+
+
+  estadoMandato(
+    vecino: Vecino
+  ): 'FIRMADO' | 'DATOS_INFORMADOS' | 'PENDIENTE' | 'NO_DOMICILIADO' {
+
+    if (!vecino.domiciliado) {
+      return 'NO_DOMICILIADO';
+    }
+
+    if (
+      vecino.rutaMandatoFirmado
+      && vecino.rutaMandatoFirmado.startsWith('BD:')
+    ) {
+      return 'FIRMADO';
+    }
+
+    if (
+      vecino.referenciaMandato
+      && vecino.fechaMandato
+    ) {
+      return 'DATOS_INFORMADOS';
+    }
+
+    return 'PENDIENTE';
+  }
+
+  textoEstadoMandato(
+    vecino: Vecino
+  ): string {
+
+    switch (this.estadoMandato(vecino)) {
+      case 'FIRMADO':
+        return 'Firmado';
+
+      case 'DATOS_INFORMADOS':
+        return 'Datos informados';
+
+      case 'NO_DOMICILIADO':
+        return 'No domiciliado';
+
+      default:
+        return 'Pendiente';
+    }
+  }
+
+  tituloEstadoMandato(
+    vecino: Vecino
+  ): string {
+
+    switch (this.estadoMandato(vecino)) {
+      case 'FIRMADO':
+        return 'Existe un mandato firmado almacenado.';
+
+      case 'DATOS_INFORMADOS':
+        return 'La referencia y la fecha están informadas, pero no existe un documento firmado almacenado.';
+
+      case 'NO_DOMICILIADO':
+        return 'El propietario no está configurado para domiciliación bancaria.';
+
+      default:
+        return 'El propietario está domiciliado, pero no tiene mandato firmado almacenado.';
+    }
   }
 
   verMandato(

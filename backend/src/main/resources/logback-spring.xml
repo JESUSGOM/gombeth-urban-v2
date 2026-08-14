@@ -57,6 +57,48 @@
 
     </appender>
 
+    <!--
+        Auditoría funcional de Gombeth Urban.
+
+        Cada línea es un JSON independiente (JSON Lines), por lo que
+        puede consultarse con PowerShell, scripts o futuras pantallas
+        de auditoría sin mezclarlo con el log técnico de Spring Boot.
+    -->
+    <appender
+            name="AUDIT_FILE"
+            class="ch.qos.logback.core.rolling.RollingFileAppender">
+
+        <file>
+            ${LOG_PATH}/audit.log
+        </file>
+
+        <rollingPolicy
+                class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+
+            <fileNamePattern>
+                ${LOG_PATH}/audit.%d{yyyy-MM-dd}.%i.log.gz
+            </fileNamePattern>
+
+            <maxFileSize>20MB</maxFileSize>
+            <maxHistory>365</maxHistory>
+            <totalSizeCap>5GB</totalSizeCap>
+
+        </rollingPolicy>
+
+        <encoder>
+            <pattern>%msg%n</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+
+    </appender>
+
+    <logger
+            name="AUDIT"
+            level="INFO"
+            additivity="false">
+        <appender-ref ref="AUDIT_FILE"/>
+    </logger>
+
     <root level="INFO">
         <appender-ref ref="CONSOLE"/>
         <appender-ref ref="FILE"/>

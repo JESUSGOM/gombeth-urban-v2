@@ -33,6 +33,16 @@ export class ConceptosService {
     );
   }
 
+  getByVecino(
+    comunidadId: number,
+    vecinoId: number
+  ): Observable<ConceptoCobroListado[]> {
+
+    return this.http.get<ConceptoCobroListado[]>(
+      `${this.baseUrl}/comunidad/${comunidadId}/vecino/${vecinoId}`
+    );
+  }
+
   getById(
     id: number
   ): Observable<ConceptoCobroListado> {

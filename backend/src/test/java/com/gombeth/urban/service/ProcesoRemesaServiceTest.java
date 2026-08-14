@@ -379,6 +379,62 @@ class ProcesoRemesaServiceTest {
         );
     }
 
+    @Test
+    void fechaCobroAnteriorAlPeriodoEsRechazadaAntesDeGenerarRecibos() {
+        ProcesoRemesaRequest request =
+                crearRequest(
+                        33L,
+                        2027,
+                        9
+                );
+
+        request.setFechaCobro(
+                LocalDate.of(
+                        2026,
+                        8,
+                        13
+                )
+        );
+
+        ProcesoRemesaResponse response =
+                service.ejecutar(request);
+
+        assertFalse(response.isCorrecto());
+
+        assertEquals(
+                "Error en proceso de remesa: "
+                        + "La fecha de cobro no puede ser anterior "
+                        + "a la fecha de emisión del período: 2027-09-01",
+                response.getMensaje()
+        );
+
+        verify(
+                comunidadRepository,
+                never()
+        ).findById(
+                any()
+        );
+
+        verify(
+                reciboRepository,
+                never()
+        ).save(
+                any(ContabilidadRecibo.class)
+        );
+
+        verify(
+                remesaService,
+                never()
+        ).crearRemesaInicial(
+                any(),
+                any(),
+                any(),
+                any(LocalDate.class),
+                any(),
+                any()
+        );
+    }
+
     private ProcesoRemesaRequest crearRequest(
             Long comunidadId,
             Integer anio,

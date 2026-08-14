@@ -353,7 +353,7 @@ public class SepaRemesaValidationService {
                 referencia == null
                         || referencia.isBlank()
         ) {
-            resultado.addError(
+            resultado.addAdvertencia(
                     "El vecino "
                             + vecino.getId()
                             + " no tiene mandato firmado."
@@ -368,7 +368,7 @@ public class SepaRemesaValidationService {
                 );
 
         if (documentoId == null) {
-            resultado.addError(
+            resultado.addAdvertencia(
                     "La referencia del mandato firmado "
                             + "del vecino "
                             + vecino.getId()
@@ -384,7 +384,7 @@ public class SepaRemesaValidationService {
                 );
 
         if (documentoOptional.isEmpty()) {
-            resultado.addError(
+            resultado.addAdvertencia(
                     "El documento de mandato firmado "
                             + documentoId
                             + " del vecino "
@@ -403,7 +403,7 @@ public class SepaRemesaValidationService {
                         || !documento.getVecinoId()
                         .equals(vecino.getId())
         ) {
-            resultado.addError(
+            resultado.addAdvertencia(
                     "El documento de mandato firmado "
                             + documentoId
                             + " no pertenece al vecino "
@@ -428,7 +428,7 @@ public class SepaRemesaValidationService {
                         tipoDocumento
                 )
         ) {
-            resultado.addError(
+            resultado.addAdvertencia(
                     "El documento "
                             + documentoId
                             + " del vecino "
@@ -443,7 +443,7 @@ public class SepaRemesaValidationService {
                 documento.getContenido() == null
                         || documento.getContenido().length == 0
         ) {
-            resultado.addError(
+            resultado.addAdvertencia(
                     "El documento de mandato firmado "
                             + documentoId
                             + " del vecino "

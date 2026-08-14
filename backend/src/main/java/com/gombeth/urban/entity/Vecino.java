@@ -11,6 +11,7 @@ import java.time.LocalDate;
 public class Vecino {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @Column(name = "comunidad_id", nullable = false)

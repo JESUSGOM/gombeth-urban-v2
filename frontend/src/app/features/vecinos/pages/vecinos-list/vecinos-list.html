@@ -19,16 +19,9 @@
         class="search-input"
         type="text"
         placeholder="Buscar por nombre o vivienda...">
+      <button class="search-button">🔍</button>
 
-      <button class="search-button">
-        🔍
-      </button>
-
-      <button
-        class="primary-button"
-        (click)="nuevoVecino()">
-        + Nuevo Propietario
-      </button>
+      <button class="primary-button" (click)="nuevoVecino()">+ Nuevo Propietario</button>
     </div>
   </div>
 
@@ -132,6 +125,7 @@
         <th>NIF / CIF</th>
         <th>IBAN Cuenta</th>
         <th>SEPA</th>
+        <th>Mandato</th>
         <th>Estado</th>
         <th>Gestión</th>
       </tr>
@@ -171,6 +165,26 @@
               }
             </td>
 
+            <td class="center mandato-col">
+              <span
+                class="mandato-badge"
+                [class.mandato-firmado]="
+                  estadoMandato(vecino) === 'FIRMADO'
+                "
+                [class.mandato-datos]="
+                  estadoMandato(vecino) === 'DATOS_INFORMADOS'
+                "
+                [class.mandato-pendiente]="
+                  estadoMandato(vecino) === 'PENDIENTE'
+                "
+                [class.mandato-no-domiciliado]="
+                  estadoMandato(vecino) === 'NO_DOMICILIADO'
+                "
+                [title]="tituloEstadoMandato(vecino)">
+                {{ textoEstadoMandato(vecino) }}
+              </span>
+            </td>
+
             <td class="center">
               @if (vecino.activo) {
                 <span class="status-active">Activo</span>
@@ -182,7 +196,8 @@
             <td class="actions">
               <button
                 class="btn-action btn-dark"
-                title="Conceptos de cobro">
+                title="Conceptos de cobro"
+                (click)="verConceptos(vecino)">
                 ☰
               </button>
 
@@ -235,7 +250,6 @@
         (click)="cambiarPagina(pagina)">
         {{ pagina }}
       </button>
-
     }
 
     <button
@@ -244,7 +258,5 @@
       [disabled]="paginaActual === totalPaginas">
       Siguiente
     </button>
-
   </div>
-
 </div>

@@ -120,6 +120,14 @@
   </div>
 
   <ul
+    *ngIf="advertenciasValidacion.length > 0"
+    class="alert warning">
+    <li *ngFor="let advertencia of advertenciasValidacion">
+      {{ advertencia }}
+    </li>
+  </ul>
+
+  <ul
     *ngIf="erroresValidacion.length > 0"
     class="alert error">
     <li *ngFor="let error of erroresValidacion">

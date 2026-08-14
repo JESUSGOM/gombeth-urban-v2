@@ -22,4 +22,11 @@ public interface PresupuestoRepository
             Long cuentaId,
             int anio
     );
+
+    boolean existsByComunidad_IdAndCuenta_IdAndAnioAndIdNot(
+            Long comunidadId,
+            Long cuentaId,
+            int anio,
+            Long id
+    );
 }

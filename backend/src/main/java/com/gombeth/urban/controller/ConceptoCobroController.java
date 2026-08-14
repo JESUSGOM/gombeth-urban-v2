@@ -4,6 +4,7 @@ import com.gombeth.urban.dto.ConceptoCobroDTO;
 import com.gombeth.urban.entity.ConceptoCobro;
 import com.gombeth.urban.service.AccesoComunidadService;
 import com.gombeth.urban.service.ConceptoCobroService;
+import com.gombeth.urban.service.CuentaContableService;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -25,13 +26,18 @@ public class ConceptoCobroController {
 
     private final AccesoComunidadService accesoComunidadService;
 
+    private final CuentaContableService cuentaContableService;
+
     public ConceptoCobroController(
             ConceptoCobroService service,
-            AccesoComunidadService accesoComunidadService
+            AccesoComunidadService accesoComunidadService,
+            CuentaContableService cuentaContableService
     ) {
         this.service = service;
         this.accesoComunidadService =
                 accesoComunidadService;
+        this.cuentaContableService =
+                cuentaContableService;
     }
 
     /**
@@ -50,6 +56,27 @@ public class ConceptoCobroController {
 
         return service.findByComunidad(
                 id
+        );
+    }
+
+    /**
+     * Lista los conceptos de cobro asignados a un propietario
+     * dentro de una comunidad accesible por el usuario autenticado.
+     */
+    @GetMapping("/comunidad/{comunidadId}/vecino/{vecinoId}")
+    public List<ConceptoCobroDTO> findByComunidadYVecino(
+            @PathVariable Long comunidadId,
+            @PathVariable Long vecinoId,
+            Authentication authentication
+    ) {
+        accesoComunidadService.validarAcceso(
+                authentication,
+                comunidadId
+        );
+
+        return service.findByComunidadYVecino(
+                comunidadId,
+                vecinoId
         );
     }
 
@@ -115,6 +142,14 @@ public class ConceptoCobroController {
                 concepto.getComunidadId()
         );
 
+        concepto.setCuentaContableId(
+                cuentaContableService
+                        .resolverCuentaIdParaComunidad(
+                                concepto.getComunidadId(),
+                                concepto.getCuentaContableId()
+                        )
+        );
+
         return service.create(
                 concepto
         );
@@ -133,6 +168,13 @@ public class ConceptoCobroController {
             @RequestBody ConceptoCobro concepto,
             Authentication authentication
     ) {
+        if (concepto == null) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Los datos del concepto son obligatorios."
+            );
+        }
+
         ConceptoCobroDTO existente =
                 service.findById(
                         id
@@ -141,6 +183,14 @@ public class ConceptoCobroController {
         accesoComunidadService.validarAcceso(
                 authentication,
                 existente.getComunidadId()
+        );
+
+        concepto.setCuentaContableId(
+                cuentaContableService
+                        .resolverCuentaIdParaComunidad(
+                                existente.getComunidadId(),
+                                concepto.getCuentaContableId()
+                        )
         );
 
         return service.update(
