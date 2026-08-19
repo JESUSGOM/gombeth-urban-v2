@@ -42,6 +42,14 @@ public class PdfService {
     private static final Color GRIS_FONDO =
             new Color(245, 247, 250);
 
+    // Colores exclusivos del mandato SEPA V3.
+    // Se mantienen separados para no alterar el PDF profesional del recibo.
+    private static final Color AZUL_MANDATO =
+            new Color(31, 78, 121);
+
+    private static final Color GRIS_FONDO_MANDATO =
+            new Color(242, 244, 247);
+
     private static final Color GRIS_BORDE =
             new Color(211, 218, 226);
 
@@ -363,118 +371,336 @@ public class PdfService {
             Comunidad comunidad,
             Vecino vecino
     ) {
-        ByteArrayOutputStream out =
+        if (comunidad == null) {
+            throw new IllegalArgumentException(
+                    "La comunidad es obligatoria para generar el mandato SEPA."
+            );
+        }
+
+        if (vecino == null) {
+            throw new IllegalArgumentException(
+                    "El propietario es obligatorio para generar el mandato SEPA."
+            );
+        }
+
+        if (!tieneTexto(comunidad.getNombre())) {
+            throw new IllegalArgumentException(
+                    "La comunidad debe tener nombre."
+            );
+        }
+
+        if (!tieneTexto(comunidad.getIdentificadorAcreedor())) {
+            throw new IllegalArgumentException(
+                    "La comunidad debe tener identificador de acreedor SEPA."
+            );
+        }
+
+        if (!tieneTexto(vecino.getNombre())) {
+            throw new IllegalArgumentException(
+                    "El propietario debe tener nombre."
+            );
+        }
+
+        if (!tieneTexto(vecino.getIban())) {
+            throw new IllegalArgumentException(
+                    "El propietario debe tener IBAN."
+            );
+        }
+
+        if (!tieneTexto(vecino.getReferenciaMandato())) {
+            throw new IllegalArgumentException(
+                    "El propietario debe tener referencia de mandato."
+            );
+        }
+
+        ByteArrayOutputStream salida =
                 new ByteArrayOutputStream();
 
-        Document document = new Document(
+        Document documento = new Document(
                 PageSize.A4,
-                50,
-                50,
-                50,
-                50
+                36,
+                36,
+                26,
+                26
         );
 
         try {
-            PdfWriter.getInstance(document, out);
-            document.open();
+            PdfWriter.getInstance(
+                    documento,
+                    salida
+            );
+
+            documento.open();
 
             Font titulo = FontFactory.getFont(
                     FontFactory.HELVETICA_BOLD,
-                    14
+                    15,
+                    Color.BLACK
             );
+
             Font subtitulo = FontFactory.getFont(
                     FontFactory.HELVETICA_BOLD,
-                    10
-            );
-            Font normal = FontFactory.getFont(
-                    FontFactory.HELVETICA,
-                    10
+                    9,
+                    Color.WHITE
             );
 
-            Paragraph pTitulo = new Paragraph(
-                    "ORDEN DE DOMICILIACIÓN SEPA (CORE)",
+            Font etiqueta = FontFactory.getFont(
+                    FontFactory.HELVETICA_BOLD,
+                    8,
+                    Color.DARK_GRAY
+            );
+
+            Font texto = FontFactory.getFont(
+                    FontFactory.HELVETICA,
+                    8,
+                    Color.BLACK
+            );
+
+            Font textoLegal = FontFactory.getFont(
+                    FontFactory.HELVETICA,
+                    8,
+                    Color.BLACK
+            );
+
+            Paragraph encabezado = new Paragraph(
+                    "ORDEN DE DOMICILIACIÓN DE ADEUDO DIRECTO SEPA (CORE)",
                     titulo
             );
-            pTitulo.setAlignment(Element.ALIGN_CENTER);
-            pTitulo.setSpacingAfter(20);
-            document.add(pTitulo);
-
-            document.add(new Paragraph(
-                    "DATOS DEL ACREEDOR:",
-                    subtitulo
-            ));
-            document.add(new Paragraph(
-                    "Nombre: " + valor(comunidad.getNombre()),
-                    normal
-            ));
-            document.add(new Paragraph(
-                    "ID Acreedor: "
-                            + valor(comunidad.getIdentificadorAcreedor()),
-                    normal
-            ));
-            document.add(new Paragraph(
-                    "Dirección: "
-                            + valor(comunidad.getDireccion()),
-                    normal
-            ));
-            document.add(new Paragraph(
-                    "Población: "
-                            + valor(comunidad.getPoblacion()),
-                    normal
-            ));
-            document.add(new Paragraph(" "));
-
-            document.add(new Paragraph(
-                    "DATOS DEL DEUDOR (PAGADOR):",
-                    subtitulo
-            ));
-            document.add(new Paragraph(
-                    "Nombre: " + valor(vecino.getNombre()),
-                    normal
-            ));
-            document.add(new Paragraph(
-                    "NIF: " + valor(vecino.getNif()),
-                    normal
-            ));
-            document.add(new Paragraph(
-                    "Propiedad: " + valor(vecino.getVivienda()),
-                    normal
-            ));
-            document.add(new Paragraph(
-                    "IBAN: " + valor(vecino.getIban()),
-                    normal
-            ));
-            document.add(new Paragraph(
-                    "Referencia mandato: "
-                            + valor(vecino.getReferenciaMandato()),
-                    normal
-            ));
-            document.add(new Paragraph(" "));
-
-            Paragraph textoLegal = new Paragraph(
-                    "Mediante la firma de esta orden de domiciliación, "
-                            + "el deudor autoriza al acreedor a enviar "
-                            + "instrucciones a su entidad para adeudar "
-                            + "su cuenta y a la entidad para adeudar los "
-                            + "importes correspondientes de acuerdo con "
-                            + "las instrucciones del acreedor.",
-                    normal
+            encabezado.setAlignment(
+                    Element.ALIGN_CENTER
             );
-            textoLegal.setSpacingBefore(10);
-            document.add(textoLegal);
+            encabezado.setSpacingAfter(10);
+            documento.add(encabezado);
 
-            document.add(new Paragraph(
-                    "\n\nFecha: _________________  "
-                            + "Firma: ___________________________",
-                    normal
-            ));
+            agregarSeccionMandato(
+                    documento,
+                    "DATOS DEL ACREEDOR",
+                    subtitulo
+            );
 
-            document.close();
-            return out.toByteArray();
+            PdfPTable tablaAcreedor =
+                    crearTablaDatosMandato();
+
+            agregarFilaMandato(
+                    tablaAcreedor,
+                    "Nombre del acreedor",
+                    valor(comunidad.getNombre()),
+                    etiqueta,
+                    texto
+            );
+
+            agregarFilaMandato(
+                    tablaAcreedor,
+                    "Identificador acreedor",
+                    valor(comunidad.getIdentificadorAcreedor()),
+                    etiqueta,
+                    texto
+            );
+
+            agregarFilaMandato(
+                    tablaAcreedor,
+                    "Dirección",
+                    valor(comunidad.getDireccion()),
+                    etiqueta,
+                    texto
+            );
+
+            agregarFilaMandato(
+                    tablaAcreedor,
+                    "Código postal / Población",
+                    unirDireccion(
+                            comunidad.getCodigoPostal(),
+                            comunidad.getPoblacion(),
+                            null,
+                            null
+                    ),
+                    etiqueta,
+                    texto
+            );
+
+            agregarFilaMandato(
+                    tablaAcreedor,
+                    "Provincia",
+                    valor(comunidad.getProvincia()),
+                    etiqueta,
+                    texto
+            );
+
+            agregarFilaMandato(
+                    tablaAcreedor,
+                    "País",
+                    valor(comunidad.getPaiscod()),
+                    etiqueta,
+                    texto
+            );
+
+            documento.add(tablaAcreedor);
+
+            agregarSeccionMandato(
+                    documento,
+                    "DATOS DEL MANDATO",
+                    subtitulo
+            );
+
+            PdfPTable tablaMandato =
+                    crearTablaDatosMandato();
+
+            agregarFilaMandato(
+                    tablaMandato,
+                    "Referencia del mandato",
+                    valor(vecino.getReferenciaMandato()),
+                    etiqueta,
+                    texto
+            );
+
+            agregarFilaMandato(
+                    tablaMandato,
+                    "Tipo de pago",
+                    "RECURRENTE",
+                    etiqueta,
+                    texto
+            );
+
+            documento.add(tablaMandato);
+
+            Paragraph legal = new Paragraph(
+                    "Mediante la firma de esta orden de domiciliación, "
+                            + "el deudor autoriza (A) al acreedor a enviar "
+                            + "instrucciones a la entidad del deudor para "
+                            + "adeudar su cuenta y (B) a la entidad para "
+                            + "efectuar los adeudos en su cuenta siguiendo "
+                            + "las instrucciones del acreedor. Como parte "
+                            + "de sus derechos, el deudor está legitimado "
+                            + "al reembolso por su entidad en los términos "
+                            + "y condiciones del contrato suscrito con la "
+                            + "misma. La solicitud de reembolso deberá "
+                            + "efectuarse dentro de las ocho semanas que "
+                            + "siguen a la fecha de adeudo en cuenta. Puede "
+                            + "obtener información adicional sobre sus "
+                            + "derechos en su entidad financiera.",
+                    textoLegal
+            );
+            legal.setAlignment(
+                    Element.ALIGN_JUSTIFIED
+            );
+            legal.setLeading(10.5f);
+            legal.setSpacingBefore(8);
+            legal.setSpacingAfter(6);
+            documento.add(legal);
+
+            agregarSeccionMandato(
+                    documento,
+                    "DATOS DEL DEUDOR",
+                    subtitulo
+            );
+
+            PdfPTable tablaDeudor =
+                    crearTablaDatosMandato();
+
+            agregarFilaMandato(
+                    tablaDeudor,
+                    "Nombre del deudor",
+                    valor(vecino.getNombre()),
+                    etiqueta,
+                    texto
+            );
+
+            agregarFilaMandato(
+                    tablaDeudor,
+                    "NIF / NIE",
+                    valor(vecino.getNif()),
+                    etiqueta,
+                    texto
+            );
+
+            agregarFilaMandato(
+                    tablaDeudor,
+                    "Propiedad",
+                    valor(vecino.getVivienda()),
+                    etiqueta,
+                    texto
+            );
+
+            agregarFilaMandato(
+                    tablaDeudor,
+                    "Dirección",
+                    valor(vecino.getDireccion()),
+                    etiqueta,
+                    texto
+            );
+
+            agregarFilaMandato(
+                    tablaDeudor,
+                    "Código postal / Población",
+                    unirDireccion(
+                            vecino.getCodigoPostal(),
+                            vecino.getPoblacion(),
+                            null,
+                            null
+                    ),
+                    etiqueta,
+                    texto
+            );
+
+            agregarFilaMandato(
+                    tablaDeudor,
+                    "Provincia",
+                    valor(vecino.getProvincia()),
+                    etiqueta,
+                    texto
+            );
+
+            agregarFilaMandato(
+                    tablaDeudor,
+                    "País",
+                    valor(vecino.getPaisCod()),
+                    etiqueta,
+                    texto
+            );
+
+            agregarFilaMandato(
+                    tablaDeudor,
+                    "IBAN",
+                    valor(vecino.getIban()),
+                    etiqueta,
+                    texto
+            );
+
+            if (tieneTexto(vecino.getBic())) {
+                agregarFilaMandato(
+                        tablaDeudor,
+                        "BIC",
+                        valor(vecino.getBic()),
+                        etiqueta,
+                        texto
+                );
+            }
+
+            documento.add(tablaDeudor);
+
+            agregarSeccionMandato(
+                    documento,
+                    "FIRMA DEL MANDATO",
+                    subtitulo
+            );
+
+            Paragraph firma = new Paragraph(
+                    "Lugar de firma: __________________________________________\n"
+                            + "Fecha de firma (dd/mm/aaaa): ________________________\n"
+                            + "Firma(s) del deudor(es):\n"
+                            + "____________________________________________________",
+                    texto
+            );
+            firma.setLeading(16);
+            firma.setSpacingBefore(2);
+            documento.add(firma);
+
+            documento.close();
+            return salida.toByteArray();
 
         } catch (Exception excepcion) {
-            if (document.isOpen()) {
-                document.close();
+            if (documento.isOpen()) {
+                documento.close();
             }
 
             throw new IllegalStateException(
@@ -873,6 +1099,58 @@ public class PdfService {
                 Element.ALIGN_MIDDLE
         );
         celdaContenido.setBorderColor(GRIS_BORDE);
+        tabla.addCell(celdaContenido);
+    }
+
+    private void agregarSeccionMandato(
+            Document documento,
+            String titulo,
+            Font fuente
+    ) throws Exception {
+        PdfPTable tabla = new PdfPTable(1);
+        tabla.setWidthPercentage(100);
+        tabla.setSpacingBefore(12);
+        tabla.setSpacingAfter(6);
+
+        PdfPCell celda = new PdfPCell(
+                new Phrase(titulo, fuente)
+        );
+        celda.setBackgroundColor(AZUL_MANDATO);
+        celda.setPadding(7);
+        celda.setBorder(Rectangle.NO_BORDER);
+        tabla.addCell(celda);
+
+        documento.add(tabla);
+    }
+
+    private PdfPTable crearTablaDatosMandato()
+            throws Exception {
+        PdfPTable tabla = new PdfPTable(2);
+        tabla.setWidthPercentage(100);
+        tabla.setWidths(new float[]{1.5f, 4.5f});
+        return tabla;
+    }
+
+    private void agregarFilaMandato(
+            PdfPTable tabla,
+            String etiqueta,
+            String contenido,
+            Font fuenteEtiqueta,
+            Font fuenteContenido
+    ) {
+        PdfPCell celdaEtiqueta = new PdfPCell(
+                new Phrase(etiqueta, fuenteEtiqueta)
+        );
+        celdaEtiqueta.setBackgroundColor(GRIS_FONDO_MANDATO);
+        celdaEtiqueta.setPadding(6);
+        celdaEtiqueta.setBorderColor(Color.LIGHT_GRAY);
+        tabla.addCell(celdaEtiqueta);
+
+        PdfPCell celdaContenido = new PdfPCell(
+                new Phrase(contenido, fuenteContenido)
+        );
+        celdaContenido.setPadding(6);
+        celdaContenido.setBorderColor(Color.LIGHT_GRAY);
         tabla.addCell(celdaContenido);
     }
 
