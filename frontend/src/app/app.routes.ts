@@ -20,6 +20,7 @@ import { ConceptosEdit } from './features/conceptos/pages/conceptos-edit/concept
 import { DiarioListComponent } from './features/tesoreria/pages/diario-list/diario-list';
 
 import { authGuard } from './core/guards/auth.guard';
+import { adminGuard } from './core/guards/admin.guard';
 
 export const routes: Routes = [
 
@@ -124,7 +125,7 @@ export const routes: Routes = [
         loadComponent: () =>
           import(
             './features/tesoreria/pages/norma43-import/norma43-import'
-          ).then(m => m.Norma43Import)
+            ).then(m => m.Norma43Import)
       },
 
       {
@@ -176,7 +177,40 @@ export const routes: Routes = [
         loadComponent: () =>
           import(
             './features/configuracion/pages/cuentas-presentador/cuentas-presentador'
-          ).then(m => m.CuentasPresentador)
+            ).then(m => m.CuentasPresentador)
+      },
+
+      {
+        path: 'administracion/usuarios/nuevo',
+        canActivate: [
+          adminGuard
+        ],
+        loadComponent: () =>
+          import(
+            './features/administracion/pages/usuarios-edit/usuarios-edit'
+            ).then(m => m.UsuariosEdit)
+      },
+
+      {
+        path: 'administracion/usuarios/editar/:id',
+        canActivate: [
+          adminGuard
+        ],
+        loadComponent: () =>
+          import(
+            './features/administracion/pages/usuarios-edit/usuarios-edit'
+            ).then(m => m.UsuariosEdit)
+      },
+
+      {
+        path: 'administracion/usuarios',
+        canActivate: [
+          adminGuard
+        ],
+        loadComponent: () =>
+          import(
+            './features/administracion/pages/usuarios-list/usuarios-list'
+            ).then(m => m.UsuariosList)
       },
 
       {

@@ -6,6 +6,7 @@ import com.gombeth.urban.dto.ValidacionRemesaResponse;
 import com.gombeth.urban.dto.remesa.ProcesoRemesaRequest;
 import com.gombeth.urban.dto.remesa.ProcesoRemesaResponse;
 import com.gombeth.urban.dto.remesa.RemesaDetalleResponse;
+import com.gombeth.urban.dto.remesa.RemesaEventoResponse;
 import com.gombeth.urban.dto.remesa.RemesaLineaConceptoDetalleResponse;
 import com.gombeth.urban.dto.remesa.RemesaLineaDetalleResponse;
 import com.gombeth.urban.entity.Comunidad;
@@ -13,6 +14,7 @@ import com.gombeth.urban.entity.ContabilidadRecibo;
 import com.gombeth.urban.entity.CuentaPresentador;
 import com.gombeth.urban.entity.FicheroGenerado;
 import com.gombeth.urban.entity.RemesaEstado;
+import com.gombeth.urban.entity.RemesaEvento;
 import com.gombeth.urban.entity.RemesaEventoTipo;
 import com.gombeth.urban.entity.RemesaLinea;
 import com.gombeth.urban.entity.Usuario;
@@ -1004,6 +1006,122 @@ public class RemesaController {
                 cuentaPresentador
         );
     }
+    @PostMapping("/{id}/presentar")
+    public Map<String, Object> presentarRemesa(
+            @PathVariable Long id,
+            Authentication authentication
+    ) {
+        FicheroGenerado remesa =
+                obtenerRemesaAutorizada(
+                        id,
+                        authentication
+                );
+
+        Usuario usuario =
+                accesoComunidadService
+                        .obtenerUsuarioAutenticado(
+                                authentication
+                        );
+
+        try {
+            FicheroGenerado remesaPresentada =
+                    remesaSeguimientoService
+                            .cambiarEstado(
+                                    remesa,
+                                    RemesaEstado.PRESENTADA,
+                                    usuario.getId(),
+                                    RemesaEventoTipo.PRESENTADA,
+                                    null,
+                                    null,
+                                    "Remesa marcada manualmente como presentada al banco."
+                            );
+
+            return Map.of(
+                    "remesaId",
+                    remesaPresentada.getId(),
+                    "estado",
+                    remesaPresentada.getEstado(),
+                    "mensaje",
+                    "La remesa ha quedado marcada como PRESENTADA."
+            );
+
+        } catch (IllegalStateException excepcion) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    excepcion.getMessage(),
+                    excepcion
+            );
+        }
+    }
+
+    @PostMapping("/{id}/anular")
+    public Map<String, Object> anularRemesa(
+            @PathVariable Long id,
+            Authentication authentication
+    ) {
+        FicheroGenerado remesa =
+                obtenerRemesaAutorizada(
+                        id,
+                        authentication
+                );
+
+        Usuario usuario =
+                accesoComunidadService
+                        .obtenerUsuarioAutenticado(
+                                authentication
+                        );
+
+        try {
+            FicheroGenerado remesaAnulada =
+                    remesaSeguimientoService
+                            .cambiarEstado(
+                                    remesa,
+                                    RemesaEstado.ANULADA,
+                                    usuario.getId(),
+                                    RemesaEventoTipo.ANULADA,
+                                    null,
+                                    null,
+                                    "Remesa anulada manualmente desde Gombeth Urban."
+                            );
+
+            return Map.of(
+                    "remesaId",
+                    remesaAnulada.getId(),
+                    "estado",
+                    remesaAnulada.getEstado(),
+                    "mensaje",
+                    "La remesa ha quedado marcada como ANULADA."
+            );
+
+        } catch (IllegalStateException excepcion) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    excepcion.getMessage(),
+                    excepcion
+            );
+        }
+    }
+
+    @GetMapping("/{id}/eventos")
+    public List<RemesaEventoResponse> eventosRemesa(
+            @PathVariable Long id,
+            Authentication authentication
+    ) {
+        FicheroGenerado remesa =
+                obtenerRemesaAutorizada(
+                        id,
+                        authentication
+                );
+
+        return remesaSeguimientoService
+                .obtenerEventos(
+                        remesa.getId()
+                )
+                .stream()
+                .map(this::convertirEvento)
+                .toList();
+    }
+
     @GetMapping("/{id}/detalle")
     public RemesaDetalleResponse detalleRemesa(
             @PathVariable Long id,
@@ -1085,6 +1203,26 @@ public class RemesaController {
                 lineasDetalle
         );
     }
+    private RemesaEventoResponse convertirEvento(
+            RemesaEvento evento
+    ) {
+        return new RemesaEventoResponse(
+                evento.getId(),
+                evento.getRemesaId(),
+                evento.getComunidadId(),
+                evento.getUsuarioId(),
+                evento.getTipoEvento() == null
+                        ? null
+                        : evento.getTipoEvento().name(),
+                evento.getEstadoAnterior(),
+                evento.getEstadoNuevo(),
+                evento.getFormato(),
+                evento.getNombreArchivo(),
+                evento.getFechaEvento(),
+                evento.getDetalle()
+        );
+    }
+
     private FicheroGenerado obtenerRemesaAutorizada(
             Long remesaId,
             Authentication authentication

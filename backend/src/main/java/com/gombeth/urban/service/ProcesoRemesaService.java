@@ -27,9 +27,12 @@ public class ProcesoRemesaService {
     private final VecinoRepository vecinoRepository;
     private final SepaRemesaValidationService sepaRemesaValidationService;
     private final SepaC19Service sepaC19Service;
+    private final SepaC19ValidationService sepaC19ValidationService;
     private final SepaCoreXmlService sepaCoreXmlService;
+    private final SepaXmlValidationService sepaXmlValidationService;
     private final DocumentStorageService documentStorageService;
     private final FicheroGeneradoRepository ficheroGeneradoRepository;
+    private final RemesaSeguimientoService remesaSeguimientoService;
 
     public ProcesoRemesaService(
             ComunidadRepository comunidadRepository,
@@ -42,9 +45,12 @@ public class ProcesoRemesaService {
             VecinoRepository vecinoRepository,
             SepaRemesaValidationService sepaRemesaValidationService,
             SepaC19Service sepaC19Service,
+            SepaC19ValidationService sepaC19ValidationService,
             SepaCoreXmlService sepaCoreXmlService,
+            SepaXmlValidationService sepaXmlValidationService,
             DocumentStorageService documentStorageService,
-            FicheroGeneradoRepository ficheroGeneradoRepository
+            FicheroGeneradoRepository ficheroGeneradoRepository,
+            RemesaSeguimientoService remesaSeguimientoService
     ) {
         this.comunidadRepository = comunidadRepository;
         this.cuotaPresupuestoRepository = cuotaPresupuestoRepository;
@@ -56,9 +62,12 @@ public class ProcesoRemesaService {
         this.vecinoRepository = vecinoRepository;
         this.sepaRemesaValidationService = sepaRemesaValidationService;
         this.sepaC19Service = sepaC19Service;
+        this.sepaC19ValidationService = sepaC19ValidationService;
         this.sepaCoreXmlService = sepaCoreXmlService;
+        this.sepaXmlValidationService = sepaXmlValidationService;
         this.documentStorageService = documentStorageService;
         this.ficheroGeneradoRepository = ficheroGeneradoRepository;
+        this.remesaSeguimientoService = remesaSeguimientoService;
     }
 
     @Transactional
@@ -121,6 +130,15 @@ public class ProcesoRemesaService {
                             cuentaPresentador
                     );
 
+            remesaSeguimientoService.registrarEvento(
+                    remesa,
+                    null,
+                    RemesaEventoTipo.REMESA_GENERADA,
+                    "REMESA",
+                    null,
+                    "Remesa generada desde proceso completo."
+            );
+
             List<RemesaLinea> lineas =
                     remesaLineaRepository.findByRemesaIdOrderByIdAsc(
                             remesa.getId()
@@ -160,14 +178,25 @@ public class ProcesoRemesaService {
                             vecinos
                     );
 
-            Path rutaC19 =
-                    documentStorageService.guardarRemesaC19(
-                            comunidad,
-                            contenidoC19,
-                            fechaEmision,
-                            remesa.getFechaCobro(),
-                            remesa.getEsquemaSepa()
+            SepaValidacionResultado validacionC19 =
+                    sepaC19ValidationService.validar(
+                            contenidoC19
                     );
+
+            if (!validacionC19.isValida()) {
+                response.setCorrecto(false);
+                response.setRemesaId(remesa.getId());
+                response.setRecibos(lineas.size());
+                response.setMensaje(
+                        "La remesa se creó, pero el C19 generado "
+                                + "no supera la validación estructural: "
+                                + String.join(
+                                " | ",
+                                validacionC19.getErrores()
+                        )
+                );
+                return response;
+            }
 
             String contenidoXml =
                     sepaCoreXmlService.generarXmlCore(
@@ -175,6 +204,35 @@ public class ProcesoRemesaService {
                             comunidad,
                             lineasSepa,
                             vecinos
+                    );
+
+            SepaValidacionResultado validacionXml =
+                    sepaXmlValidationService.validar(
+                            contenidoXml
+                    );
+
+            if (!validacionXml.isValida()) {
+                response.setCorrecto(false);
+                response.setRemesaId(remesa.getId());
+                response.setRecibos(lineas.size());
+                response.setMensaje(
+                        "La remesa se creó, pero el XML generado "
+                                + "no supera la validación XSD oficial: "
+                                + String.join(
+                                " | ",
+                                validacionXml.getErrores()
+                        )
+                );
+                return response;
+            }
+
+            Path rutaC19 =
+                    documentStorageService.guardarRemesaC19(
+                            comunidad,
+                            contenidoC19,
+                            fechaEmision,
+                            remesa.getFechaCobro(),
+                            remesa.getEsquemaSepa()
                     );
 
             Path rutaXml =
@@ -189,6 +247,35 @@ public class ProcesoRemesaService {
             remesa.setContenido(contenidoXml);
             remesa.setNombreArchivo(rutaXml.getFileName().toString());
             ficheroGeneradoRepository.save(remesa);
+
+            remesaSeguimientoService.cambiarEstado(
+                    remesa,
+                    RemesaEstado.VALIDADA,
+                    null,
+                    RemesaEventoTipo.VALIDACION_CORRECTA,
+                    "SEPA",
+                    null,
+                    "Validación SEPA, C19 estructural y XML XSD superada."
+            );
+
+            remesaSeguimientoService.registrarEvento(
+                    remesa,
+                    null,
+                    RemesaEventoTipo.C19_GENERADO,
+                    "C19",
+                    rutaC19.getFileName().toString(),
+                    "Fichero C19 generado y almacenado correctamente."
+            );
+
+            remesaSeguimientoService.cambiarEstado(
+                    remesa,
+                    RemesaEstado.FICHERO_GENERADO,
+                    null,
+                    RemesaEventoTipo.XML_GENERADO,
+                    "XML",
+                    rutaXml.getFileName().toString(),
+                    "Ficheros bancarios C19 y XML generados y almacenados correctamente."
+            );
 
             response.setCorrecto(true);
             response.setRemesaId(remesa.getId());
@@ -205,8 +292,8 @@ public class ProcesoRemesaService {
                     remesa.getTotalDomiciliado() == null
                             ? "0,00"
                             : remesa.getTotalDomiciliado()
-                                    .toPlainString()
-                                    .replace('.', ',');
+                            .toPlainString()
+                            .replace('.', ',');
 
             response.setMensaje(
                     "Proceso finalizado correctamente. "

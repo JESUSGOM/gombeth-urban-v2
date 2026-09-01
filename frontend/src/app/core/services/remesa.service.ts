@@ -20,6 +20,10 @@ import {
 } from '../models/remesa-detalle.model';
 
 import {
+  RemesaEvento
+} from '../models/remesa-evento.model';
+
+import {
   ValidacionRemesa
 } from '../models/validacion-remesa.model';
 
@@ -59,6 +63,15 @@ export class RemesaService {
     );
   }
 
+  getEventos(
+    remesaId: number
+  ): Observable<RemesaEvento[]> {
+
+    return this.http.get<RemesaEvento[]>(
+      `${this.apiUrl}/${remesaId}/eventos`
+    );
+  }
+
   generarRemesa(
     comunidadId: number,
     cuentaPresentadorId: number,
@@ -93,6 +106,42 @@ export class RemesaService {
         fechaCobro,
         reciboIds
       }
+    );
+  }
+
+  anularRemesa(
+    remesaId: number
+  ): Observable<{
+    remesaId: number;
+    estado: string;
+    mensaje: string;
+  }> {
+
+    return this.http.post<{
+      remesaId: number;
+      estado: string;
+      mensaje: string;
+    }>(
+      `${this.apiUrl}/${remesaId}/anular`,
+      {}
+    );
+  }
+
+  presentarRemesa(
+    remesaId: number
+  ): Observable<{
+    remesaId: number;
+    estado: string;
+    mensaje: string;
+  }> {
+
+    return this.http.post<{
+      remesaId: number;
+      estado: string;
+      mensaje: string;
+    }>(
+      `${this.apiUrl}/${remesaId}/presentar`,
+      {}
     );
   }
 

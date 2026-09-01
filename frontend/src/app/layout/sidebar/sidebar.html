@@ -115,6 +115,18 @@
       &#9881; Cuentas presentadoras
     </a>
 
+    @if (esAdministrador) {
+
+      <hr class="menu-separador">
+
+      <a
+        routerLink="/administracion/usuarios"
+        routerLinkActive="active"
+        class="menu-item">
+        👤 Administración de usuarios
+      </a>
+    }
+
     <hr class="menu-separador">
 
     <a

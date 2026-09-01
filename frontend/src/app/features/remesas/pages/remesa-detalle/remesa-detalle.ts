@@ -29,6 +29,10 @@ import {
 } from '../../../../core/models/remesa-detalle.model';
 
 import {
+  RemesaEvento
+} from '../../../../core/models/remesa-evento.model';
+
+import {
   RemesaService
 } from '../../../../core/services/remesa.service';
 
@@ -68,10 +72,18 @@ export class RemesaDetalle implements OnInit {
   lineasOrdenadas: RemesaLineaDetalle[] = [];
   lineasPaginadas: RemesaLineaDetalle[] = [];
 
+  eventos: RemesaEvento[] = [];
+
   cargando = false;
+  cargandoEventos = false;
   validando = false;
+  presentando = false;
+  anulando = false;
 
   error = '';
+  errorEventos = '';
+  mensajeOperacion = '';
+  errorOperacion = '';
   mensajeValidacion = '';
   erroresValidacion: string[] = [];
   advertenciasValidacion: string[] = [];
@@ -141,6 +153,7 @@ export class RemesaDetalle implements OnInit {
       });
 
     this.cargarDetalle();
+    this.cargarEventos();
   }
 
   cargarDetalle(): void {
@@ -199,6 +212,40 @@ export class RemesaDetalle implements OnInit {
       });
   }
 
+  cargarEventos(): void {
+    this.cargandoEventos = true;
+    this.errorEventos = '';
+
+    this.remesaService
+      .getEventos(this.remesaId)
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+
+        finalize(() => {
+          this.cargandoEventos = false;
+        })
+      )
+      .subscribe({
+        next: eventos => {
+          this.eventos = eventos ?? [];
+        },
+
+        error: error => {
+          console.error(
+            'Error cargando el historial de la remesa:',
+            error
+          );
+
+          this.eventos = [];
+
+          this.errorEventos =
+            error?.error?.message ||
+            error?.error?.detail ||
+            'No se pudo cargar el historial de la remesa.';
+        }
+      });
+  }
+
   volver(): void {
     if (!this.detalle?.comunidadId) {
       void this.router.navigate([
@@ -212,6 +259,171 @@ export class RemesaDetalle implements OnInit {
       '/remesas/comunidad',
       this.detalle.comunidadId
     ]);
+  }
+
+  get puedeAnular(): boolean {
+    const estado =
+      this.detalle?.estado;
+
+    return (
+      estado === 'GENERADA' ||
+      estado === 'VALIDADA' ||
+      estado === 'FICHERO_GENERADO'
+    );
+  }
+
+  get puedePresentar(): boolean {
+    return (
+      this.detalle?.estado ===
+      'FICHERO_GENERADO'
+    );
+  }
+
+  anular(): void {
+    if (
+      !this.detalle ||
+      !this.puedeAnular ||
+      this.anulando
+    ) {
+      return;
+    }
+
+    const confirmado =
+      window.confirm(
+        '¿Confirmas que quieres anular esta remesa?\n\n' +
+        'La remesa quedará marcada como ANULADA y ' +
+        'se registrará el evento correspondiente en el historial.\n\n' +
+        'Esta opción no está disponible para remesas ya PRESENTADAS.'
+      );
+
+    if (!confirmado) {
+      return;
+    }
+
+    this.anulando = true;
+    this.mensajeOperacion = '';
+    this.errorOperacion = '';
+
+    this.remesaService
+      .anularRemesa(this.remesaId)
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+
+        finalize(() => {
+          this.anulando = false;
+        })
+      )
+      .subscribe({
+        next: resultado => {
+          this.mensajeOperacion =
+            resultado?.mensaje ||
+            'La remesa ha quedado marcada como ANULADA.';
+
+          this.cargarDetalle();
+          this.cargarEventos();
+        },
+
+        error: error => {
+          console.error(
+            'Error anulando la remesa:',
+            error
+          );
+
+          if (error?.status === 409) {
+            this.errorOperacion =
+              error?.error?.detail ||
+              error?.error?.message ||
+              'El estado actual de la remesa no permite anularla.';
+
+            return;
+          }
+
+          if (error?.status === 403) {
+            this.errorOperacion =
+              'No tienes permiso para modificar esta remesa.';
+
+            return;
+          }
+
+          this.errorOperacion =
+            error?.error?.detail ||
+            error?.error?.message ||
+            'No se pudo anular la remesa.';
+        }
+      });
+  }
+
+  presentar(): void {
+    if (
+      !this.detalle ||
+      !this.puedePresentar ||
+      this.presentando
+    ) {
+      return;
+    }
+
+    const confirmado =
+      window.confirm(
+        '¿Confirmas que esta remesa ya ha sido presentada al banco?\n\n' +
+        'Esta acción dejará registrada la remesa como PRESENTADA ' +
+        'y añadirá el evento correspondiente al historial.'
+      );
+
+    if (!confirmado) {
+      return;
+    }
+
+    this.presentando = true;
+    this.mensajeOperacion = '';
+    this.errorOperacion = '';
+
+    this.remesaService
+      .presentarRemesa(this.remesaId)
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+
+        finalize(() => {
+          this.presentando = false;
+        })
+      )
+      .subscribe({
+        next: resultado => {
+          this.mensajeOperacion =
+            resultado?.mensaje ||
+            'La remesa ha quedado marcada como PRESENTADA.';
+
+          this.cargarDetalle();
+          this.cargarEventos();
+        },
+
+        error: error => {
+          console.error(
+            'Error marcando la remesa como presentada:',
+            error
+          );
+
+          if (error?.status === 409) {
+            this.errorOperacion =
+              error?.error?.detail ||
+              error?.error?.message ||
+              'El estado actual de la remesa no permite marcarla como presentada.';
+
+            return;
+          }
+
+          if (error?.status === 403) {
+            this.errorOperacion =
+              'No tienes permiso para modificar esta remesa.';
+
+            return;
+          }
+
+          this.errorOperacion =
+            error?.error?.detail ||
+            error?.error?.message ||
+            'No se pudo marcar la remesa como presentada.';
+        }
+      });
   }
 
   descargarXml(): void {
@@ -257,6 +469,7 @@ export class RemesaDetalle implements OnInit {
              * el nuevo estado sin perder los mensajes de validación.
              */
             this.cargarDetalle();
+            this.cargarEventos();
 
             return;
           }
@@ -403,6 +616,77 @@ export class RemesaDetalle implements OnInit {
   ): string {
 
     return valor ? 'Sí' : 'No';
+  }
+
+  textoTipoEvento(
+    tipoEvento: string | null | undefined
+  ): string {
+
+    switch (tipoEvento) {
+      case 'REMESA_GENERADA':
+        return 'Remesa generada';
+
+      case 'VALIDACION_CORRECTA':
+        return 'Validación correcta';
+
+      case 'VALIDACION_INCORRECTA':
+        return 'Validación incorrecta';
+
+      case 'XML_GENERADO':
+        return 'XML generado';
+
+      case 'XML_DESCARGADO':
+        return 'XML descargado';
+
+      case 'C19_GENERADO':
+        return 'C19 generado';
+
+      case 'C19_DESCARGADO':
+        return 'C19 descargado';
+
+      case 'PRESENTADA':
+        return 'Remesa presentada';
+
+      case 'ANULADA':
+        return 'Remesa anulada';
+
+      default:
+        return tipoEvento || 'Evento';
+    }
+  }
+
+  textoEstado(
+    estado: string | null | undefined
+  ): string {
+
+    if (!estado) {
+      return '-';
+    }
+
+    return estado.replaceAll(
+      '_',
+      ' '
+    );
+  }
+
+  claseEvento(
+    tipoEvento: string | null | undefined
+  ): string {
+
+    switch (tipoEvento) {
+      case 'VALIDACION_CORRECTA':
+        return 'evento-ok';
+
+      case 'VALIDACION_INCORRECTA':
+      case 'ANULADA':
+        return 'evento-error';
+
+      case 'PRESENTADA':
+        return 'evento-presentada';
+
+      default:
+        return 'evento-normal';
+    }
   }
 
   private aplicarOrdenacionYPaginacion(): void {

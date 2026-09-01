@@ -35,6 +35,28 @@
       </button>
 
       <button
+        *ngIf="puedeAnular"
+        type="button"
+        class="btn-anular"
+        [disabled]="anulando || cargando"
+        (click)="anular()">
+        {{ anulando
+        ? 'Anulando...'
+        : '✕ Anular remesa' }}
+      </button>
+
+      <button
+        *ngIf="puedePresentar"
+        type="button"
+        class="btn-presentar"
+        [disabled]="presentando || cargando"
+        (click)="presentar()">
+        {{ presentando
+        ? 'Marcando...'
+        : '✓ Marcar como presentada' }}
+      </button>
+
+      <button
         type="button"
         class="btn-descarga"
         [disabled]="cargando || !detalle"
@@ -64,6 +86,18 @@
     *ngIf="error"
     class="alert error">
     {{ error }}
+  </div>
+
+  <div
+    *ngIf="mensajeOperacion"
+    class="alert success">
+    {{ mensajeOperacion }}
+  </div>
+
+  <div
+    *ngIf="errorOperacion"
+    class="alert error">
+    {{ errorOperacion }}
   </div>
 
   <div
@@ -143,6 +177,137 @@
       </div>
 
     </div>
+
+    <section class="historial-card">
+
+      <div class="historial-header">
+        <div>
+          <h3>Historial de la remesa</h3>
+          <p>
+            Trazabilidad de generación, validación, ficheros y cambios de estado.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          class="btn-secundario"
+          [disabled]="cargandoEventos"
+          (click)="cargarEventos()">
+          {{ cargandoEventos
+          ? 'Actualizando...'
+          : 'Actualizar historial' }}
+        </button>
+      </div>
+
+      <div
+        *ngIf="cargandoEventos"
+        class="historial-info">
+        Cargando historial...
+      </div>
+
+      <div
+        *ngIf="!cargandoEventos && errorEventos"
+        class="alert error historial-error">
+        {{ errorEventos }}
+      </div>
+
+      <div
+        *ngIf="
+          !cargandoEventos &&
+          !errorEventos &&
+          eventos.length === 0
+        "
+        class="historial-vacio">
+        No existen eventos registrados para esta remesa.
+        Las remesas históricas creadas antes de incorporar
+        la trazabilidad pueden no disponer de eventos.
+      </div>
+
+      <div
+        *ngIf="
+          !cargandoEventos &&
+          !errorEventos &&
+          eventos.length > 0
+        "
+        class="timeline">
+
+        <article
+          *ngFor="let evento of eventos"
+          class="timeline-item">
+
+          <div
+            class="timeline-marker"
+            [ngClass]="claseEvento(evento.tipoEvento)">
+          </div>
+
+          <div class="timeline-content">
+
+            <div class="timeline-title-row">
+
+              <strong>
+                {{ textoTipoEvento(evento.tipoEvento) }}
+              </strong>
+
+              <time>
+                {{ evento.fechaEvento | date:'dd/MM/yyyy HH:mm:ss' }}
+              </time>
+
+            </div>
+
+            <div
+              *ngIf="
+                evento.estadoAnterior ||
+                evento.estadoNuevo
+              "
+              class="timeline-estados">
+
+              <span>
+                {{ textoEstado(evento.estadoAnterior) }}
+              </span>
+
+              <span class="estado-flecha">
+                →
+              </span>
+
+              <strong>
+                {{ textoEstado(evento.estadoNuevo) }}
+              </strong>
+
+            </div>
+
+            <div
+              *ngIf="evento.formato || evento.nombreArchivo"
+              class="timeline-fichero">
+
+              <span *ngIf="evento.formato">
+                Formato:
+                <strong>{{ evento.formato }}</strong>
+              </span>
+
+              <span *ngIf="evento.nombreArchivo">
+                Archivo:
+                <strong>{{ evento.nombreArchivo }}</strong>
+              </span>
+
+            </div>
+
+            <p
+              *ngIf="evento.detalle"
+              class="timeline-detalle">
+              {{ evento.detalle }}
+            </p>
+
+            <small *ngIf="evento.usuarioId">
+              Usuario ID: {{ evento.usuarioId }}
+            </small>
+
+          </div>
+
+        </article>
+
+      </div>
+
+    </section>
 
     <div class="table-card">
 

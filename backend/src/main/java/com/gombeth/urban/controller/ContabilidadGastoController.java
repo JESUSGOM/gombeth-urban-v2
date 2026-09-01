@@ -1,5 +1,6 @@
 package com.gombeth.urban.controller;
 
+import com.gombeth.urban.dto.GastoGuardarRequest;
 import com.gombeth.urban.entity.ContabilidadGasto;
 import com.gombeth.urban.service.AccesoComunidadService;
 import com.gombeth.urban.service.ContabilidadAutomaticaService;
@@ -10,6 +11,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -54,47 +56,6 @@ public class ContabilidadGastoController {
                 accesoComunidadService;
     }
 
-    /**
-     * Contabiliza un gasto solamente después de comprobar
-     * la comunidad a la que pertenece.
-     */
-    @PostMapping("/{id}/contabilizar")
-    public ContabilidadGasto contabilizar(
-            @PathVariable Long id,
-            Authentication authentication
-    ) {
-        ContabilidadGasto gasto =
-                obtenerGasto(id);
-
-        accesoComunidadService.validarAcceso(
-                authentication,
-                gasto.getComunidadId()
-        );
-
-        validarCuentaGasto(
-                gasto.getCuentaGastoId(),
-                gasto.getComunidadId(),
-                true
-        );
-
-        try {
-            contabilidadAutomaticaService
-                    .contabilizarGasto(id);
-
-        } catch (IllegalStateException error) {
-            throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST,
-                    error.getMessage()
-            );
-        }
-
-        return obtenerGasto(id);
-    }
-
-    /**
-     * Lista únicamente los gastos de una comunidad accesible
-     * por el usuario de la sesión.
-     */
     @GetMapping
     public List<ContabilidadGasto> listar(
             @RequestParam Long comunidadId,
@@ -110,43 +71,125 @@ public class ContabilidadGastoController {
         );
     }
 
-    /**
-     * Crea un gasto únicamente dentro de una comunidad
-     * accesible por el usuario autenticado.
-     *
-     * Una operación de alta no puede recibir un
-     * identificador, porque podría provocar la modificación
-     * de un gasto existente mediante repository.save(...).
-     *
-     * Cuando se indica una cuenta de gasto, también se
-     * comprueba que pertenezca a la misma comunidad.
-     */
-    @PostMapping
-    public ContabilidadGasto crear(
-            @RequestBody ContabilidadGasto gasto,
+    @GetMapping("/{id}")
+    public ContabilidadGasto obtener(
+            @PathVariable Long id,
             Authentication authentication
     ) {
-        if (gasto == null) {
+        ContabilidadGasto gasto =
+                obtenerGasto(
+                        id
+                );
+
+        accesoComunidadService.validarAcceso(
+                authentication,
+                gasto.getComunidadId()
+        );
+
+        return gasto;
+    }
+
+    @PostMapping
+    public ContabilidadGasto crear(
+            @RequestBody GastoGuardarRequest request,
+            Authentication authentication
+    ) {
+        validarRequest(
+                request
+        );
+
+        accesoComunidadService.validarAcceso(
+                authentication,
+                request.comunidadId()
+        );
+
+        validarCuentaGasto(
+                request.cuentaGastoId(),
+                request.comunidadId(),
+                false
+        );
+
+        try {
+            return gastoService.crear(
+                    request
+            );
+
+        } catch (IllegalArgumentException error) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
-                    "Los datos del gasto son obligatorios."
+                    error.getMessage()
+            );
+        }
+    }
+
+    @PutMapping("/{id}")
+    public ContabilidadGasto actualizar(
+            @PathVariable Long id,
+            @RequestBody GastoGuardarRequest request,
+            Authentication authentication
+    ) {
+        validarRequest(
+                request
+        );
+
+        ContabilidadGasto existente =
+                obtenerGasto(
+                        id
+                );
+
+        accesoComunidadService.validarAcceso(
+                authentication,
+                existente.getComunidadId()
+        );
+
+        if (
+                !Objects.equals(
+                        existente.getComunidadId(),
+                        request.comunidadId()
+                )
+        ) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "No se permite cambiar la comunidad "
+                            + "de un gasto existente."
             );
         }
 
-        if (gasto.getId() != null) {
-            throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST,
-                    "No se permite indicar un identificador "
-                            + "al crear un gasto."
-            );
-        }
+        validarCuentaGasto(
+                request.cuentaGastoId(),
+                existente.getComunidadId(),
+                false
+        );
 
-        if (gasto.getComunidadId() == null) {
+        try {
+            return gastoService.actualizar(
+                    id,
+                    request
+            );
+
+        } catch (IllegalArgumentException error) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
-                    "La comunidad del gasto es obligatoria."
+                    error.getMessage()
+            );
+
+        } catch (IllegalStateException error) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    error.getMessage()
             );
         }
+    }
+
+    @PostMapping("/{id}/contabilizar")
+    public ContabilidadGasto contabilizar(
+            @PathVariable Long id,
+            Authentication authentication
+    ) {
+        ContabilidadGasto gasto =
+                obtenerGasto(
+                        id
+                );
 
         accesoComunidadService.validarAcceso(
                 authentication,
@@ -156,18 +199,41 @@ public class ContabilidadGastoController {
         validarCuentaGasto(
                 gasto.getCuentaGastoId(),
                 gasto.getComunidadId(),
-                false
+                true
         );
 
         try {
-            return gastoService.crear(
-                    gasto
-            );
+            contabilidadAutomaticaService
+                    .contabilizarGasto(
+                            id
+                    );
 
-        } catch (IllegalArgumentException error) {
+        } catch (IllegalStateException error) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
                     error.getMessage()
+            );
+        }
+
+        return obtenerGasto(
+                id
+        );
+    }
+
+    private void validarRequest(
+            GastoGuardarRequest request
+    ) {
+        if (request == null) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Los datos del gasto son obligatorios."
+            );
+        }
+
+        if (request.comunidadId() == null) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "La comunidad del gasto es obligatoria."
             );
         }
     }
@@ -208,7 +274,9 @@ public class ContabilidadGastoController {
 
         boolean pertenece =
                 cuentaContableService
-                        .findByComunidad(comunidadId)
+                        .findByComunidad(
+                                comunidadId
+                        )
                         .stream()
                         .anyMatch(
                                 cuenta ->

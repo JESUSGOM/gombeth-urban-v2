@@ -148,3 +148,21 @@ Thumbs.db
 # ------------------------------------------------------------
 /arrancar-backend.bat
 /frontend/arrancar-frontend.bat
+
+# ------------------------------------------------------------
+# Empaquetado portable / ejecutables generados
+# ------------------------------------------------------------
+/packaging/
+/portable-build/
+/release-portable-current/
+/release-portable/
+*.exe
+*.msi
+
+# Generadores portables antiguos / pruebas locales
+/generar-gombeth-urban-portable-actual.ps1
+/generar-gombeth-urban-portable-autoconfig.ps1
+/generar-gombeth-urban-portable-autoconfig-v2.ps1
+/generar-gombeth-urban-portable-final.ps1
+/generar-gombeth-urban-portable-prueba.ps1
+/generar-gombeth-urban-portable-prueba-v2.ps1

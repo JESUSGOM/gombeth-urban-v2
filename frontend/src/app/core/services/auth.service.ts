@@ -31,6 +31,8 @@ export interface UsuarioLogin {
   administradorId: number | null;
 
   administradorNombre: string | null;
+
+  roles: string[];
 }
 
 export interface LoginResponse {
@@ -44,6 +46,8 @@ export interface LoginResponse {
   administradorId: number | null;
 
   administradorNombre: string | null;
+
+  roles: string[];
 
   mensaje: string;
 }
@@ -239,7 +243,12 @@ export class AuthService {
       response.administradorId,
 
       administradorNombre:
-      response.administradorNombre
+      response.administradorNombre,
+
+      roles:
+        Array.isArray(response.roles)
+          ? response.roles
+          : []
     };
 
     localStorage.setItem(
@@ -266,9 +275,45 @@ export class AuthService {
 
     try {
 
-      return JSON.parse(
-        contenido
-      ) as UsuarioLogin;
+      const usuario =
+        JSON.parse(
+          contenido
+        ) as Partial<UsuarioLogin>;
+
+      if (
+        typeof usuario.usuarioId !== 'number' ||
+        typeof usuario.username !== 'string'
+      ) {
+        localStorage.removeItem(
+          'usuario'
+        );
+
+        return null;
+      }
+
+      return {
+
+        usuarioId:
+        usuario.usuarioId,
+
+        username:
+        usuario.username,
+
+        administradorId:
+          usuario.administradorId ?? null,
+
+        administradorNombre:
+          usuario.administradorNombre ?? null,
+
+        /*
+         * Compatibilidad con sesiones locales creadas antes
+         * de incorporar roles al contexto de autenticación.
+         */
+        roles:
+          Array.isArray(usuario.roles)
+            ? usuario.roles
+            : []
+      };
 
     } catch {
 

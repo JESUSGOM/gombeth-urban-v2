@@ -3,6 +3,7 @@ package com.gombeth.urban.config;
 import com.gombeth.urban.entity.Usuario;
 import com.gombeth.urban.repository.UsuarioRepository;
 import com.gombeth.urban.service.AccesoComunidadService;
+import com.gombeth.urban.service.UsuarioAdministracionService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -28,6 +29,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
@@ -54,6 +56,10 @@ class SecurityIntegrationTest {
     @MockBean
     private AccesoComunidadService accesoComunidadService;
 
+    @MockBean
+    private UsuarioAdministracionService
+            usuarioAdministracionService;
+
     @Test
     void apiProtegidaSinSesionDevuelve401()
             throws Exception {
@@ -72,6 +78,102 @@ class SecurityIntegrationTest {
                 .andExpect(
                         jsonPath("$.mensaje").value(
                                 "Sesión no iniciada o caducada."
+                        )
+                );
+    }
+
+    @Test
+    void administracionSinSesionDevuelve401()
+            throws Exception {
+
+        mockMvc.perform(
+                        get("/api/admin/usuarios")
+                )
+                .andExpect(
+                        status().isUnauthorized()
+                )
+                .andExpect(
+                        content().contentTypeCompatibleWith(
+                                MediaType.APPLICATION_JSON
+                        )
+                )
+                .andExpect(
+                        jsonPath("$.mensaje").value(
+                                "Sesión no iniciada o caducada."
+                        )
+                );
+
+        verifyNoInteractions(
+                usuarioAdministracionService
+        );
+    }
+
+    @Test
+    void administracionConRoleUserDevuelve403()
+            throws Exception {
+
+        mockMvc.perform(
+                        get("/api/admin/usuarios")
+                                .with(
+                                        user("Probador")
+                                                .roles(
+                                                        "USER"
+                                                )
+                                )
+                )
+                .andExpect(
+                        status().isForbidden()
+                )
+                .andExpect(
+                        content().contentTypeCompatibleWith(
+                                MediaType.APPLICATION_JSON
+                        )
+                )
+                .andExpect(
+                        jsonPath("$.mensaje").value(
+                                "No tiene permiso para realizar "
+                                        + "esta operación."
+                        )
+                );
+
+        verifyNoInteractions(
+                usuarioAdministracionService
+        );
+    }
+
+    @Test
+    void administracionConRoleAdminDevuelve200()
+            throws Exception {
+
+        when(
+                usuarioAdministracionService
+                        .listarUsuarios(
+                                any(Authentication.class)
+                        )
+        ).thenReturn(
+                List.of()
+        );
+
+        mockMvc.perform(
+                        get("/api/admin/usuarios")
+                                .with(
+                                        user("Administrador")
+                                                .roles(
+                                                        "ADMIN"
+                                                )
+                                )
+                )
+                .andExpect(
+                        status().isOk()
+                )
+                .andExpect(
+                        content().contentTypeCompatibleWith(
+                                MediaType.APPLICATION_JSON
+                        )
+                )
+                .andExpect(
+                        content().json(
+                                "[]"
                         )
                 );
     }
@@ -205,8 +307,8 @@ class SecurityIntegrationTest {
                                         .content(
                                                 """
                                                 {
-                                                  "username": "Probador",
-                                                  "password": "clave-prueba"
+                                                   "username": "Probador",
+                                                   "password": "clave-prueba"
                                                 }
                                                 """
                                         )

@@ -13,6 +13,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.List;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -134,6 +136,98 @@ class RemesaSeguimientoServiceTest {
     }
 
     @Test
+    void presentaUnaRemesaConFicheroGeneradoYRegistraUsuario() {
+
+        prepararRemesaConEstado(
+                "FICHERO_GENERADO"
+        );
+
+        when(
+                ficheroGeneradoRepository.save(
+                        remesa
+                )
+        ).thenReturn(
+                remesa
+        );
+
+        when(
+                remesaEventoRepository.save(
+                        any(RemesaEvento.class)
+                )
+        ).thenAnswer(
+                invocation ->
+                        invocation.getArgument(0)
+        );
+
+        FicheroGenerado resultado =
+                service.cambiarEstado(
+                        remesa,
+                        RemesaEstado.PRESENTADA,
+                        4L,
+                        RemesaEventoTipo.PRESENTADA,
+                        null,
+                        null,
+                        "Remesa marcada manualmente como presentada al banco."
+                );
+
+        assertSame(
+                remesa,
+                resultado
+        );
+
+        verify(remesa).setEstado(
+                "PRESENTADA"
+        );
+
+        ArgumentCaptor<RemesaEvento> captor =
+                ArgumentCaptor.forClass(
+                        RemesaEvento.class
+                );
+
+        verify(remesaEventoRepository)
+                .save(
+                        captor.capture()
+                );
+
+        RemesaEvento evento =
+                captor.getValue();
+
+        assertEquals(
+                70L,
+                evento.getRemesaId()
+        );
+
+        assertEquals(
+                33L,
+                evento.getComunidadId()
+        );
+
+        assertEquals(
+                4L,
+                evento.getUsuarioId()
+        );
+
+        assertEquals(
+                "FICHERO_GENERADO",
+                evento.getEstadoAnterior()
+        );
+
+        assertEquals(
+                "PRESENTADA",
+                evento.getEstadoNuevo()
+        );
+
+        assertEquals(
+                RemesaEventoTipo.PRESENTADA,
+                evento.getTipoEvento()
+        );
+
+        assertNotNull(
+                evento.getFechaEvento()
+        );
+    }
+
+    @Test
     void impidePresentarUnaRemesaNoValidada() {
 
         prepararRemesaConEstado(
@@ -218,6 +312,142 @@ class RemesaSeguimientoServiceTest {
     }
 
     @Test
+    void anulaUnaRemesaConFicheroGeneradoYRegistraUsuario() {
+
+        prepararRemesaConEstado(
+                "FICHERO_GENERADO"
+        );
+
+        when(
+                ficheroGeneradoRepository.save(
+                        remesa
+                )
+        ).thenReturn(
+                remesa
+        );
+
+        when(
+                remesaEventoRepository.save(
+                        any(RemesaEvento.class)
+                )
+        ).thenAnswer(
+                invocation ->
+                        invocation.getArgument(0)
+        );
+
+        FicheroGenerado resultado =
+                service.cambiarEstado(
+                        remesa,
+                        RemesaEstado.ANULADA,
+                        4L,
+                        RemesaEventoTipo.ANULADA,
+                        null,
+                        null,
+                        "Remesa anulada manualmente desde Gombeth Urban."
+                );
+
+        assertSame(
+                remesa,
+                resultado
+        );
+
+        verify(remesa).setEstado(
+                "ANULADA"
+        );
+
+        ArgumentCaptor<RemesaEvento> captor =
+                ArgumentCaptor.forClass(
+                        RemesaEvento.class
+                );
+
+        verify(remesaEventoRepository)
+                .save(
+                        captor.capture()
+                );
+
+        RemesaEvento evento =
+                captor.getValue();
+
+        assertEquals(
+                70L,
+                evento.getRemesaId()
+        );
+
+        assertEquals(
+                33L,
+                evento.getComunidadId()
+        );
+
+        assertEquals(
+                4L,
+                evento.getUsuarioId()
+        );
+
+        assertEquals(
+                "FICHERO_GENERADO",
+                evento.getEstadoAnterior()
+        );
+
+        assertEquals(
+                "ANULADA",
+                evento.getEstadoNuevo()
+        );
+
+        assertEquals(
+                RemesaEventoTipo.ANULADA,
+                evento.getTipoEvento()
+        );
+
+        assertNotNull(
+                evento.getFechaEvento()
+        );
+    }
+
+    @Test
+    void impideAnularUnaRemesaYaPresentada() {
+
+        prepararRemesaConEstado(
+                "PRESENTADA"
+        );
+
+        IllegalStateException excepcion =
+                assertThrows(
+                        IllegalStateException.class,
+                        () ->
+                                service.cambiarEstado(
+                                        remesa,
+                                        RemesaEstado.ANULADA,
+                                        4L,
+                                        RemesaEventoTipo.ANULADA,
+                                        null,
+                                        null,
+                                        "Intento de anulación."
+                                )
+                );
+
+        assertEquals(
+                "No se puede cambiar una remesa "
+                        + "del estado PRESENTADA "
+                        + "al estado ANULADA.",
+                excepcion.getMessage()
+        );
+
+        verify(
+                ficheroGeneradoRepository,
+                never()
+        ).save(
+                any()
+        );
+
+        verify(
+                remesaEventoRepository,
+                never()
+        ).save(
+                any()
+        );
+    }
+
+    @Test
     void registraUnaDescargaXmlSinCambiarEstado() {
 
         prepararRemesaGuardada();
@@ -269,6 +499,47 @@ class RemesaSeguimientoServiceTest {
                 never()
         ).save(
                 any()
+        );
+    }
+
+    @Test
+    void obtieneEventosDeLaRemesaEnOrdenCronologico() {
+
+        RemesaEvento evento1 =
+                new RemesaEvento();
+
+        RemesaEvento evento2 =
+                new RemesaEvento();
+
+        List<RemesaEvento> eventos =
+                List.of(
+                        evento1,
+                        evento2
+                );
+
+        when(
+                remesaEventoRepository
+                        .findByRemesaIdOrderByFechaEventoAscIdAsc(
+                                70L
+                        )
+        ).thenReturn(
+                eventos
+        );
+
+        List<RemesaEvento> resultado =
+                service.obtenerEventos(
+                        70L
+                );
+
+        assertSame(
+                eventos,
+                resultado
+        );
+
+        verify(
+                remesaEventoRepository
+        ).findByRemesaIdOrderByFechaEventoAscIdAsc(
+                70L
         );
     }
 

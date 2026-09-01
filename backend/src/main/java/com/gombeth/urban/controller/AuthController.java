@@ -94,6 +94,7 @@ public class AuthController {
                             null,
                             null,
                             null,
+                            List.of(),
                             "Debe indicar usuario y contraseña."
                     ));
         }
@@ -164,6 +165,7 @@ public class AuthController {
             return ResponseEntity.ok(
                     crearRespuestaUsuario(
                             usuario,
+                            authentication,
                             "Login correcto"
                     )
             );
@@ -179,6 +181,7 @@ public class AuthController {
                             null,
                             null,
                             null,
+                            List.of(),
                             "Usuario o contraseña incorrectos."
                     ));
         }
@@ -205,6 +208,7 @@ public class AuthController {
                             null,
                             null,
                             null,
+                            List.of(),
                             "Sesión no iniciada o caducada."
                     ));
         }
@@ -224,6 +228,7 @@ public class AuthController {
                             null,
                             null,
                             null,
+                            List.of(),
                             "El usuario de la sesión ya no existe."
                     ));
         }
@@ -231,6 +236,7 @@ public class AuthController {
         return ResponseEntity.ok(
                 crearRespuestaUsuario(
                         usuario,
+                        authentication,
                         "Sesión válida"
                 )
         );
@@ -238,6 +244,7 @@ public class AuthController {
 
     private LoginResponse crearRespuestaUsuario(
             Usuario usuario,
+            Authentication authentication,
             String mensaje
     ) {
 
@@ -252,8 +259,35 @@ public class AuthController {
                 usuario.getUsername(),
                 usuario.getAdministradorId(),
                 administradorNombre,
+                obtenerRoles(authentication),
                 mensaje
         );
+    }
+
+    private List<String> obtenerRoles(
+            Authentication authentication
+    ) {
+
+        if (
+                authentication == null ||
+                        authentication.getAuthorities() == null
+        ) {
+            return List.of();
+        }
+
+        return authentication
+                .getAuthorities()
+                .stream()
+                .map(authority ->
+                        authority.getAuthority()
+                )
+                .filter(authority ->
+                        authority != null &&
+                                !authority.isBlank()
+                )
+                .distinct()
+                .sorted()
+                .toList();
     }
 
     private String obtenerNombreAdministrador(

@@ -39,6 +39,16 @@ export class Sidebar {
 
   ) {}
 
+  get esAdministrador(): boolean {
+
+    const usuario =
+      this.authService.getUsuario();
+
+    return usuario?.roles?.includes(
+      'ROLE_ADMIN'
+    ) ?? false;
+  }
+
   cerrarSesion(): void {
 
     if (this.cerrandoSesion) {

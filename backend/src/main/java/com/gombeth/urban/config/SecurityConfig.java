@@ -121,12 +121,31 @@ public class SecurityConfig {
                         )
                         .permitAll()
 
-                        /*
-                         * Todas las APIs de negocio exigen
-                         * una sesión autenticada.
-                         */
-                        .requestMatchers("/api/**")
-                        .authenticated()
+                                /*
+                                 * La administración de usuarios, roles y permisos
+                                 * queda reservada a usuarios con ROLE_ADMIN.
+                                 *
+                                 * Esta regla debe permanecer antes de /api/**
+                                 * porque es más específica.
+                                 */
+                                .requestMatchers(
+                                        "/api/admin/**"
+                                )
+                                .hasRole(
+                                        "ADMIN"
+                                )
+
+                                /*
+                                 * El resto de APIs de negocio exige únicamente
+                                 * una sesión autenticada.
+                                 *
+                                 * Se conserva así la compatibilidad con los
+                                 * usuarios que temporalmente utilizan ROLE_USER.
+                                 */
+                                .requestMatchers(
+                                        "/api/**"
+                                )
+                                .authenticated()
 
                         /*
                          * Las rutas Angular se sirven desde

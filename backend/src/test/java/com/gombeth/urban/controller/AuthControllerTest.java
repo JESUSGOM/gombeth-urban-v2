@@ -18,6 +18,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.session.SessionAuthenticationStrategy;
@@ -25,11 +26,13 @@ import org.springframework.security.web.context.SecurityContextRepository;
 import org.springframework.security.web.csrf.CsrfToken;
 import org.springframework.security.web.csrf.CsrfTokenRepository;
 
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.same;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -133,6 +136,11 @@ class AuthControllerTest {
         );
 
         assertEquals(
+                List.of(),
+                cuerpo.roles()
+        );
+
+        assertEquals(
                 "Debe indicar usuario y contraseña.",
                 cuerpo.mensaje()
         );
@@ -188,6 +196,11 @@ class AuthControllerTest {
         );
 
         assertEquals(
+                List.of(),
+                cuerpo.roles()
+        );
+
+        assertEquals(
                 "Usuario o contraseña incorrectos.",
                 cuerpo.mensaje()
         );
@@ -220,6 +233,16 @@ class AuthControllerTest {
         ).thenReturn(
                 "Probador"
         );
+
+        doReturn(
+                List.of(
+                        new SimpleGrantedAuthority(
+                                "ROLE_ADMIN"
+                        )
+                )
+        ).when(
+                authentication
+        ).getAuthorities();
 
         when(
                 csrfTokenRepository.generateToken(
@@ -290,6 +313,13 @@ class AuthControllerTest {
         );
 
         assertEquals(
+                List.of(
+                        "ROLE_ADMIN"
+                ),
+                cuerpo.roles()
+        );
+
+        assertEquals(
                 "Login correcto",
                 cuerpo.mensaje()
         );
@@ -316,6 +346,106 @@ class AuthControllerTest {
                 same(csrfToken),
                 same(httpRequest),
                 same(httpResponse)
+        );
+
+        verifyNoInteractions(
+                jdbcTemplate
+        );
+    }
+
+    @Test
+    void devuelveUsuarioYRolesCuandoLaSesionEsValida() {
+
+        when(
+                authentication.isAuthenticated()
+        ).thenReturn(
+                true
+        );
+
+        when(
+                authentication.getName()
+        ).thenReturn(
+                "Probador"
+        );
+
+        doReturn(
+                List.of(
+                        new SimpleGrantedAuthority(
+                                "ROLE_ADMIN"
+                        )
+                )
+        ).when(
+                authentication
+        ).getAuthorities();
+
+        when(
+                usuarioRepository.findByUsername(
+                        "Probador"
+                )
+        ).thenReturn(
+                Optional.of(usuario)
+        );
+
+        when(
+                usuario.getId()
+        ).thenReturn(
+                4L
+        );
+
+        when(
+                usuario.getUsername()
+        ).thenReturn(
+                "Probador"
+        );
+
+        when(
+                usuario.getAdministradorId()
+        ).thenReturn(
+                null
+        );
+
+        ResponseEntity<LoginResponse> respuesta =
+                controller.me(
+                        authentication
+                );
+
+        assertEquals(
+                HttpStatus.OK,
+                respuesta.getStatusCode()
+        );
+
+        LoginResponse cuerpo =
+                respuesta.getBody();
+
+        assertNotNull(
+                cuerpo
+        );
+
+        assertEquals(
+                true,
+                cuerpo.ok()
+        );
+
+        assertEquals(
+                4L,
+                cuerpo.usuarioId()
+        );
+
+        assertEquals(
+                "Probador",
+                cuerpo.username()
+        );
+
+        assertEquals(
+                List.of(
+                        "ROLE_ADMIN"
+                ),
+                cuerpo.roles()
+        );
+
+        assertEquals(
+                "Sesión válida",
+                cuerpo.mensaje()
         );
 
         verifyNoInteractions(

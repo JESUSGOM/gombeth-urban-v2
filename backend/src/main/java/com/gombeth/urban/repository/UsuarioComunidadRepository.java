@@ -4,10 +4,21 @@ import com.gombeth.urban.entity.UsuarioComunidad;
 import com.gombeth.urban.entity.UsuarioComunidadId;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.util.List;
+
 public interface UsuarioComunidadRepository
         extends JpaRepository<UsuarioComunidad, UsuarioComunidadId> {
 
     boolean existsByUsuarioIdAndComunidadId(
+            Long usuarioId,
+            Long comunidadId
+    );
+
+    List<UsuarioComunidad> findByUsuarioId(
+            Long usuarioId
+    );
+
+    void deleteByUsuarioIdAndComunidadId(
             Long usuarioId,
             Long comunidadId
     );

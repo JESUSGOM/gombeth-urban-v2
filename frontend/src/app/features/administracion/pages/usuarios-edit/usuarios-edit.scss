@@ -1,0 +1,328 @@
+:host {
+  display: block;
+  width: 100%;
+  min-width: 0;
+}
+
+.usuarios-edit-page {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  padding: 18px;
+
+  overflow-x: hidden;
+}
+
+.page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+
+  gap: 16px;
+
+  margin-bottom: 14px;
+}
+
+.page-header h2 {
+  margin: 0 0 4px;
+  font-size: 24px;
+}
+
+.page-header p {
+  margin: 0;
+  color: #59636e;
+}
+
+.page-header button {
+  flex: 0 0 auto;
+
+  min-width: 90px;
+
+  padding: 8px 14px;
+
+  border: 1px solid #c8d0d9;
+  border-radius: 6px;
+
+  background: #ffffff;
+
+  cursor: pointer;
+}
+
+.contenido-grid {
+  display: grid;
+
+  grid-template-columns:
+    minmax(260px, 0.8fr)
+    minmax(320px, 1.2fr);
+
+  gap: 12px;
+
+  align-items: stretch;
+}
+
+.panel {
+  box-sizing: border-box;
+
+  min-width: 0;
+
+  padding: 14px;
+
+  border: 1px solid #d8dee6;
+  border-radius: 8px;
+
+  background: #ffffff;
+}
+
+.panel h3 {
+  margin: 0 0 10px;
+
+  font-size: 16px;
+}
+
+.panel-comunidades {
+  grid-column: auto;
+
+  min-height: 0;
+}
+
+.campo {
+  display: flex;
+  flex-direction: column;
+
+  gap: 5px;
+
+  margin-bottom: 10px;
+}
+
+.campo > span {
+  font-weight: 600;
+}
+
+.campo input[type='text'],
+.campo input[type='password'] {
+  box-sizing: border-box;
+
+  width: 100%;
+  max-width: 420px;
+
+  padding: 7px 9px;
+
+  border: 1px solid #cbd2da;
+  border-radius: 5px;
+
+  background: #ffffff;
+}
+
+.campo input:disabled {
+  background: #f2f4f6;
+}
+
+.administrador-info {
+  margin: 8px 0 0;
+}
+
+.opciones-lista {
+  display: grid;
+
+  grid-template-columns:
+    repeat(
+      auto-fit,
+        minmax(180px, 1fr)
+    );
+
+  gap: 7px 10px;
+
+  /*
+   * Las listas largas desplazan su propio contenido,
+   * no toda la página.
+   */
+  max-height: 185px;
+
+  padding: 4px 8px 4px 2px;
+
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.opcion {
+  display: flex;
+  align-items: flex-start;
+
+  gap: 7px;
+
+  min-width: 0;
+
+  line-height: 1.3;
+}
+
+.opcion input {
+  flex: 0 0 auto;
+
+  margin-top: 3px;
+}
+
+.opcion span {
+  min-width: 0;
+
+  overflow-wrap: anywhere;
+}
+
+.comunidades-directas {
+  box-sizing: border-box;
+
+  max-height: 185px;
+
+  margin: 0;
+
+  padding: 4px 8px 4px 24px;
+
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.comunidades-directas li {
+  margin-bottom: 4px;
+
+  overflow-wrap: anywhere;
+}
+
+.ayuda {
+  margin: 0 0 8px;
+
+  color: #59636e;
+
+  line-height: 1.35;
+}
+
+.contador {
+  margin: 0 0 8px;
+}
+
+.estado {
+  box-sizing: border-box;
+
+  width: 100%;
+
+  padding: 12px;
+
+  margin-bottom: 12px;
+
+  border: 1px solid #d8dee6;
+  border-radius: 7px;
+
+  background: #ffffff;
+}
+
+.estado.error {
+  border-color: #d9534f;
+}
+
+.modo-comprobacion {
+  grid-column: 1 / -1;
+
+  box-sizing: border-box;
+
+  margin: 0;
+
+  padding: 10px 12px;
+
+  border: 1px solid #ccd5df;
+  border-radius: 7px;
+
+  background: #f7f9fb;
+}
+
+/*
+ * Pantallas intermedias.
+ *
+ * Seguimos manteniendo las secciones accesibles,
+ * pero reducimos altura de las listas.
+ */
+@media (max-width: 1050px) {
+
+  .contenido-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .panel-comunidades,
+  .modo-comprobacion {
+    grid-column: 1;
+  }
+
+  .opciones-lista,
+  .comunidades-directas {
+    max-height: 150px;
+  }
+}
+
+/*
+ * Ventanas de poca altura.
+ *
+ * Importante para portátiles con resolución vertical
+ * reducida.
+ */
+@media (max-height: 760px) and (min-width: 1051px) {
+
+  .usuarios-edit-page {
+    padding-top: 12px;
+    padding-bottom: 12px;
+  }
+
+  .page-header {
+    margin-bottom: 10px;
+  }
+
+  .panel {
+    padding: 10px 12px;
+  }
+
+  .panel h3 {
+    margin-bottom: 7px;
+  }
+
+  .ayuda,
+  .contador {
+    margin-bottom: 6px;
+  }
+
+  .opciones-lista,
+  .comunidades-directas {
+    max-height: 145px;
+  }
+}
+
+/*
+ * Móviles y ventanas estrechas.
+ *
+ * Aquí físicamente no es posible mostrar 4 paneles
+ * completos simultáneamente, por lo que se apilan,
+ * pero ningún contenido queda cortado y las listas
+ * largas siguen teniendo scroll propio.
+ */
+@media (max-width: 650px) {
+
+  .usuarios-edit-page {
+    padding: 10px;
+  }
+
+  .page-header {
+    flex-direction: column;
+  }
+
+  .page-header button {
+    width: 100%;
+  }
+
+  .panel {
+    padding: 10px;
+  }
+
+  .opciones-lista {
+    grid-template-columns: 1fr;
+    max-height: 140px;
+  }
+
+  .comunidades-directas {
+    max-height: 140px;
+  }
+}

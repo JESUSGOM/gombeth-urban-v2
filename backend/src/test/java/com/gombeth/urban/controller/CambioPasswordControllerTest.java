@@ -4,6 +4,7 @@ import com.gombeth.urban.dto.CambioPasswordRequest;
 import com.gombeth.urban.dto.CambioPasswordResponse;
 import com.gombeth.urban.entity.Usuario;
 import com.gombeth.urban.repository.UsuarioRepository;
+import com.gombeth.urban.service.PasswordPolicyService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -42,6 +43,10 @@ class CambioPasswordControllerTest {
             passwordEncoder;
 
     @Mock
+    private PasswordPolicyService
+            passwordPolicyService;
+
+    @Mock
     private Authentication
             authentication;
 
@@ -52,16 +57,19 @@ class CambioPasswordControllerTest {
 
     @BeforeEach
     void configurar() {
+
         controller =
                 new CambioPasswordController(
                         authenticationManager,
                         usuarioRepository,
-                        passwordEncoder
+                        passwordEncoder,
+                        passwordPolicyService
                 );
     }
 
     @Test
     void rechazaCamposIncompletos() {
+
         CambioPasswordRequest request =
                 new CambioPasswordRequest();
 
@@ -92,12 +100,14 @@ class CambioPasswordControllerTest {
         verifyNoInteractions(
                 authenticationManager,
                 usuarioRepository,
-                passwordEncoder
+                passwordEncoder,
+                passwordPolicyService
         );
     }
 
     @Test
     void rechazaConfirmacionDistinta() {
+
         CambioPasswordRequest request =
                 crearPeticionValida();
 
@@ -125,12 +135,14 @@ class CambioPasswordControllerTest {
         verifyNoInteractions(
                 authenticationManager,
                 usuarioRepository,
-                passwordEncoder
+                passwordEncoder,
+                passwordPolicyService
         );
     }
 
     @Test
     void rechazaPasswordDebil() {
+
         CambioPasswordRequest request =
                 crearPeticionValida();
 
@@ -140,6 +152,15 @@ class CambioPasswordControllerTest {
 
         request.setConfirmarPassword(
                 "sololetras"
+        );
+
+        when(
+                passwordPolicyService.validar(
+                        "sololetras"
+                )
+        ).thenReturn(
+                "La contraseña debe contener "
+                        + "mayúsculas, minúsculas y números."
         );
 
         ResponseEntity<CambioPasswordResponse>
@@ -162,8 +183,17 @@ class CambioPasswordControllerTest {
 
     @Test
     void rechazaPasswordActualIncorrecta() {
+
         CambioPasswordRequest request =
                 crearPeticionValida();
+
+        when(
+                passwordPolicyService.validar(
+                        "Nueva2026"
+                )
+        ).thenReturn(
+                null
+        );
 
         when(
                 authenticationManager.authenticate(
@@ -199,10 +229,19 @@ class CambioPasswordControllerTest {
 
     @Test
     void rechazaReutilizarLaPasswordActual() {
+
         CambioPasswordRequest request =
                 crearPeticionValida();
 
         prepararUsuarioAutenticado();
+
+        when(
+                passwordPolicyService.validar(
+                        "Nueva2026"
+                )
+        ).thenReturn(
+                null
+        );
 
         when(
                 usuario.getPassword()
@@ -240,10 +279,19 @@ class CambioPasswordControllerTest {
 
     @Test
     void cambiaPasswordCorrectamente() {
+
         CambioPasswordRequest request =
                 crearPeticionValida();
 
         prepararUsuarioAutenticado();
+
+        when(
+                passwordPolicyService.validar(
+                        "Nueva2026"
+                )
+        ).thenReturn(
+                null
+        );
 
         when(
                 usuario.getPassword()
@@ -298,6 +346,7 @@ class CambioPasswordControllerTest {
     }
 
     private void prepararUsuarioAutenticado() {
+
         when(
                 authenticationManager.authenticate(
                         any(Authentication.class)
@@ -323,6 +372,7 @@ class CambioPasswordControllerTest {
 
     private CambioPasswordRequest
     crearPeticionValida() {
+
         CambioPasswordRequest request =
                 new CambioPasswordRequest();
 

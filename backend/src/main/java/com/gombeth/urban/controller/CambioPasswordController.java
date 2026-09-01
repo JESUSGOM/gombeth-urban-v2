@@ -4,6 +4,7 @@ import com.gombeth.urban.dto.CambioPasswordRequest;
 import com.gombeth.urban.dto.CambioPasswordResponse;
 import com.gombeth.urban.entity.Usuario;
 import com.gombeth.urban.repository.UsuarioRepository;
+import com.gombeth.urban.service.PasswordPolicyService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -21,14 +22,6 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/auth")
 public class CambioPasswordController {
 
-    private static final int LONGITUD_MINIMA = 8;
-
-    /*
-     * BCrypt solo utiliza de forma segura los primeros
-     * 72 bytes de la contraseña.
-     */
-    private static final int LONGITUD_MAXIMA = 72;
-
     private final AuthenticationManager
             authenticationManager;
 
@@ -38,10 +31,14 @@ public class CambioPasswordController {
     private final PasswordEncoder
             passwordEncoder;
 
+    private final PasswordPolicyService
+            passwordPolicyService;
+
     public CambioPasswordController(
             AuthenticationManager authenticationManager,
             UsuarioRepository usuarioRepository,
-            PasswordEncoder passwordEncoder
+            PasswordEncoder passwordEncoder,
+            PasswordPolicyService passwordPolicyService
     ) {
         this.authenticationManager =
                 authenticationManager;
@@ -51,6 +48,9 @@ public class CambioPasswordController {
 
         this.passwordEncoder =
                 passwordEncoder;
+
+        this.passwordPolicyService =
+                passwordPolicyService;
     }
 
     @PostMapping("/cambiar-password")
@@ -60,6 +60,7 @@ public class CambioPasswordController {
             @RequestBody(required = false)
             CambioPasswordRequest request
     ) {
+
         if (request == null) {
             return respuestaError(
                     HttpStatus.BAD_REQUEST,
@@ -111,7 +112,7 @@ public class CambioPasswordController {
         }
 
         String errorSeguridad =
-                validarNuevaPassword(
+                passwordPolicyService.validar(
                         nuevaPassword
                 );
 
@@ -123,6 +124,7 @@ public class CambioPasswordController {
         }
 
         try {
+
             Authentication autenticacion =
                     authenticationManager.authenticate(
                             UsernamePasswordAuthenticationToken
@@ -189,55 +191,6 @@ public class CambioPasswordController {
                             + "incorrectos."
             );
         }
-    }
-
-    private String validarNuevaPassword(
-            String password
-    ) {
-        if (
-                password.length()
-                        < LONGITUD_MINIMA
-        ) {
-            return "La nueva contraseña debe tener "
-                    + "al menos 8 caracteres.";
-        }
-
-        if (
-                password.length()
-                        > LONGITUD_MAXIMA
-        ) {
-            return "La nueva contraseña no puede "
-                    + "superar los 72 caracteres.";
-        }
-
-        boolean contieneMayuscula =
-                password.chars()
-                        .anyMatch(
-                                Character::isUpperCase
-                        );
-
-        boolean contieneMinuscula =
-                password.chars()
-                        .anyMatch(
-                                Character::isLowerCase
-                        );
-
-        boolean contieneNumero =
-                password.chars()
-                        .anyMatch(
-                                Character::isDigit
-                        );
-
-        if (
-                !contieneMayuscula
-                        || !contieneMinuscula
-                        || !contieneNumero
-        ) {
-            return "La nueva contraseña debe contener "
-                    + "mayúsculas, minúsculas y números.";
-        }
-
-        return null;
     }
 
     private String normalizarUsername(

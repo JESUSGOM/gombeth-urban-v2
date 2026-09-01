@@ -3,6 +3,8 @@ package com.gombeth.urban.entity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.JoinTable;
@@ -17,6 +19,7 @@ import java.util.Set;
 public class Usuario {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @Column(nullable = false)
@@ -44,6 +47,12 @@ public class Usuario {
         return username;
     }
 
+    public void setUsername(
+            String username
+    ) {
+        this.username = username;
+    }
+
     public String getPassword() {
         return password;
     }
@@ -58,7 +67,24 @@ public class Usuario {
         return administradorId;
     }
 
+    public void setAdministradorId(
+            Long administradorId
+    ) {
+        this.administradorId = administradorId;
+    }
+
     public Set<Rol> getRoles() {
         return roles;
+    }
+
+    public void setRoles(
+            Set<Rol> roles
+    ) {
+
+        this.roles.clear();
+
+        if (roles != null) {
+            this.roles.addAll(roles);
+        }
     }
 }

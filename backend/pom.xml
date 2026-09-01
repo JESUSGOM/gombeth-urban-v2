@@ -14,7 +14,7 @@
 
     <groupId>com.gombeth.urban</groupId>
     <artifactId>gombeth-urban</artifactId>
-    <version>1.0.0</version>
+    <version>1.0.1</version>
     <name>Gombeth Urban</name>
     <description>Backend Gombeth Urban</description>
 
