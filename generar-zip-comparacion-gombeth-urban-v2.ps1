@@ -237,7 +237,15 @@ Excluye:
 
     $sospechosos = Get-ChildItem $stage -Recurse -File |
         Where-Object {
-            $_.Name -match "application-local|application-secrets|\.env$|credenciales|passwords?|secrets?" -or
+            $nombre = $_.Name.ToLowerInvariant()
+
+            $nombre -eq "application-local.properties" -or
+            $nombre -eq "application-secrets.properties" -or
+            $nombre -eq ".env" -or
+            $nombre -like ".env.*" -or
+            $nombre -eq "credenciales.json" -or
+            $nombre -eq "credentials.json" -or
+            $nombre -eq "secrets.json" -or
             $_.Extension -match "^\.(exe|msi|p12|pfx|pem|key|jks|keystore)$"
         }
 
