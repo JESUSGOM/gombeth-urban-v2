@@ -87,6 +87,14 @@ export const routes: Routes = [
       },
 
       {
+        path: 'gastos',
+        loadComponent: () =>
+          import(
+            './features/gastos/pages/gastos-list/gastos-list'
+            ).then(m => m.GastosList)
+      },
+
+      {
         path: 'recibos',
         component: RecibosList
       },

@@ -1,0 +1,372 @@
+<div class="gastos-page">
+
+  <div class="page-header">
+
+    <div>
+
+      <h2>
+        Gastos y facturas
+      </h2>
+
+      <p>
+        {{
+          nombreComunidad
+          || 'Seleccione una comunidad'
+        }}
+      </p>
+
+    </div>
+
+    <button
+      type="button"
+      class="secondary-button"
+      [disabled]="
+        !comunidadId
+        || cargando
+      "
+      (click)="actualizarListado()">
+
+      {{
+        cargando
+          ? 'Actualizando...'
+          : 'Actualizar'
+      }}
+
+    </button>
+
+  </div>
+
+  <section
+    *ngIf="comunidadId"
+    class="resumen-grid">
+
+    <article class="resumen-card">
+
+      <span>
+        Gastos
+      </span>
+
+      <strong>
+        {{ gastos.length }}
+      </strong>
+
+    </article>
+
+    <article class="resumen-card pendiente">
+
+      <span>
+        Pendientes
+      </span>
+
+      <strong>
+        {{ numeroPendientes }}
+      </strong>
+
+    </article>
+
+    <article class="resumen-card contabilizado">
+
+      <span>
+        Contabilizados
+      </span>
+
+      <strong>
+        {{ numeroContabilizados }}
+      </strong>
+
+    </article>
+
+    <article class="resumen-card pagado">
+
+      <span>
+        Pagados
+      </span>
+
+      <strong>
+        {{ numeroPagados }}
+      </strong>
+
+    </article>
+
+    <article class="resumen-card importe">
+
+      <span>
+        Importe total
+      </span>
+
+      <strong>
+        {{
+          totalImporte
+            | number:'1.2-2'
+        }}
+        €
+      </strong>
+
+    </article>
+
+  </section>
+
+  <div
+    *ngIf="cargando"
+    class="alert info">
+    Cargando gastos...
+  </div>
+
+  <div
+    *ngIf="error"
+    class="alert error">
+    {{ error }}
+  </div>
+
+  <section
+    *ngIf="
+      !cargando
+      && !error
+      && gastos.length > 0
+    "
+    class="filtros-card">
+
+    <label class="filtro busqueda">
+
+      <span>
+        Buscar
+      </span>
+
+      <input
+        type="search"
+        [(ngModel)]="textoBusqueda"
+        (ngModelChange)="aplicarFiltros()"
+        placeholder="Proveedor, factura, concepto, asiento...">
+
+    </label>
+
+    <label class="filtro estado">
+
+      <span>
+        Estado
+      </span>
+
+      <select
+        [(ngModel)]="filtroEstado"
+        (ngModelChange)="aplicarFiltros()">
+
+        <option value="TODOS">
+          Todos
+        </option>
+
+        <option value="PENDIENTE">
+          Pendientes
+        </option>
+
+        <option value="CONTABILIZADO">
+          Contabilizados
+        </option>
+
+        <option value="PAGADO">
+          Pagados
+        </option>
+
+      </select>
+
+    </label>
+
+    <button
+      type="button"
+      class="limpiar-button"
+      [disabled]="
+        !textoBusqueda
+        && filtroEstado === 'TODOS'
+      "
+      (click)="limpiarFiltros()">
+      Limpiar
+    </button>
+
+  </section>
+
+  <section
+    *ngIf="
+      !cargando
+      && !error
+      && comunidadId
+      && gastos.length === 0
+    "
+    class="empty-card">
+
+    <h3>
+      No hay gastos registrados
+    </h3>
+
+    <p>
+      Esta comunidad todavía no tiene gastos.
+    </p>
+
+  </section>
+
+  <section
+    *ngIf="
+      !cargando
+      && !error
+      && gastos.length > 0
+      && gastosFiltrados.length === 0
+    "
+    class="empty-card">
+
+    <h3>
+      No hay resultados
+    </h3>
+
+    <p>
+      No existen gastos que coincidan con los filtros seleccionados.
+    </p>
+
+  </section>
+
+  <section
+    *ngIf="
+      !cargando
+      && !error
+      && gastosFiltrados.length > 0
+    "
+    class="table-card">
+
+    <table class="gastos-table">
+
+      <thead>
+
+        <tr>
+          <th>ID</th>
+          <th>Fecha</th>
+          <th>Proveedor</th>
+          <th>Factura</th>
+          <th>Concepto</th>
+          <th>Cuenta</th>
+          <th class="right">Importe</th>
+          <th>Asiento</th>
+          <th>Estado</th>
+        </tr>
+
+      </thead>
+
+      <tbody>
+
+        <tr
+          *ngFor="
+            let gasto of gastosPagina
+          ">
+
+          <td class="id-col">
+            {{ gasto.id }}
+          </td>
+
+          <td class="fecha-col">
+            {{
+              gasto.fechaFactura
+                | date:'dd/MM/yyyy'
+            }}
+          </td>
+
+          <td class="proveedor-col">
+            {{
+              gasto.proveedor
+              || '—'
+            }}
+          </td>
+
+          <td>
+            {{
+              gasto.numeroFactura
+              || '—'
+            }}
+          </td>
+
+          <td class="concepto-col">
+            {{
+              gasto.concepto
+              || '—'
+            }}
+          </td>
+
+          <td>
+            {{
+              gasto.cuentaGastoId
+              ?? '—'
+            }}
+          </td>
+
+          <td class="right importe-col">
+            {{
+              gasto.importeTotal
+                | number:'1.2-2'
+            }}
+            €
+          </td>
+
+          <td>
+            {{
+              gasto.numeroAsiento
+              || '—'
+            }}
+          </td>
+
+          <td>
+
+            <span
+              [class]="
+                claseEstado(gasto)
+              ">
+              {{
+                estadoGasto(gasto)
+              }}
+            </span>
+
+          </td>
+
+        </tr>
+
+      </tbody>
+
+    </table>
+
+    <div class="paginacion">
+
+      <span>
+        {{
+          gastosFiltrados.length
+        }}
+        registro(s)
+      </span>
+
+      <div>
+
+        <button
+          type="button"
+          [disabled]="
+            paginaActual <= 1
+          "
+          (click)="paginaAnterior()">
+          Anterior
+        </button>
+
+        <strong>
+          Página
+          {{ paginaActual }}
+          de
+          {{ totalPaginas }}
+        </strong>
+
+        <button
+          type="button"
+          [disabled]="
+            paginaActual >= totalPaginas
+          "
+          (click)="paginaSiguiente()">
+          Siguiente
+        </button>
+
+      </div>
+
+    </div>
+
+  </section>
+
+</div>
