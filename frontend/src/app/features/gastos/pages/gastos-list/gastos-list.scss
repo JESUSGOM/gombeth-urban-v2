@@ -22,8 +22,10 @@
   font-size: 12px;
 }
 
+.primary-button,
 .secondary-button,
 .limpiar-button,
+.edit-button,
 .paginacion button {
   border: 0;
   border-radius: 6px;
@@ -31,9 +33,28 @@
   font-weight: 700;
 }
 
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.primary-button,
 .secondary-button {
   min-height: 34px;
   padding: 0 13px;
+}
+
+.primary-button {
+  color: #ffffff;
+  background: #2563eb;
+}
+
+.primary-button:hover {
+  background: #1d4ed8;
+}
+
+.secondary-button {
   color: #1f2937;
   background: #e5e7eb;
 }
@@ -42,8 +63,10 @@
   background: #d1d5db;
 }
 
+.primary-button:disabled,
 .secondary-button:disabled,
 .limpiar-button:disabled,
+.edit-button:disabled,
 .paginacion button:disabled {
   opacity: .55;
   cursor: not-allowed;
@@ -287,6 +310,22 @@
   background: #dcfce7;
 }
 
+.acciones-col {
+  width: 82px;
+  white-space: nowrap;
+}
+
+.edit-button {
+  min-height: 28px;
+  padding: 0 9px;
+  color: #1d4ed8;
+  background: #dbeafe;
+}
+
+.edit-button:hover:not(:disabled) {
+  background: #bfdbfe;
+}
+
 .paginacion {
   display: flex;
   align-items: center;
@@ -343,6 +382,15 @@
   .page-header {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .header-actions {
+    width: 100%;
+  }
+
+  .primary-button,
+  .secondary-button {
+    flex: 1;
   }
 
   .resumen-grid,

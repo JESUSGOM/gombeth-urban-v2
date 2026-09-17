@@ -1,0 +1,264 @@
+<div class="gasto-edit-page">
+
+  <div class="page-header">
+
+    <div>
+      <h2>
+        {{ tituloPantalla }}
+      </h2>
+
+      <p>
+        {{
+          nombreComunidad
+          || 'Comunidad no seleccionada'
+        }}
+      </p>
+    </div>
+
+    <button
+      type="button"
+      class="secondary-button"
+      [disabled]="guardando"
+      (click)="volver()">
+      ← Volver a gastos
+    </button>
+
+  </div>
+
+  <div
+    *ngIf="cargando"
+    class="alert info">
+    Cargando gasto...
+  </div>
+
+  <div
+    *ngIf="error"
+    class="alert error">
+    {{ error }}
+  </div>
+
+  <div
+    *ngIf="mensaje"
+    class="alert success">
+    {{ mensaje }}
+  </div>
+
+  <div
+    *ngIf="bloqueado"
+    class="alert warning">
+
+    <strong>
+      Edición bloqueada.
+    </strong>
+
+    {{ motivoBloqueo }}
+
+  </div>
+
+  <form
+    *ngIf="
+      !cargando
+      && gastoForm.controls.comunidadId.value
+    "
+    class="form-card"
+    [formGroup]="gastoForm"
+    (ngSubmit)="guardar()">
+
+    <div class="form-grid">
+
+      <label class="form-field">
+        <span>
+          Fecha de factura
+          <strong>*</strong>
+        </span>
+
+        <input
+          type="date"
+          formControlName="fechaFactura"
+          [attr.disabled]="
+            guardando
+            || bloqueado
+              ? true
+              : null
+          ">
+      </label>
+
+      <label class="form-field">
+        <span>
+          Importe total
+          <strong>*</strong>
+        </span>
+
+        <div class="importe-input">
+
+          <input
+            type="number"
+            min="0.01"
+            step="0.01"
+            formControlName="importeTotal"
+            [attr.disabled]="
+              guardando
+              || bloqueado
+                ? true
+                : null
+            ">
+
+          <span>€</span>
+
+        </div>
+      </label>
+
+      <label class="form-field campo-ancho">
+        <span>
+          Proveedor
+          <strong>*</strong>
+        </span>
+
+        <input
+          type="text"
+          maxlength="255"
+          formControlName="proveedor"
+          [attr.disabled]="
+            guardando
+            || bloqueado
+              ? true
+              : null
+          "
+          placeholder="Nombre del proveedor">
+      </label>
+
+      <label class="form-field">
+        <span>
+          Número de factura
+        </span>
+
+        <input
+          type="text"
+          maxlength="255"
+          formControlName="numeroFactura"
+          [attr.disabled]="
+            guardando
+            || bloqueado
+              ? true
+              : null
+          "
+          placeholder="Opcional">
+      </label>
+
+      <label class="form-field campo-ancho">
+        <span>
+          Concepto
+          <strong>*</strong>
+        </span>
+
+        <textarea
+          rows="4"
+          maxlength="255"
+          formControlName="concepto"
+          [attr.disabled]="
+            guardando
+            || bloqueado
+              ? true
+              : null
+          "
+          placeholder="Descripción del gasto"></textarea>
+      </label>
+
+      <label class="form-field campo-ancho">
+  <span>
+    Cuenta contable de gasto
+    <strong>*</strong>
+  </span>
+
+        <select
+          formControlName="cuentaGastoId"
+          [attr.disabled]="
+      guardando
+      || bloqueado
+      || cargandoCuentas
+        ? true
+        : null
+    ">
+
+          <option
+            [ngValue]="null"
+            disabled>
+            -- Seleccione una cuenta contable --
+          </option>
+
+          <option
+            *ngFor="let cuenta of cuentas"
+            [ngValue]="cuenta.id">
+
+            {{
+              cuenta.codigo
+            }}
+            -
+            {{
+              cuenta.nombre
+            }}
+
+          </option>
+
+        </select>
+
+        <small *ngIf="cargandoCuentas">
+          Cargando cuentas de la comunidad...
+        </small>
+
+        <small
+          *ngIf="
+      !cargandoCuentas
+      && cuentas.length === 0
+    "
+          class="warning-text">
+          Esta comunidad no tiene cuentas contables disponibles.
+        </small>
+
+        <small
+          *ngIf="
+      !cargandoCuentas
+      && cuentas.length > 0
+    ">
+          Seleccione la cuenta contable correspondiente al gasto.
+        </small>
+      </label>
+
+    </div>
+
+    <div class="form-actions">
+
+      <button
+        type="button"
+        class="secondary-button"
+        [disabled]="guardando"
+        (click)="volver()">
+        Cancelar
+      </button>
+
+      <button
+        type="submit"
+        class="primary-button"
+        [disabled]="
+          guardando
+          || bloqueado
+          || cargandoCuentas
+        ">
+
+        {{
+          guardando
+            ? 'Guardando...'
+            : (
+              esEdicion
+                ? 'Guardar cambios'
+                : 'Crear gasto'
+            )
+        }}
+
+      </button>
+
+    </div>
+
+  </form>
+
+</div>

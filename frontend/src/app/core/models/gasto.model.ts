@@ -12,3 +12,13 @@ export interface Gasto {
   numeroAsiento: string | null;
   rutaPdf: string | null;
 }
+
+export interface GastoGuardarRequest {
+  comunidadId: number;
+  concepto: string;
+  fechaFactura: string;
+  importeTotal: number;
+  numeroFactura: string | null;
+  proveedor: string;
+  cuentaGastoId: number | null;
+}

@@ -17,22 +17,37 @@
 
     </div>
 
-    <button
-      type="button"
-      class="secondary-button"
-      [disabled]="
-        !comunidadId
-        || cargando
-      "
-      (click)="actualizarListado()">
+    <div class="header-actions">
 
-      {{
-        cargando
-          ? 'Actualizando...'
-          : 'Actualizar'
-      }}
+      <button
+        type="button"
+        class="primary-button"
+        [disabled]="
+          !comunidadId
+          || cargando
+        "
+        (click)="nuevoGasto()">
+        + Nuevo gasto
+      </button>
 
-    </button>
+      <button
+        type="button"
+        class="secondary-button"
+        [disabled]="
+          !comunidadId
+          || cargando
+        "
+        (click)="actualizarListado()">
+
+        {{
+          cargando
+            ? 'Actualizando...'
+            : 'Actualizar'
+        }}
+
+      </button>
+
+    </div>
 
   </div>
 
@@ -243,6 +258,7 @@
           <th class="right">Importe</th>
           <th>Asiento</th>
           <th>Estado</th>
+          <th>Acciones</th>
         </tr>
 
       </thead>
@@ -318,6 +334,25 @@
                 estadoGasto(gasto)
               }}
             </span>
+
+          </td>
+
+          <td class="acciones-col">
+
+            <button
+              type="button"
+              class="edit-button"
+              [disabled]="
+                !puedeEditar(gasto)
+              "
+              [title]="
+                puedeEditar(gasto)
+                  ? 'Editar gasto'
+                  : motivoNoEditable(gasto)
+              "
+              (click)="editarGasto(gasto)">
+              Editar
+            </button>
 
           </td>
 

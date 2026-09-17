@@ -13,7 +13,8 @@ import {
 } from 'rxjs';
 
 import {
-  Gasto
+  Gasto,
+  GastoGuardarRequest
 } from '../models/gasto.model';
 
 @Injectable({
@@ -43,6 +44,36 @@ export class GastoService {
       {
         params
       }
+    );
+  }
+
+  obtener(
+    id: number
+  ): Observable<Gasto> {
+
+    return this.http.get<Gasto>(
+      `${this.api}/${id}`
+    );
+  }
+
+  crear(
+    request: GastoGuardarRequest
+  ): Observable<Gasto> {
+
+    return this.http.post<Gasto>(
+      this.api,
+      request
+    );
+  }
+
+  actualizar(
+    id: number,
+    request: GastoGuardarRequest
+  ): Observable<Gasto> {
+
+    return this.http.put<Gasto>(
+      `${this.api}/${id}`,
+      request
     );
   }
 }

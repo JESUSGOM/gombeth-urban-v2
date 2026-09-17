@@ -15,8 +15,18 @@ import {
 } from '@angular/forms';
 
 import {
+  Router
+} from '@angular/router';
+
+import {
   takeUntilDestroyed
 } from '@angular/core/rxjs-interop';
+
+import {
+  EMPTY,
+  catchError,
+  switchMap
+} from 'rxjs';
 
 import {
   Gasto
@@ -60,6 +70,9 @@ export class GastosList implements OnInit {
   private readonly cdr =
     inject(ChangeDetectorRef);
 
+  private readonly router =
+    inject(Router);
+
   gastos: Gasto[] = [];
   gastosFiltrados: Gasto[] = [];
 
@@ -85,39 +98,163 @@ export class GastosList implements OnInit {
       .pipe(
         takeUntilDestroyed(
           this.destroyRef
-        )
+        ),
+
+        switchMap(comunidad => {
+
+          if (
+            !comunidad
+            || !Number.isInteger(
+              Number(comunidad.id)
+            )
+            || Number(comunidad.id) <= 0
+          ) {
+            this.limpiarPantalla();
+            return EMPTY;
+          }
+
+          const comunidadId =
+            Number(comunidad.id);
+
+          const cambiaComunidad =
+            this.comunidadId
+            !== comunidadId;
+
+          this.comunidadId =
+            comunidadId;
+
+          this.nombreComunidad =
+            comunidad.nombre;
+
+          if (cambiaComunidad) {
+            this.textoBusqueda = '';
+            this.filtroEstado = 'TODOS';
+            this.paginaActual = 1;
+          }
+
+          this.cargando = true;
+          this.error = '';
+
+          this.actualizarVista();
+
+          return this.gastoService
+            .listarPorComunidad(
+              comunidadId
+            )
+            .pipe(
+              catchError(error => {
+
+                console.error(
+                  'Error cargando gastos:',
+                  error
+                );
+
+                if (error?.status === 403) {
+                  this.error =
+                    'No tiene acceso a los gastos de esta comunidad.';
+                } else if (
+                  error?.status === 401
+                ) {
+                  this.error =
+                    'La sesión ha caducado. Vuelva a iniciar sesión.';
+                } else {
+                  this.error =
+                    error?.error?.message
+                    || error?.error?.detail
+                    || 'No se pudieron cargar los gastos.';
+                }
+
+                this.gastos = [];
+                this.gastosFiltrados = [];
+                this.paginaActual = 1;
+                this.cargando = false;
+
+                this.actualizarVista();
+
+                return EMPTY;
+              })
+            );
+        })
       )
-      .subscribe(comunidad => {
+      .subscribe(gastos => {
 
-        if (
-          !comunidad
-          || !Number.isInteger(
-            Number(comunidad.id)
-          )
-          || Number(comunidad.id) <= 0
-        ) {
-          this.limpiarPantalla();
-          return;
-        }
+        this.gastos = [
+          ...(gastos ?? [])
+        ];
 
-        const cambiaComunidad =
-          this.comunidadId
-          !== Number(comunidad.id);
+        this.paginaActual = 1;
 
-        this.comunidadId =
-          Number(comunidad.id);
+        this.aplicarFiltros();
 
-        this.nombreComunidad =
-          comunidad.nombre;
+        this.cargando = false;
 
-        if (cambiaComunidad) {
-          this.textoBusqueda = '';
-          this.filtroEstado = 'TODOS';
-          this.paginaActual = 1;
-        }
-
-        this.cargarGastos();
+        this.actualizarVista();
       });
+  }
+
+  nuevoGasto(): void {
+
+    if (
+      this.comunidadId === null
+      || this.comunidadId <= 0
+    ) {
+      this.error =
+        'Seleccione una comunidad antes de crear un gasto.';
+
+      this.actualizarVista();
+      return;
+    }
+
+    void this.router.navigate([
+      '/gastos/nuevo'
+    ]);
+  }
+
+  editarGasto(
+    gasto: Gasto
+  ): void {
+
+    if (!this.puedeEditar(gasto)) {
+      return;
+    }
+
+    void this.router.navigate([
+      '/gastos/editar',
+      gasto.id
+    ]);
+  }
+
+  puedeEditar(
+    gasto: Gasto
+  ): boolean {
+
+    return (
+      !this.estaPagado(gasto)
+      && !this.estaContabilizado(gasto)
+    );
+  }
+
+  motivoNoEditable(
+    gasto: Gasto
+  ): string {
+
+    if (this.estaPagado(gasto)) {
+      return (
+        'El gasto está pagado. '
+        + 'La edición requiere deshacer el pago.'
+      );
+    }
+
+    if (
+      this.estaContabilizado(gasto)
+    ) {
+      return (
+        'El gasto está contabilizado. '
+        + 'La edición requiere una reversión contable segura.'
+      );
+    }
+
+    return '';
   }
 
   cargarGastos(): void {
@@ -307,6 +444,7 @@ export class GastosList implements OnInit {
     return this.gastos.filter(
       gasto =>
         this.estaContabilizado(gasto)
+        && !this.estaPagado(gasto)
     ).length;
   }
 

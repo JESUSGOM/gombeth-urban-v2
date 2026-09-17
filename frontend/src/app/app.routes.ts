@@ -95,6 +95,22 @@ export const routes: Routes = [
       },
 
       {
+        path: 'gastos/nuevo',
+        loadComponent: () =>
+          import(
+            './features/gastos/pages/gasto-edit/gasto-edit'
+            ).then(m => m.GastoEdit)
+      },
+
+      {
+        path: 'gastos/editar/:id',
+        loadComponent: () =>
+          import(
+            './features/gastos/pages/gasto-edit/gasto-edit'
+            ).then(m => m.GastoEdit)
+      },
+
+      {
         path: 'recibos',
         component: RecibosList
       },
