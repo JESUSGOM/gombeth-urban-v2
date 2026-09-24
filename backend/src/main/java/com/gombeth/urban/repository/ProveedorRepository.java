@@ -19,4 +19,10 @@ public interface ProveedorRepository
             Long administradorId,
             String nifCif
     );
+
+    Optional<Proveedor>
+    findByIdAndAdministradorId(
+            Long id,
+            Long administradorId
+    );
 }

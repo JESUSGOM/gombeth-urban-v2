@@ -409,6 +409,254 @@ class ProveedorServiceTest {
         );
     }
 
+    @Test
+    void obtieneProveedorSoloDelAdministradorIndicado() {
+
+        Proveedor proveedor =
+                proveedor(
+                        10L,
+                        2L,
+                        "Proveedor propio",
+                        "B12345678"
+                );
+
+        when(
+                proveedorRepository
+                        .findByIdAndAdministradorId(
+                                10L,
+                                2L
+                        )
+        ).thenReturn(
+                Optional.of(
+                        proveedor
+                )
+        );
+
+        Proveedor resultado =
+                service.obtenerPorAdministrador(
+                        2L,
+                        10L
+                );
+
+        assertEquals(
+                10L,
+                resultado.getId()
+        );
+
+        assertEquals(
+                2L,
+                resultado.getAdministradorId()
+        );
+
+        verify(
+                proveedorRepository
+        ).findByIdAndAdministradorId(
+                10L,
+                2L
+        );
+    }
+
+    @Test
+    void noObtieneProveedorDeOtroAdministrador() {
+
+        when(
+                proveedorRepository
+                        .findByIdAndAdministradorId(
+                                10L,
+                                2L
+                        )
+        ).thenReturn(
+                Optional.empty()
+        );
+
+        IllegalArgumentException excepcion =
+                assertThrows(
+                        IllegalArgumentException.class,
+                        () ->
+                                service.obtenerPorAdministrador(
+                                        2L,
+                                        10L
+                                )
+                );
+
+        assertEquals(
+                "El proveedor indicado no existe "
+                        + "para este administrador.",
+                excepcion.getMessage()
+        );
+    }
+
+    @Test
+    void actualizaProveedorPropioYNormalizaDatos() {
+
+        Proveedor proveedor =
+                proveedor(
+                        10L,
+                        2L,
+                        "Proveedor antiguo",
+                        "B12345678"
+                );
+
+        when(
+                proveedorRepository
+                        .findByIdAndAdministradorId(
+                                10L,
+                                2L
+                        )
+        ).thenReturn(
+                Optional.of(
+                        proveedor
+                )
+        );
+
+        when(
+                proveedorRepository
+                        .findByAdministradorIdAndNifCifIgnoreCase(
+                                2L,
+                                "B12345678"
+                        )
+        ).thenReturn(
+                Optional.of(
+                        proveedor
+                )
+        );
+
+        when(
+                proveedorRepository.save(
+                        proveedor
+                )
+        ).thenReturn(
+                proveedor
+        );
+
+        Proveedor resultado =
+                service.actualizarProveedor(
+                        2L,
+                        10L,
+                        "  Proveedor actualizado  ",
+                        " b-12345678 ",
+                        " 922111222 ",
+                        " proveedor@prueba.es ",
+                        " Observaciones actualizadas ",
+                        false
+                );
+
+        assertEquals(
+                2L,
+                resultado.getAdministradorId()
+        );
+
+        assertEquals(
+                "Proveedor actualizado",
+                resultado.getNombre()
+        );
+
+        assertEquals(
+                "B12345678",
+                resultado.getNifCif()
+        );
+
+        assertEquals(
+                "922111222",
+                resultado.getTelefono()
+        );
+
+        assertEquals(
+                "proveedor@prueba.es",
+                resultado.getEmail()
+        );
+
+        assertEquals(
+                "Observaciones actualizadas",
+                resultado.getObservaciones()
+        );
+
+        assertEquals(
+                false,
+                resultado.getActivo()
+        );
+
+        verify(
+                proveedorRepository
+        ).save(
+                proveedor
+        );
+    }
+
+    @Test
+    void actualizarRechazaNifDeOtroProveedorDelMismoAdministrador() {
+
+        Proveedor proveedor =
+                proveedor(
+                        10L,
+                        2L,
+                        "Proveedor uno",
+                        "B11111111"
+                );
+
+        Proveedor otroProveedor =
+                proveedor(
+                        11L,
+                        2L,
+                        "Proveedor dos",
+                        "B22222222"
+                );
+
+        when(
+                proveedorRepository
+                        .findByIdAndAdministradorId(
+                                10L,
+                                2L
+                        )
+        ).thenReturn(
+                Optional.of(
+                        proveedor
+                )
+        );
+
+        when(
+                proveedorRepository
+                        .findByAdministradorIdAndNifCifIgnoreCase(
+                                2L,
+                                "B22222222"
+                        )
+        ).thenReturn(
+                Optional.of(
+                        otroProveedor
+                )
+        );
+
+        IllegalStateException excepcion =
+                assertThrows(
+                        IllegalStateException.class,
+                        () ->
+                                service.actualizarProveedor(
+                                        2L,
+                                        10L,
+                                        "Proveedor uno",
+                                        "B22222222",
+                                        null,
+                                        null,
+                                        null,
+                                        true
+                                )
+                );
+
+        assertEquals(
+                "Ya existe un proveedor con NIF/CIF "
+                        + "B22222222"
+                        + " para este administrador.",
+                excepcion.getMessage()
+        );
+
+        verify(
+                proveedorRepository,
+                never()
+        ).save(
+                any()
+        );
+    }
+
     private Proveedor proveedor(
             Long id,
             Long administradorId,

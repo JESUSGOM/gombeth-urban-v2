@@ -158,6 +158,134 @@ public class ProveedorService {
         );
     }
 
+    public Proveedor obtenerPorAdministrador(
+            Long administradorId,
+            Long proveedorId
+    ) {
+        if (
+                administradorId == null
+                        || administradorId <= 0
+        ) {
+            throw new IllegalArgumentException(
+                    "El administrador es obligatorio."
+            );
+        }
+
+        if (
+                proveedorId == null
+                        || proveedorId <= 0
+        ) {
+            throw new IllegalArgumentException(
+                    "El proveedor es obligatorio."
+            );
+        }
+
+        return proveedorRepository
+                .findByIdAndAdministradorId(
+                        proveedorId,
+                        administradorId
+                )
+                .orElseThrow(() ->
+                        new IllegalArgumentException(
+                                "El proveedor indicado no existe "
+                                        + "para este administrador."
+                        )
+                );
+    }
+
+    @Transactional
+    public Proveedor actualizarProveedor(
+            Long administradorId,
+            Long proveedorId,
+            String nombre,
+            String nifCif,
+            String telefono,
+            String email,
+            String observaciones,
+            Boolean activo
+    ) {
+        Proveedor proveedor =
+                obtenerPorAdministrador(
+                        administradorId,
+                        proveedorId
+                );
+
+        if (
+                nombre == null
+                        || nombre.isBlank()
+        ) {
+            throw new IllegalArgumentException(
+                    "El nombre del proveedor es obligatorio."
+            );
+        }
+
+        String nifNormalizado =
+                normalizarNif(
+                        nifCif
+                );
+
+        if (nifNormalizado != null) {
+
+            Proveedor proveedorMismoNif =
+                    proveedorRepository
+                            .findByAdministradorIdAndNifCifIgnoreCase(
+                                    administradorId,
+                                    nifNormalizado
+                            )
+                            .orElse(null);
+
+            if (
+                    proveedorMismoNif != null
+                            && !Objects.equals(
+                            proveedorMismoNif.getId(),
+                            proveedorId
+                    )
+            ) {
+                throw new IllegalStateException(
+                        "Ya existe un proveedor con NIF/CIF "
+                                + nifNormalizado
+                                + " para este administrador."
+                );
+            }
+        }
+
+        proveedor.setNombre(
+                nombre.trim()
+        );
+
+        proveedor.setNifCif(
+                nifNormalizado
+        );
+
+        proveedor.setTelefono(
+                limpiarTexto(
+                        telefono
+                )
+        );
+
+        proveedor.setEmail(
+                limpiarTexto(
+                        email
+                )
+        );
+
+        proveedor.setObservaciones(
+                limpiarTexto(
+                        observaciones
+                )
+        );
+
+        if (activo != null) {
+            proveedor.setActivo(
+                    activo
+            );
+        }
+
+        return proveedorRepository.save(
+                proveedor
+        );
+    }
+
     @Transactional
     public ProveedorComunidad asociarAComunidad(
             Long proveedorId,
