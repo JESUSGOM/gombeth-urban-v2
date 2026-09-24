@@ -17,6 +17,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -29,13 +30,28 @@ class ContabilidadGastoServiceTest {
     private ContabilidadGastoRepository
             gastoRepository;
 
+    @Mock
+    private PagoGastoContableService
+            pagoGastoContableService;
+
+    @Mock
+    private AnulacionPagoGastoContableService
+            anulacionPagoGastoContableService;
+
+    @Mock
+    private AnulacionGastoContableService
+            anulacionGastoContableService;
+
     private ContabilidadGastoService service;
 
     @BeforeEach
     void setUp() {
         service =
                 new ContabilidadGastoService(
-                        gastoRepository
+                        gastoRepository,
+                        pagoGastoContableService,
+                        anulacionPagoGastoContableService,
+                        anulacionGastoContableService
                 );
     }
 
@@ -250,6 +266,458 @@ class ContabilidadGastoServiceTest {
                 gastoRepository,
                 never()
         ).save(
+                any()
+        );
+    }
+
+    @Test
+    void pagaGastoContabilizadoYGuardaFechaPago() {
+
+        ContabilidadGasto existente =
+                new ContabilidadGasto();
+
+        existente.setComunidadId(
+                33L
+        );
+
+        existente.setPagado(
+                false
+        );
+
+        existente.setNumeroAsiento(
+                "GASTO-5-ASIENTO-10"
+        );
+
+        existente.setImporteTotal(
+                new BigDecimal(
+                        "75.50"
+                )
+        );
+
+        LocalDate fechaPago =
+                LocalDate.of(
+                        2026,
+                        9,
+                        18
+                );
+
+        when(
+                gastoRepository.findById(
+                        5L
+                )
+        ).thenReturn(
+                Optional.of(
+                        existente
+                )
+        );
+
+        when(
+                gastoRepository.save(
+                        existente
+                )
+        ).thenReturn(
+                existente
+        );
+
+        ContabilidadGasto pagado =
+                service.pagar(
+                        5L,
+                        7L,
+                        fechaPago
+                );
+
+        assertTrue(
+                Boolean.TRUE.equals(
+                        pagado.getPagado()
+                )
+        );
+
+        assertEquals(
+                fechaPago,
+                pagado.getFechaPago()
+        );
+
+        verify(
+                pagoGastoContableService
+        ).registrarPago(
+                existente,
+                7L,
+                fechaPago
+        );
+
+        verify(
+                gastoRepository
+        ).save(
+                existente
+        );
+    }
+
+    @Test
+    void impidePagarGastoYaPagado() {
+
+        ContabilidadGasto existente =
+                new ContabilidadGasto();
+
+        existente.setComunidadId(
+                33L
+        );
+
+        existente.setPagado(
+                true
+        );
+
+        existente.setFechaPago(
+                LocalDate.of(
+                        2026,
+                        9,
+                        17
+                )
+        );
+
+        existente.setNumeroAsiento(
+                "GASTO-5-ASIENTO-10"
+        );
+
+        when(
+                gastoRepository.findById(
+                        5L
+                )
+        ).thenReturn(
+                Optional.of(
+                        existente
+                )
+        );
+
+        IllegalStateException error =
+                assertThrows(
+                        IllegalStateException.class,
+                        () ->
+                                service.pagar(
+                                        5L,
+                                        7L,
+                                        LocalDate.of(
+                                                2026,
+                                                9,
+                                                18
+                                        )
+                                )
+                );
+
+        assertEquals(
+                "El gasto ya está pagado.",
+                error.getMessage()
+        );
+
+        verify(
+                pagoGastoContableService,
+                never()
+        ).registrarPago(
+                any(),
+                any(),
+                any()
+        );
+
+        verify(
+                gastoRepository,
+                never()
+        ).save(
+                any()
+        );
+    }
+
+    @Test
+    void deshacePagoYDejaGastoPendiente() {
+
+        ContabilidadGasto existente =
+                new ContabilidadGasto();
+
+        existente.setComunidadId(
+                33L
+        );
+
+        existente.setPagado(
+                true
+        );
+
+        existente.setFechaPago(
+                LocalDate.of(
+                        2026,
+                        9,
+                        17
+                )
+        );
+
+        existente.setNumeroAsiento(
+                "GASTO-5-ASIENTO-10"
+        );
+
+        LocalDate fechaAnulacion =
+                LocalDate.of(
+                        2026,
+                        9,
+                        18
+                );
+
+        when(
+                gastoRepository.findById(
+                        5L
+                )
+        ).thenReturn(
+                Optional.of(
+                        existente
+                )
+        );
+
+        when(
+                gastoRepository.save(
+                        existente
+                )
+        ).thenReturn(
+                existente
+        );
+
+        ContabilidadGasto actualizado =
+                service.deshacerPago(
+                        5L,
+                        7L,
+                        fechaAnulacion
+                );
+
+        assertFalse(
+                Boolean.TRUE.equals(
+                        actualizado.getPagado()
+                )
+        );
+
+        assertNull(
+                actualizado.getFechaPago()
+        );
+
+        verify(
+                anulacionPagoGastoContableService
+        ).anularPago(
+                existente,
+                7L,
+                fechaAnulacion
+        );
+
+        verify(
+                gastoRepository
+        ).save(
+                existente
+        );
+    }
+
+    @Test
+    void deshaceContabilizacionYDejaGastoPendiente() {
+
+        ContabilidadGasto existente =
+                new ContabilidadGasto();
+
+        existente.setComunidadId(
+                33L
+        );
+
+        existente.setPagado(
+                false
+        );
+
+        existente.setNumeroAsiento(
+                "GASTO-5-ASIENTO-10"
+        );
+
+        LocalDate fechaAnulacion =
+                LocalDate.of(
+                        2026,
+                        9,
+                        21
+                );
+
+        when(
+                gastoRepository.findById(
+                        5L
+                )
+        ).thenReturn(
+                Optional.of(
+                        existente
+                )
+        );
+
+        when(
+                gastoRepository.save(
+                        existente
+                )
+        ).thenReturn(
+                existente
+        );
+
+        ContabilidadGasto actualizado =
+                service.deshacerContabilizacion(
+                        5L,
+                        7L,
+                        fechaAnulacion
+                );
+
+        assertNull(
+                actualizado.getNumeroAsiento()
+        );
+
+        verify(
+                anulacionGastoContableService
+        ).anularContabilizacion(
+                existente,
+                7L,
+                fechaAnulacion
+        );
+
+        verify(
+                gastoRepository
+        ).save(
+                existente
+        );
+    }
+
+    @Test
+    void eliminaGastoPendienteNoContabilizado() {
+
+        ContabilidadGasto existente =
+                new ContabilidadGasto();
+
+        existente.setComunidadId(
+                33L
+        );
+
+        existente.setPagado(
+                false
+        );
+
+        existente.setNumeroAsiento(
+                null
+        );
+
+        existente.setRutaPdf(
+                "1776847724992_factura-prueba.pdf"
+        );
+
+        when(
+                gastoRepository.findByIdForUpdate(
+                        5L
+                )
+        ).thenReturn(
+                Optional.of(
+                        existente
+                )
+        );
+
+        service.eliminarPendiente(
+                5L
+        );
+
+        verify(
+                gastoRepository
+        ).delete(
+                existente
+        );
+    }
+
+    @Test
+    void impideEliminarGastoPagado() {
+
+        ContabilidadGasto existente =
+                new ContabilidadGasto();
+
+        existente.setComunidadId(
+                33L
+        );
+
+        existente.setPagado(
+                true
+        );
+
+        existente.setNumeroAsiento(
+                "GASTO-5-ASIENTO-10"
+        );
+
+        when(
+                gastoRepository.findByIdForUpdate(
+                        5L
+                )
+        ).thenReturn(
+                Optional.of(
+                        existente
+                )
+        );
+
+        IllegalStateException error =
+                assertThrows(
+                        IllegalStateException.class,
+                        () ->
+                                service.eliminarPendiente(
+                                        5L
+                                )
+                );
+
+        assertEquals(
+                "No se puede eliminar un gasto pagado. "
+                        + "Primero debe deshacerse el pago.",
+                error.getMessage()
+        );
+
+        verify(
+                gastoRepository,
+                never()
+        ).delete(
+                any()
+        );
+    }
+
+    @Test
+    void impideEliminarGastoContabilizado() {
+
+        ContabilidadGasto existente =
+                new ContabilidadGasto();
+
+        existente.setComunidadId(
+                33L
+        );
+
+        existente.setPagado(
+                false
+        );
+
+        existente.setNumeroAsiento(
+                "GASTO-5-ASIENTO-10"
+        );
+
+        when(
+                gastoRepository.findByIdForUpdate(
+                        5L
+                )
+        ).thenReturn(
+                Optional.of(
+                        existente
+                )
+        );
+
+        IllegalStateException error =
+                assertThrows(
+                        IllegalStateException.class,
+                        () ->
+                                service.eliminarPendiente(
+                                        5L
+                                )
+                );
+
+        assertEquals(
+                "No se puede eliminar un gasto contabilizado. "
+                        + "Primero debe deshacerse su contabilización.",
+                error.getMessage()
+        );
+
+        verify(
+                gastoRepository,
+                never()
+        ).delete(
                 any()
         );
     }

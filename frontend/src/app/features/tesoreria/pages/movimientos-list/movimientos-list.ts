@@ -1,14 +1,16 @@
 import {
   Component,
+  DestroyRef,
   OnInit,
-  OnDestroy,
-  inject,
-  ChangeDetectorRef
+  inject
 } from '@angular/core';
+
+import {
+  takeUntilDestroyed
+} from '@angular/core/rxjs-interop';
 
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Subscription } from 'rxjs';
 import { MovimientoBancario } from '../../../../core/models/movimiento-bancario.model';
 import { MovimientoBancarioService } from '../../../../core/services/movimiento-bancario.service';
 import { ComunidadStateService } from '../../../../core/state/comunidad-state.service';
@@ -19,13 +21,13 @@ import { ComunidadStateService } from '../../../../core/state/comunidad-state.se
   templateUrl: './movimientos-list.html',
   styleUrl: './movimientos-list.scss'
 })
-export class MovimientosList implements OnInit, OnDestroy {
+export class MovimientosList implements OnInit {
 
   private movimientoService = inject(MovimientoBancarioService);
   private comunidadState = inject(ComunidadStateService);
-  private cdr = inject(ChangeDetectorRef);
+  private readonly destroyRef =
+    inject(DestroyRef);
 
-  private comunidadSubscription?: Subscription;
 
   movimientos: MovimientoBancario[] = [];
   movimientosFiltrados: MovimientoBancario[] = [];
@@ -68,38 +70,38 @@ export class MovimientosList implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.comunidadState.init();
 
-    this.comunidadSubscription =
-      this.comunidadState.comunidad$
-        .subscribe((comunidad) => {
+    this.comunidadState.comunidad$
+      .pipe(
+        takeUntilDestroyed(
+          this.destroyRef
+        )
+      )
+      .subscribe((comunidad) => {
 
-          if (!comunidad) {
-            this.comunidadId = null;
-            this.nombreComunidadFiltro = '';
-            this.movimientos = [];
-            this.movimientosFiltrados = [];
-            this.resumenTesoreria = null;
-            this.mostrarMovimientos = true;
-            this.movimientoSeleccionado = null;
-            this.cargando = false;
-            this.error =
-              'Debe seleccionar una comunidad para ver sus movimientos bancarios.';
+        if (!comunidad) {
+          this.comunidadId = null;
+          this.nombreComunidadFiltro = '';
+          this.movimientos = [];
+          this.movimientosFiltrados = [];
+          this.resumenTesoreria = null;
+          this.mostrarMovimientos = true;
+          this.movimientoSeleccionado = null;
+          this.cargando = false;
+          this.error =
+            'Debe seleccionar una comunidad para ver sus movimientos bancarios.';
 
-            this.cdr.detectChanges();
-            return;
-          }
+          return;
+        }
 
-          this.comunidadId = comunidad.id;
-          this.nombreComunidadFiltro =
-            comunidad.nombre;
+        this.comunidadId = comunidad.id;
+        this.nombreComunidadFiltro =
+          comunidad.nombre;
 
-          this.volverMovimientos();
-          this.cargarMovimientos();
-        });
+        this.volverMovimientos();
+        this.cargarMovimientos();
+      });
   }
 
-  ngOnDestroy(): void {
-    this.comunidadSubscription?.unsubscribe();
-  }
 
   cargarMovimientos(): void {
     this.cargando = true;
@@ -112,7 +114,6 @@ export class MovimientosList implements OnInit, OnDestroy {
       this.error =
         'Debe seleccionar una comunidad para ver sus movimientos bancarios.';
       this.cargando = false;
-      this.cdr.detectChanges();
       return;
     }
 
@@ -126,7 +127,6 @@ export class MovimientosList implements OnInit, OnDestroy {
       .subscribe({
         next: (data) => {
           this.nombreComunidadFiltro = data.nombreComunidad;
-          this.cdr.detectChanges();
         },
         error: () => {
           this.nombreComunidadFiltro = 'Comunidad ' + comunidad;
@@ -144,14 +144,12 @@ export class MovimientosList implements OnInit, OnDestroy {
           this.cargarResumenTesoreria();
           this.aplicarFiltros();
           this.cargando = false;
-          this.cdr.detectChanges();
         },
         error: (err) => {
           console.error('Error cargando movimientos:', err);
           this.error =
             'No se pudieron cargar los movimientos bancarios de esta comunidad.';
           this.cargando = false;
-          this.cdr.detectChanges();
         }
       });
   }
@@ -275,7 +273,6 @@ export class MovimientosList implements OnInit, OnDestroy {
       .subscribe({
         next: (data) => {
           this.contextoMovimiento = data;
-          this.cdr.detectChanges();
         },
         error: (err) => {
           console.error(err);
@@ -294,7 +291,6 @@ export class MovimientosList implements OnInit, OnDestroy {
 
           this.sugerirConciliacionAutomatica();
 
-          this.cdr.detectChanges();
         },
         error: (err) => {
           console.error(err);
@@ -463,7 +459,6 @@ export class MovimientosList implements OnInit, OnDestroy {
             'No se pudo desconciliar el movimiento.';
 
           alert(mensaje);
-          this.cdr.detectChanges();
         }
       });
   }
@@ -509,7 +504,6 @@ export class MovimientosList implements OnInit, OnDestroy {
       .subscribe({
         next: (data) => {
           this.resumenTesoreria = data;
-          this.cdr.detectChanges();
         },
         error: (err) => {
           console.error('Error cargando resumen tesorería:', err);
@@ -543,7 +537,6 @@ export class MovimientosList implements OnInit, OnDestroy {
           this.totalSeleccionado = 0;
 
           if (!candidatos || candidatos.length === 0) {
-            this.cdr.detectChanges();
             return;
           }
 
@@ -577,7 +570,6 @@ export class MovimientosList implements OnInit, OnDestroy {
             Array.from(candidatosUnicos.keys());
 
           this.recalcularTotalSeleccionado();
-          this.cdr.detectChanges();
         },
         error: (err) => {
           console.error('Error sugerencia conciliación:', err);
@@ -598,7 +590,6 @@ export class MovimientosList implements OnInit, OnDestroy {
 
     this.ordenarMovimientosFiltrados();
     this.paginaActual = 1;
-    this.cdr.detectChanges();
   }
 
   ordenarMovimientosFiltrados(): void {

@@ -1,8 +1,13 @@
 import {
   Component,
+  DestroyRef,
   OnInit,
   inject
 } from '@angular/core';
+
+import {
+  takeUntilDestroyed
+} from '@angular/core/rxjs-interop';
 
 import {
   CommonModule
@@ -42,6 +47,9 @@ export class DiarioListComponent implements OnInit {
 
   private comunidadState =
     inject(ComunidadStateService);
+
+  private readonly destroyRef =
+    inject(DestroyRef);
 
   diarios: Diario[] = [];
 
@@ -130,6 +138,11 @@ export class DiarioListComponent implements OnInit {
 
     this.comunidadState
       .comunidad$
+      .pipe(
+        takeUntilDestroyed(
+          this.destroyRef
+        )
+      )
       .subscribe(comunidad => {
 
         if (!comunidad?.id) {

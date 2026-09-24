@@ -1,5 +1,4 @@
 import {
-  ChangeDetectorRef,
   Component,
   OnInit,
   inject
@@ -36,7 +35,6 @@ export class VecinoEdit implements OnInit {
   private documentoService =
     inject(VecinoDocumentoService);
 
-  private cdr = inject(ChangeDetectorRef);
 
   vecino?: Vecino;
 
@@ -99,7 +97,7 @@ export class VecinoEdit implements OnInit {
         notas: ''
       };
 
-      this.cdr.detectChanges();
+
     }
   }
 
@@ -113,7 +111,7 @@ export class VecinoEdit implements OnInit {
           };
 
           this.cargarDocumentos(id);
-          this.cdr.detectChanges();
+
         },
         error: (err) => {
           console.error(
@@ -124,7 +122,6 @@ export class VecinoEdit implements OnInit {
           this.error =
             'No se pudo cargar el propietario.';
 
-          this.cdr.detectChanges();
         }
       });
   }
@@ -152,7 +149,7 @@ export class VecinoEdit implements OnInit {
           ];
 
           this.cargandoDocumentos = false;
-          this.cdr.detectChanges();
+
         },
         error: (err) => {
           console.error(
@@ -166,7 +163,7 @@ export class VecinoEdit implements OnInit {
             'No se pudieron cargar los documentos del propietario.';
 
           this.cargandoDocumentos = false;
-          this.cdr.detectChanges();
+
         }
       });
   }
@@ -238,7 +235,7 @@ export class VecinoEdit implements OnInit {
             || 'No se pudo crear el propietario.';
 
           this.guardando = false;
-          this.cdr.detectChanges();
+
         }
       });
   }
@@ -266,7 +263,7 @@ export class VecinoEdit implements OnInit {
             'Propietario guardado correctamente.';
 
           this.guardando = false;
-          this.cdr.detectChanges();
+
 
           setTimeout(() => {
             this.router.navigate([
@@ -285,7 +282,7 @@ export class VecinoEdit implements OnInit {
             'No se pudo guardar el propietario.';
 
           this.guardando = false;
-          this.cdr.detectChanges();
+
         }
       });
   }
@@ -347,7 +344,7 @@ export class VecinoEdit implements OnInit {
       this.errorDocumentos =
         'Solo se permiten documentos PDF, JPG o PNG.';
 
-      this.cdr.detectChanges();
+
       return;
     }
 
@@ -363,7 +360,7 @@ export class VecinoEdit implements OnInit {
       this.errorDocumentos =
         'El documento no puede superar los 10 MB.';
 
-      this.cdr.detectChanges();
+
       return;
     }
 
@@ -379,7 +376,7 @@ export class VecinoEdit implements OnInit {
       this.errorDocumentos =
         'Primero debe guardar el propietario.';
 
-      this.cdr.detectChanges();
+
       return;
     }
 
@@ -387,7 +384,7 @@ export class VecinoEdit implements OnInit {
       this.errorDocumentos =
         'Seleccione un documento PDF, JPG o PNG.';
 
-      this.cdr.detectChanges();
+
       return;
     }
 
@@ -423,7 +420,7 @@ export class VecinoEdit implements OnInit {
             vecinoId
           );
 
-          this.cdr.detectChanges();
+
         },
         error: (err) => {
           console.error(
@@ -435,7 +432,7 @@ export class VecinoEdit implements OnInit {
             'No se pudo subir el mandato firmado.';
 
           this.subiendoDocumento = false;
-          this.cdr.detectChanges();
+
         }
       });
   }
@@ -449,7 +446,7 @@ export class VecinoEdit implements OnInit {
       this.errorDocumentos =
         'Primero debe guardar el propietario.';
 
-      this.cdr.detectChanges();
+
       return;
     }
 
@@ -484,7 +481,7 @@ export class VecinoEdit implements OnInit {
             'Mandato SEPA generado correctamente.';
 
           this.descargandoMandato = false;
-          this.cdr.detectChanges();
+
         },
         error: (err) => {
           console.error(
@@ -496,7 +493,7 @@ export class VecinoEdit implements OnInit {
             'No se pudo generar el mandato SEPA.';
 
           this.descargandoMandato = false;
-          this.cdr.detectChanges();
+
         }
       });
   }
@@ -619,7 +616,7 @@ export class VecinoEdit implements OnInit {
             this.vecino?.id
           );
 
-          this.cdr.detectChanges();
+
         },
         error: (err) => {
           console.error(
@@ -633,7 +630,7 @@ export class VecinoEdit implements OnInit {
           this.eliminandoDocumentoId =
             undefined;
 
-          this.cdr.detectChanges();
+
         }
       });
   }

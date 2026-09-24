@@ -556,4 +556,133 @@ describe('GastoEdit', () => {
       );
     }
   );
+
+  it(
+    'debe aplicar los datos OCR sin modificar concepto ni cuenta contable',
+    () => {
+
+      component.gastoForm.setValue({
+        comunidadId: 33,
+        concepto:
+          'Electricidad zonas comunes',
+        fechaFactura:
+          '2026-09-01',
+        importeTotal:
+          10,
+        numeroFactura:
+          '',
+        proveedor:
+          '',
+        cuentaGastoId:
+          1957
+      });
+
+      const archivo =
+        new File(
+          [
+            '%PDF-1.7 factura OCR'
+          ],
+          'factura.pdf',
+          {
+            type: 'application/pdf'
+          }
+        );
+
+      component.facturaSeleccionada =
+        archivo;
+
+      component.analizarFactura();
+
+      const peticion =
+        httpTesting.expectOne(
+          request =>
+            request.url
+            === '/api/gastos/ocr'
+            &&
+            request.params.get(
+              'comunidadId'
+            ) === '33'
+        );
+
+      expect(
+        peticion.request.method
+      ).toBe('POST');
+
+      expect(
+        peticion.request.body
+        instanceof FormData
+      ).toBe(true);
+
+      peticion.flush({
+        proveedor:
+          'ATENCO ENERGIA SL',
+        fechaFactura:
+          '2026-09-15',
+        importeTotal:
+          217.71,
+        numeroFactura:
+          'FAT-2026-054412',
+        ocrAplicado:
+          true,
+        advertencias: [
+          'El PDF no contiene texto suficiente; se ha utilizado OCR.'
+        ]
+      });
+
+      const valor =
+        component.gastoForm
+          .getRawValue();
+
+      expect(
+        valor.proveedor
+      ).toBe(
+        'ATENCO ENERGIA SL'
+      );
+
+      expect(
+        valor.fechaFactura
+      ).toBe(
+        '2026-09-15'
+      );
+
+      expect(
+        valor.importeTotal
+      ).toBe(
+        217.71
+      );
+
+      expect(
+        valor.numeroFactura
+      ).toBe(
+        'FAT-2026-054412'
+      );
+
+      expect(
+        valor.concepto
+      ).toBe(
+        'Electricidad zonas comunes'
+      );
+
+      expect(
+        valor.cuentaGastoId
+      ).toBe(
+        1957
+      );
+
+      expect(
+        component.mensajeOcr
+      ).toContain(
+        'Revise los datos antes de guardar'
+      );
+
+      expect(
+        component.advertenciasOcr
+          .length
+      ).toBe(1);
+
+      expect(
+        component.analizandoFactura
+      ).toBe(false);
+    }
+  );
 });

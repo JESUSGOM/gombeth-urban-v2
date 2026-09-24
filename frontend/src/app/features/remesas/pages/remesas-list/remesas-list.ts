@@ -1,5 +1,4 @@
 import {
-  ChangeDetectorRef,
   Component,
   DestroyRef,
   OnInit,
@@ -96,8 +95,6 @@ export class RemesasList implements OnInit {
   private destroyRef =
     inject(DestroyRef);
 
-  private changeDetectorRef =
-    inject(ChangeDetectorRef);
 
   private cargaRemesasActual?: Subscription;
   private cargaComunidadActual?: Subscription;
@@ -861,7 +858,6 @@ export class RemesasList implements OnInit {
       mensaje
     ];
 
-    this.changeDetectorRef.detectChanges();
   }
 
   private obtenerNombreArchivo(

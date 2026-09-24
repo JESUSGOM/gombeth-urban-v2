@@ -1,5 +1,4 @@
 import {
-  ChangeDetectorRef,
   Component,
   OnDestroy,
   OnInit,
@@ -25,7 +24,6 @@ export class ComunidadesList implements OnInit, OnDestroy {
 
   private comunidadService = inject(ComunidadService);
   private comunidadState = inject(ComunidadStateService);
-  private cdr = inject(ChangeDetectorRef);
   private router = inject(Router);
 
   private componenteDestruido = false;
@@ -80,7 +78,6 @@ export class ComunidadesList implements OnInit, OnDestroy {
             data.totalElements ?? 0;
 
           this.cargando = false;
-          this.actualizarVista();
         },
 
         error: error => {
@@ -93,7 +90,6 @@ export class ComunidadesList implements OnInit, OnDestroy {
             'No se pudieron cargar las comunidades.';
 
           this.cargando = false;
-          this.actualizarVista();
         }
       });
   }
@@ -137,7 +133,6 @@ export class ComunidadesList implements OnInit, OnDestroy {
       nombre: comunidad.nombre
     });
 
-    this.actualizarVista();
   }
 
   esComunidadActiva(
@@ -244,7 +239,6 @@ export class ComunidadesList implements OnInit, OnDestroy {
             this.errorQr =
               'El servidor devolvió un código QR vacío.';
 
-            this.actualizarVista();
             return;
           }
 
@@ -252,7 +246,6 @@ export class ComunidadesList implements OnInit, OnDestroy {
             URL.createObjectURL(contenidoQr);
 
           this.cargandoQr = false;
-          this.actualizarVista();
         },
 
         error: error => {
@@ -274,7 +267,6 @@ export class ComunidadesList implements OnInit, OnDestroy {
             error?.error?.message
             || 'No se pudo generar el código QR.';
 
-          this.actualizarVista();
         }
       });
   }
@@ -287,7 +279,6 @@ export class ComunidadesList implements OnInit, OnDestroy {
     this.cargandoQr = false;
     this.errorQr = '';
 
-    this.actualizarVista();
   }
 
   descargarQr(): void {
@@ -331,7 +322,6 @@ export class ComunidadesList implements OnInit, OnDestroy {
       this.errorQr =
         'El navegador ha bloqueado la ventana de impresión.';
 
-      this.actualizarVista();
       return;
     }
 
@@ -498,9 +488,5 @@ export class ComunidadesList implements OnInit, OnDestroy {
       .replace(/'/g, '&#039;');
   }
 
-  private actualizarVista(): void {
-    if (!this.componenteDestruido) {
-      this.cdr.detectChanges();
-    }
-  }
+
 }

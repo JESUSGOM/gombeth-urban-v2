@@ -1,5 +1,4 @@
 import {
-  ChangeDetectorRef,
   Component,
   DestroyRef,
   OnInit,
@@ -67,9 +66,6 @@ export class GastosList implements OnInit {
   private readonly destroyRef =
     inject(DestroyRef);
 
-  private readonly cdr =
-    inject(ChangeDetectorRef);
-
   private readonly router =
     inject(Router);
 
@@ -81,6 +77,37 @@ export class GastosList implements OnInit {
 
   cargando = false;
   error = '';
+
+  mensajeOperacion = '';
+  errorOperacion = '';
+
+  procesandoGastoId: number | null =
+    null;
+
+  procesandoPdfGastoId: number | null =
+    null;
+
+  readonly tamanioMaximoPdfBytes =
+    10 * 1024 * 1024;
+
+  /*
+   * IMPORTANTE:
+   *
+   * Mientras Gombeth Urban V2 comparta la base de datos
+   * con la aplicación antigua, las operaciones de pagar
+   * y deshacer pago permanecen deshabilitadas también
+   * en la interfaz.
+   *
+   * El backend dispone además de su propio bloqueo.
+   */
+  readonly pagosHabilitadosEnInterfaz =
+    false;
+
+  readonly avisoPagos =
+    'El pago y la anulación de gastos desde '
+    + 'Gombeth Urban V2 están temporalmente '
+    + 'deshabilitados mientras convive con '
+    + 'la aplicación anterior.';
 
   textoBusqueda = '';
 
@@ -130,12 +157,15 @@ export class GastosList implements OnInit {
             this.textoBusqueda = '';
             this.filtroEstado = 'TODOS';
             this.paginaActual = 1;
+
+            this.mensajeOperacion = '';
+            this.errorOperacion = '';
+            this.procesandoGastoId = null;
+            this.procesandoPdfGastoId = null;
           }
 
           this.cargando = true;
           this.error = '';
-
-          this.actualizarVista();
 
           return this.gastoService
             .listarPorComunidad(
@@ -169,8 +199,6 @@ export class GastosList implements OnInit {
                 this.paginaActual = 1;
                 this.cargando = false;
 
-                this.actualizarVista();
-
                 return EMPTY;
               })
             );
@@ -187,8 +215,6 @@ export class GastosList implements OnInit {
         this.aplicarFiltros();
 
         this.cargando = false;
-
-        this.actualizarVista();
       });
   }
 
@@ -201,7 +227,6 @@ export class GastosList implements OnInit {
       this.error =
         'Seleccione una comunidad antes de crear un gasto.';
 
-      this.actualizarVista();
       return;
     }
 
@@ -257,6 +282,709 @@ export class GastosList implements OnInit {
     return '';
   }
 
+  puedeEliminar(
+    gasto: Gasto
+  ): boolean {
+
+    return (
+      !this.estaPagado(gasto)
+      && !this.estaContabilizado(gasto)
+      && this.procesandoGastoId === null
+    );
+  }
+
+  motivoNoEliminar(
+    gasto: Gasto
+  ): string {
+
+    if (this.estaPagado(gasto)) {
+      return (
+        'El gasto está pagado. '
+        + 'Primero debe deshacerse el pago.'
+      );
+    }
+
+    if (this.estaContabilizado(gasto)) {
+      return (
+        'El gasto está contabilizado. '
+        + 'Primero debe deshacerse su contabilización.'
+      );
+    }
+
+    if (this.procesandoGastoId !== null) {
+      return (
+        'Hay otra operación de gasto en curso.'
+      );
+    }
+
+    return '';
+  }
+
+  eliminarGasto(
+    gasto: Gasto
+  ): void {
+
+    if (!this.puedeEliminar(gasto)) {
+
+      this.errorOperacion =
+        this.motivoNoEliminar(
+          gasto
+        );
+
+      this.mensajeOperacion = '';
+
+      return;
+    }
+
+    const gastoId =
+      Number(
+        gasto.id
+      );
+
+    if (
+      !Number.isInteger(gastoId)
+      || gastoId <= 0
+    ) {
+      this.errorOperacion =
+        'El identificador del gasto no es válido.';
+
+      this.mensajeOperacion = '';
+
+      return;
+    }
+
+    const confirmado =
+      window.confirm(
+        '¿Desea eliminar este gasto pendiente? '
+        + 'Esta operación eliminará el registro del gasto, '
+        + 'pero no eliminará físicamente el PDF de la factura.'
+      );
+
+    if (!confirmado) {
+      return;
+    }
+
+    this.procesandoGastoId =
+      gastoId;
+
+    this.mensajeOperacion = '';
+    this.errorOperacion = '';
+
+    this.gastoService
+      .eliminar(
+        gastoId
+      )
+      .pipe(
+        takeUntilDestroyed(
+          this.destroyRef
+        )
+      )
+      .subscribe({
+
+        next: () => {
+
+          this.procesandoGastoId =
+            null;
+
+          this.gastos =
+            this.gastos.filter(
+              gastoActual =>
+                Number(
+                  gastoActual.id
+                ) !== gastoId
+            );
+
+          this.aplicarFiltros();
+
+          this.mensajeOperacion =
+            'Gasto eliminado correctamente.';
+
+          this.errorOperacion = '';
+        },
+
+        error: error => {
+
+          console.error(
+            'Error eliminando gasto:',
+            error
+          );
+
+          this.procesandoGastoId =
+            null;
+
+          this.mensajeOperacion = '';
+
+          this.errorOperacion =
+            this.obtenerMensajeErrorOperacion(
+              error,
+              'No se pudo eliminar el gasto.'
+            );
+        }
+      });
+  }
+
+  puedePagar(
+    gasto: Gasto
+  ): boolean {
+
+    return (
+      this.pagosHabilitadosEnInterfaz
+      && this.estaContabilizado(gasto)
+      && !this.estaPagado(gasto)
+      && this.procesandoGastoId === null
+    );
+  }
+
+  motivoNoPagar(
+    gasto: Gasto
+  ): string {
+
+    if (!this.pagosHabilitadosEnInterfaz) {
+      return this.avisoPagos;
+    }
+
+    if (this.estaPagado(gasto)) {
+      return 'El gasto ya está pagado.';
+    }
+
+    if (!this.estaContabilizado(gasto)) {
+      return (
+        'El gasto debe estar contabilizado '
+        + 'antes de registrar el pago.'
+      );
+    }
+
+    if (this.procesandoGastoId !== null) {
+      return 'Hay otra operación de gasto en curso.';
+    }
+
+    return '';
+  }
+
+  puedeDeshacerPago(
+    gasto: Gasto
+  ): boolean {
+
+    return (
+      this.pagosHabilitadosEnInterfaz
+      && this.estaPagado(gasto)
+      && this.procesandoGastoId === null
+    );
+  }
+
+  motivoNoDeshacerPago(
+    gasto: Gasto
+  ): string {
+
+    if (!this.pagosHabilitadosEnInterfaz) {
+      return this.avisoPagos;
+    }
+
+    if (!this.estaPagado(gasto)) {
+      return 'El gasto no está pagado.';
+    }
+
+    if (this.procesandoGastoId !== null) {
+      return 'Hay otra operación de gasto en curso.';
+    }
+
+    return '';
+  }
+
+  pagarGasto(
+    gasto: Gasto
+  ): void {
+
+    if (!this.puedePagar(gasto)) {
+      this.errorOperacion =
+        this.motivoNoPagar(gasto);
+
+      this.mensajeOperacion = '';
+
+      return;
+    }
+
+    const gastoId =
+      Number(gasto.id);
+
+    if (
+      !Number.isInteger(gastoId)
+      || gastoId <= 0
+    ) {
+      this.errorOperacion =
+        'El identificador del gasto no es válido.';
+
+      this.mensajeOperacion = '';
+
+      return;
+    }
+
+    this.procesandoGastoId =
+      gastoId;
+
+    this.mensajeOperacion = '';
+    this.errorOperacion = '';
+
+    this.gastoService
+      .pagar(
+        gastoId
+      )
+      .pipe(
+        takeUntilDestroyed(
+          this.destroyRef
+        )
+      )
+      .subscribe({
+
+        next: gastoActualizado => {
+
+          this.procesandoGastoId =
+            null;
+
+          this.reemplazarGasto(
+            gastoActualizado
+          );
+
+          this.mensajeOperacion =
+            'Pago registrado correctamente.';
+
+          this.errorOperacion = '';
+        },
+
+        error: error => {
+
+          console.error(
+            'Error pagando gasto:',
+            error
+          );
+
+          this.procesandoGastoId =
+            null;
+
+          this.mensajeOperacion = '';
+
+          this.errorOperacion =
+            this.obtenerMensajeErrorOperacion(
+              error,
+              'No se pudo registrar el pago.'
+            );
+        }
+      });
+  }
+
+  deshacerPagoGasto(
+    gasto: Gasto
+  ): void {
+
+    if (!this.puedeDeshacerPago(gasto)) {
+      this.errorOperacion =
+        this.motivoNoDeshacerPago(
+          gasto
+        );
+
+      this.mensajeOperacion = '';
+
+      return;
+    }
+
+    const gastoId =
+      Number(gasto.id);
+
+    if (
+      !Number.isInteger(gastoId)
+      || gastoId <= 0
+    ) {
+      this.errorOperacion =
+        'El identificador del gasto no es válido.';
+
+      this.mensajeOperacion = '';
+
+      return;
+    }
+
+    this.procesandoGastoId =
+      gastoId;
+
+    this.mensajeOperacion = '';
+    this.errorOperacion = '';
+
+    this.gastoService
+      .deshacerPago(
+        gastoId
+      )
+      .pipe(
+        takeUntilDestroyed(
+          this.destroyRef
+        )
+      )
+      .subscribe({
+
+        next: gastoActualizado => {
+
+          this.procesandoGastoId =
+            null;
+
+          this.reemplazarGasto(
+            gastoActualizado
+          );
+
+          this.mensajeOperacion =
+            'Pago anulado correctamente.';
+
+          this.errorOperacion = '';
+        },
+
+        error: error => {
+
+          console.error(
+            'Error deshaciendo pago:',
+            error
+          );
+
+          this.procesandoGastoId =
+            null;
+
+          this.mensajeOperacion = '';
+
+          this.errorOperacion =
+            this.obtenerMensajeErrorOperacion(
+              error,
+              'No se pudo deshacer el pago.'
+            );
+        }
+      });
+  }
+
+  tienePdf(
+    gasto: Gasto
+  ): boolean {
+
+    return Boolean(
+      gasto.rutaPdf?.trim()
+    );
+  }
+
+  puedeAdjuntarPdf(
+    gasto: Gasto
+  ): boolean {
+
+    return (
+      !this.tienePdf(gasto)
+      && this.procesandoPdfGastoId === null
+    );
+  }
+
+  motivoNoAdjuntarPdf(
+    gasto: Gasto
+  ): string {
+
+    if (this.tienePdf(gasto)) {
+      return (
+        'El gasto ya tiene un PDF asociado. '
+        + 'Durante la convivencia no se permite sustituirlo.'
+      );
+    }
+
+    if (
+      this.procesandoPdfGastoId !== null
+    ) {
+      return (
+        'Hay otra operación de PDF en curso.'
+      );
+    }
+
+    return '';
+  }
+
+  seleccionarPdf(
+    gasto: Gasto,
+    event: Event
+  ): void {
+
+    const input =
+      event.target as HTMLInputElement;
+
+    const archivo =
+      input.files?.item(0)
+      ?? null;
+
+    /*
+     * Limpiamos el input para permitir volver a seleccionar
+     * el mismo fichero si posteriormente hubiera un error.
+     */
+    input.value = '';
+
+    if (!archivo) {
+      return;
+    }
+
+    this.adjuntarPdf(
+      gasto,
+      archivo
+    );
+  }
+
+  adjuntarPdf(
+    gasto: Gasto,
+    archivo: File
+  ): void {
+
+    if (!this.puedeAdjuntarPdf(gasto)) {
+
+      this.errorOperacion =
+        this.motivoNoAdjuntarPdf(
+          gasto
+        );
+
+      this.mensajeOperacion = '';
+
+      return;
+    }
+
+    const gastoId =
+      Number(
+        gasto.id
+      );
+
+    if (
+      !Number.isInteger(gastoId)
+      || gastoId <= 0
+    ) {
+      this.errorOperacion =
+        'El identificador del gasto no es válido.';
+
+      this.mensajeOperacion = '';
+
+      return;
+    }
+
+    if (
+      !archivo.name
+        .toLocaleLowerCase('es-ES')
+        .endsWith('.pdf')
+    ) {
+      this.errorOperacion =
+        'Solo se pueden adjuntar archivos PDF.';
+
+      this.mensajeOperacion = '';
+
+      return;
+    }
+
+    if (
+      archivo.size <= 0
+      || archivo.size
+      > this.tamanioMaximoPdfBytes
+    ) {
+      this.errorOperacion =
+        'El PDF no puede superar los 10 MB.';
+
+      this.mensajeOperacion = '';
+
+      return;
+    }
+
+    this.procesandoPdfGastoId =
+      gastoId;
+
+    this.mensajeOperacion = '';
+    this.errorOperacion = '';
+
+    this.gastoService
+      .subirPdf(
+        gastoId,
+        archivo
+      )
+      .pipe(
+        takeUntilDestroyed(
+          this.destroyRef
+        )
+      )
+      .subscribe({
+
+        next: gastoActualizado => {
+
+          this.procesandoPdfGastoId =
+            null;
+
+          this.reemplazarGasto(
+            gastoActualizado
+          );
+
+          this.mensajeOperacion =
+            'PDF de la factura adjuntado correctamente.';
+
+          this.errorOperacion = '';
+        },
+
+        error: error => {
+
+          console.error(
+            'Error adjuntando PDF al gasto:',
+            error
+          );
+
+          this.procesandoPdfGastoId =
+            null;
+
+          this.mensajeOperacion = '';
+
+          this.errorOperacion =
+            this.obtenerMensajeErrorPdf(
+              error,
+              'No se pudo adjuntar el PDF de la factura.'
+            );
+        }
+      });
+  }
+
+  verPdf(
+    gasto: Gasto
+  ): void {
+
+    if (!this.tienePdf(gasto)) {
+      this.errorOperacion =
+        'El gasto no tiene un PDF asociado.';
+
+      this.mensajeOperacion = '';
+
+      return;
+    }
+
+    const gastoId =
+      Number(
+        gasto.id
+      );
+
+    if (
+      !Number.isInteger(gastoId)
+      || gastoId <= 0
+    ) {
+      this.errorOperacion =
+        'El identificador del gasto no es válido.';
+
+      this.mensajeOperacion = '';
+
+      return;
+    }
+
+    if (
+      this.procesandoPdfGastoId !== null
+    ) {
+      this.errorOperacion =
+        'Hay otra operación de PDF en curso.';
+
+      this.mensajeOperacion = '';
+
+      return;
+    }
+
+    /*
+     * Abrimos la pestaña mientras todavía estamos dentro
+     * del clic del usuario para evitar que el navegador
+     * la considere un popup no solicitado.
+     */
+    const ventanaPdf =
+      window.open(
+        '',
+        '_blank'
+      );
+
+    if (!ventanaPdf) {
+      this.errorOperacion =
+        'El navegador ha bloqueado la apertura del PDF.';
+
+      this.mensajeOperacion = '';
+
+      return;
+    }
+
+    ventanaPdf.opener = null;
+
+    this.procesandoPdfGastoId =
+      gastoId;
+
+    this.mensajeOperacion = '';
+    this.errorOperacion = '';
+
+    this.gastoService
+      .obtenerPdf(
+        gastoId
+      )
+      .pipe(
+        takeUntilDestroyed(
+          this.destroyRef
+        )
+      )
+      .subscribe({
+
+        next: pdf => {
+
+          this.procesandoPdfGastoId =
+            null;
+
+          if (
+            !pdf
+            || pdf.size <= 0
+          ) {
+            ventanaPdf.close();
+
+            this.errorOperacion =
+              'El servidor devolvió un PDF vacío.';
+
+            return;
+          }
+
+          const url =
+            URL.createObjectURL(
+              pdf
+            );
+
+          ventanaPdf.location.href =
+            url;
+
+          /*
+           * Damos tiempo al navegador para cargar el PDF
+           * antes de liberar la URL temporal.
+           */
+          window.setTimeout(
+            () => {
+              URL.revokeObjectURL(
+                url
+              );
+            },
+            60000
+          );
+
+          this.mensajeOperacion =
+            'PDF abierto correctamente.';
+
+          this.errorOperacion = '';
+        },
+
+        error: error => {
+
+          console.error(
+            'Error abriendo PDF del gasto:',
+            error
+          );
+
+          this.procesandoPdfGastoId =
+            null;
+
+          ventanaPdf.close();
+
+          this.mensajeOperacion = '';
+
+          this.errorOperacion =
+            this.obtenerMensajeErrorPdf(
+              error,
+              'No se pudo abrir el PDF de la factura.'
+            );
+        }
+      });
+  }
+
   cargarGastos(): void {
 
     if (
@@ -292,8 +1020,6 @@ export class GastosList implements OnInit {
           this.aplicarFiltros();
 
           this.cargando = false;
-
-          this.actualizarVista();
         },
 
         error: error => {
@@ -322,13 +1048,15 @@ export class GastosList implements OnInit {
           this.gastosFiltrados = [];
           this.paginaActual = 1;
           this.cargando = false;
-
-          this.actualizarVista();
         }
       });
   }
 
   actualizarListado(): void {
+
+    this.mensajeOperacion = '';
+    this.errorOperacion = '';
+
     this.cargarGastos();
   }
 
@@ -381,8 +1109,6 @@ export class GastosList implements OnInit {
     this.paginaActual = 1;
 
     this.ajustarPagina();
-
-    this.actualizarVista();
   }
 
   limpiarFiltros(): void {
@@ -463,8 +1189,6 @@ export class GastosList implements OnInit {
     }
 
     this.paginaActual--;
-
-    this.actualizarVista();
   }
 
   paginaSiguiente(): void {
@@ -477,8 +1201,6 @@ export class GastosList implements OnInit {
     }
 
     this.paginaActual++;
-
-    this.actualizarVista();
   }
 
   estadoGasto(
@@ -559,6 +1281,104 @@ export class GastosList implements OnInit {
     );
   }
 
+  private reemplazarGasto(
+    gastoActualizado: Gasto
+  ): void {
+
+    const gastoId =
+      Number(
+        gastoActualizado.id
+      );
+
+    this.gastos =
+      this.gastos.map(gasto =>
+        Number(gasto.id) === gastoId
+          ? gastoActualizado
+          : gasto
+      );
+
+    this.aplicarFiltros();
+  }
+
+  private obtenerMensajeErrorOperacion(
+    error: any,
+    mensajeDefecto: string
+  ): string {
+
+    if (error?.status === 409) {
+      return (
+        error?.error?.detail
+        || error?.error?.message
+        || this.avisoPagos
+      );
+    }
+
+    if (error?.status === 403) {
+      return (
+        'No tiene permiso para realizar '
+        + 'esta operación.'
+      );
+    }
+
+    if (error?.status === 401) {
+      return (
+        'La sesión ha caducado. '
+        + 'Vuelva a iniciar sesión.'
+      );
+    }
+
+    return (
+      error?.error?.detail
+      || error?.error?.message
+      || mensajeDefecto
+    );
+  }
+
+  private obtenerMensajeErrorPdf(
+    error: any,
+    mensajeDefecto: string
+  ): string {
+
+    if (error?.status === 409) {
+      return (
+        error?.error?.detail
+        || error?.error?.message
+        || 'El gasto ya tiene un PDF asociado.'
+      );
+    }
+
+    if (error?.status === 404) {
+      return (
+        'No se ha encontrado el PDF '
+        + 'asociado a este gasto.'
+      );
+    }
+
+    if (error?.status === 403) {
+      return (
+        'No tiene permiso para acceder '
+        + 'al PDF de este gasto.'
+      );
+    }
+
+    if (error?.status === 401) {
+      return (
+        'La sesión ha caducado. '
+        + 'Vuelva a iniciar sesión.'
+      );
+    }
+
+    if (error?.status === 400) {
+      return (
+        error?.error?.detail
+        || error?.error?.message
+        || mensajeDefecto
+      );
+    }
+
+    return mensajeDefecto;
+  }
+
   private normalizar(
     valor: unknown
   ): string {
@@ -594,19 +1414,13 @@ export class GastosList implements OnInit {
     this.paginaActual = 1;
     this.cargando = false;
 
+    this.procesandoGastoId = null;
+    this.procesandoPdfGastoId = null;
+
+    this.mensajeOperacion = '';
+    this.errorOperacion = '';
+
     this.error =
       'Seleccione una comunidad en la parte superior.';
-
-    this.actualizarVista();
-  }
-
-  private actualizarVista(): void {
-
-    try {
-      this.cdr.detectChanges();
-    } catch {
-      // El componente puede haberse destruido
-      // mientras finalizaba una petición HTTP.
-    }
   }
 }

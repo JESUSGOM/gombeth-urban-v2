@@ -82,6 +82,28 @@
             <version>2.0.3</version>
         </dependency>
 
+        <!-- Conversión HTML -> PDF para actas.
+            Misma versión utilizada por la aplicación histórica. -->
+        <dependency>
+            <groupId>org.xhtmlrenderer</groupId>
+            <artifactId>flying-saucer-pdf-openpdf</artifactId>
+            <version>9.1.22</version>
+        </dependency>
+
+        <!-- Lectura y extracción de texto de PDF -->
+        <dependency>
+            <groupId>org.apache.pdfbox</groupId>
+            <artifactId>pdfbox</artifactId>
+            <version>3.0.5</version>
+        </dependency>
+
+        <!-- OCR de facturas escaneadas -->
+        <dependency>
+            <groupId>net.sourceforge.tess4j</groupId>
+            <artifactId>tess4j</artifactId>
+            <version>5.16.0</version>
+        </dependency>
+
         <!-- Tests -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

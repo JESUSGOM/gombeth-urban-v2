@@ -42,6 +42,7 @@ public class ContabilidadAutomaticaService {
     private final ContabilidadAsientoService asientoService;
     private final ContabilidadGastoRepository gastoRepository;
     private final ContabilidadAsientoRepository asientoRepository;
+    private final CuentaProveedorContableService cuentaProveedorContableService;
 
     public ContabilidadAutomaticaService(
             ContabilidadMovimientoRepository movimientoRepository,
@@ -50,7 +51,8 @@ public class ContabilidadAutomaticaService {
             MovimientoBancarioRepository movimientoBancarioRepository,
             ContabilidadAsientoService asientoService,
             ContabilidadGastoRepository gastoRepository,
-            ContabilidadAsientoRepository asientoRepository
+            ContabilidadAsientoRepository asientoRepository,
+            CuentaProveedorContableService cuentaProveedorContableService
     ) {
         this.movimientoRepository = movimientoRepository;
         this.cuentaRepository = cuentaRepository;
@@ -59,6 +61,7 @@ public class ContabilidadAutomaticaService {
         this.asientoService = asientoService;
         this.gastoRepository = gastoRepository;
         this.asientoRepository = asientoRepository;
+        this.cuentaProveedorContableService = cuentaProveedorContableService;
     }
 
     @Transactional
@@ -435,11 +438,11 @@ public class ContabilidadAutomaticaService {
         }
 
         CuentaContable cuentaProveedor =
-                buscarCuentaPorPrefijo(
-                        gasto.getComunidadId(),
-                        "410",
-                        "No existe cuenta de proveedor 410 para la comunidad "
-                );
+                cuentaProveedorContableService
+                        .resolverOCrear(
+                                gasto.getComunidadId(),
+                                gasto.getProveedor()
+                        );
 
         LocalDate fecha =
                 gasto.getFechaFactura() != null
@@ -457,8 +460,20 @@ public class ContabilidadAutomaticaService {
                         null
                 );
 
+        if (
+                asiento == null
+                        || asiento.getId() == null
+        ) {
+            throw new IllegalStateException(
+                    "El asiento contable del gasto "
+                            + gasto.getId()
+                            + " no tiene identificador."
+            );
+        }
+
         String numeroAsientoControl =
-                "GASTO-" + gasto.getId();
+                "ASIENTO-"
+                        + asiento.getId();
 
         String concepto =
                 "Factura "

@@ -133,6 +133,38 @@
     {{ error }}
   </div>
 
+  <div
+    *ngIf="mensajeOperacion"
+    class="alert info">
+    {{ mensajeOperacion }}
+  </div>
+
+  <div
+    *ngIf="errorOperacion"
+    class="alert error">
+    {{ errorOperacion }}
+  </div>
+
+  <!--
+    Mientras Gombeth Urban V2 conviva con la aplicación
+    anterior, mostramos al usuario por qué las operaciones
+    de pago permanecen bloqueadas.
+  -->
+  <div
+    *ngIf="
+      comunidadId
+      && !pagosHabilitadosEnInterfaz
+    "
+    class="alert info">
+
+    <strong>
+      Pago de gastos temporalmente bloqueado.
+    </strong>
+
+    {{ avisoPagos }}
+
+  </div>
+
   <section
     *ngIf="
       !cargando
@@ -248,115 +280,284 @@
 
       <thead>
 
-        <tr>
-          <th>ID</th>
-          <th>Fecha</th>
-          <th>Proveedor</th>
-          <th>Factura</th>
-          <th>Concepto</th>
-          <th>Cuenta</th>
-          <th class="right">Importe</th>
-          <th>Asiento</th>
-          <th>Estado</th>
-          <th>Acciones</th>
-        </tr>
+      <tr>
+        <th>ID</th>
+        <th>Fecha</th>
+        <th>Proveedor</th>
+        <th>Factura</th>
+        <th>Concepto</th>
+        <th>Cuenta</th>
+        <th class="right">Importe</th>
+        <th>Asiento</th>
+        <th>Estado</th>
+        <th>PDF</th>
+        <th>Acciones</th>
+      </tr>
 
       </thead>
 
       <tbody>
 
-        <tr
-          *ngFor="
+      <tr
+        *ngFor="
             let gasto of gastosPagina
           ">
 
-          <td class="id-col">
-            {{ gasto.id }}
-          </td>
+        <td class="id-col">
+          {{ gasto.id }}
+        </td>
 
-          <td class="fecha-col">
+        <td class="fecha-col">
+          {{
+            gasto.fechaFactura
+              | date:'dd/MM/yyyy'
+          }}
+        </td>
+
+        <td class="proveedor-col">
+          {{
+            gasto.proveedor
+            || '—'
+          }}
+        </td>
+
+        <td>
+          {{
+            gasto.numeroFactura
+            || '—'
+          }}
+        </td>
+
+        <td class="concepto-col">
+          {{
+            gasto.concepto
+            || '—'
+          }}
+        </td>
+
+        <td>
+          {{
+            gasto.cuentaGastoId
+            ?? '—'
+          }}
+        </td>
+
+        <td class="right importe-col">
+          {{
+            gasto.importeTotal
+              | number:'1.2-2'
+          }}
+          €
+        </td>
+
+        <td>
+          {{
+            gasto.numeroAsiento
+            || '—'
+          }}
+        </td>
+
+        <td>
+
+          <span
+            [class]="
+              claseEstado(gasto)
+            ">
             {{
-              gasto.fechaFactura
-                | date:'dd/MM/yyyy'
+              estadoGasto(gasto)
             }}
-          </td>
+          </span>
 
-          <td class="proveedor-col">
-            {{
-              gasto.proveedor
-              || '—'
-            }}
-          </td>
+        </td>
 
-          <td>
-            {{
-              gasto.numeroFactura
-              || '—'
-            }}
-          </td>
+        <td class="pdf-col">
 
-          <td class="concepto-col">
-            {{
-              gasto.concepto
-              || '—'
-            }}
-          </td>
-
-          <td>
-            {{
-              gasto.cuentaGastoId
-              ?? '—'
-            }}
-          </td>
-
-          <td class="right importe-col">
-            {{
-              gasto.importeTotal
-                | number:'1.2-2'
-            }}
-            €
-          </td>
-
-          <td>
-            {{
-              gasto.numeroAsiento
-              || '—'
-            }}
-          </td>
-
-          <td>
-
-            <span
-              [class]="
-                claseEstado(gasto)
-              ">
-              {{
-                estadoGasto(gasto)
-              }}
-            </span>
-
-          </td>
-
-          <td class="acciones-col">
+          <!--
+            Si el gasto ya tiene PDF, solamente permitimos
+            visualizarlo. Durante la convivencia no existe
+            sustitución ni eliminación desde V2.
+          -->
+          <ng-container
+            *ngIf="
+              tienePdf(gasto);
+              else sinPdf
+            ">
 
             <button
               type="button"
               class="edit-button"
               [disabled]="
-                !puedeEditar(gasto)
+                procesandoPdfGastoId !== null
               "
               [title]="
+                procesandoPdfGastoId !== null
+                  ? 'Hay otra operación de PDF en curso.'
+                  : 'Abrir PDF de la factura'
+              "
+              (click)="verPdf(gasto)">
+
+              {{
+                procesandoPdfGastoId === gasto.id
+                  ? 'Abriendo...'
+                  : 'Ver PDF'
+              }}
+
+            </button>
+
+          </ng-container>
+
+          <!--
+            Si todavía no existe PDF, mostramos el selector.
+            El input permanece oculto y el usuario trabaja
+            mediante el botón visible.
+          -->
+          <ng-template #sinPdf>
+
+            <input
+              #pdfInput
+              type="file"
+              accept=".pdf,application/pdf"
+              hidden
+              [disabled]="
+                !puedeAdjuntarPdf(gasto)
+              "
+              (change)="
+                seleccionarPdf(
+                  gasto,
+                  $event
+                )
+              ">
+
+            <button
+              type="button"
+              class="edit-button"
+              [disabled]="
+                !puedeAdjuntarPdf(gasto)
+              "
+              [title]="
+                puedeAdjuntarPdf(gasto)
+                  ? 'Adjuntar PDF de la factura'
+                  : motivoNoAdjuntarPdf(gasto)
+              "
+              (click)="pdfInput.click()">
+
+              {{
+                procesandoPdfGastoId === gasto.id
+                  ? 'Adjuntando...'
+                  : 'Adjuntar PDF'
+              }}
+
+            </button>
+
+          </ng-template>
+
+        </td>
+
+        <td class="acciones-col">
+
+          <button
+            type="button"
+            class="edit-button"
+            [disabled]="
+                !puedeEditar(gasto)
+              "
+            [title]="
                 puedeEditar(gasto)
                   ? 'Editar gasto'
                   : motivoNoEditable(gasto)
               "
-              (click)="editarGasto(gasto)">
-              Editar
-            </button>
+            (click)="editarGasto(gasto)">
+            Editar
+          </button>
 
-          </td>
+          <button
+            *ngIf="
+      estadoGasto(gasto)
+        === 'Pendiente'
+    "
+            type="button"
+            class="edit-button"
+            [disabled]="
+      !puedeEliminar(gasto)
+    "
+            [title]="
+      puedeEliminar(gasto)
+        ? 'Eliminar gasto pendiente'
+        : motivoNoEliminar(gasto)
+    "
+            (click)="eliminarGasto(gasto)">
 
-        </tr>
+            {{
+              procesandoGastoId === gasto.id
+                ? 'Eliminando...'
+                : 'Eliminar'
+            }}
+
+          </button>
+
+          <!--
+            Un gasto contabilizado y todavía no pagado
+            tendrá disponible aquí la operación Pagar
+            cuando finalice la convivencia.
+          -->
+          <button
+            *ngIf="
+                estadoGasto(gasto)
+                  === 'Contabilizado'
+              "
+            type="button"
+            class="edit-button"
+            [disabled]="
+                !puedePagar(gasto)
+              "
+            [title]="
+                puedePagar(gasto)
+                  ? 'Registrar pago'
+                  : motivoNoPagar(gasto)
+              "
+            (click)="pagarGasto(gasto)">
+
+            {{
+              procesandoGastoId === gasto.id
+                ? 'Procesando...'
+                : 'Pagar'
+            }}
+
+          </button>
+
+          <!--
+            Para un gasto pagado mostramos la operación
+            inversa, pero permanece igualmente bloqueada
+            mientras convive la aplicación antigua.
+          -->
+          <button
+            *ngIf="
+                estadoGasto(gasto)
+                  === 'Pagado'
+              "
+            type="button"
+            class="edit-button"
+            [disabled]="
+                !puedeDeshacerPago(gasto)
+              "
+            [title]="
+                puedeDeshacerPago(gasto)
+                  ? 'Deshacer pago'
+                  : motivoNoDeshacerPago(gasto)
+              "
+            (click)="deshacerPagoGasto(gasto)">
+
+            {{
+              procesandoGastoId === gasto.id
+                ? 'Procesando...'
+                : 'Deshacer pago'
+            }}
+
+          </button>
+
+        </td>
+
+      </tr>
 
       </tbody>
 

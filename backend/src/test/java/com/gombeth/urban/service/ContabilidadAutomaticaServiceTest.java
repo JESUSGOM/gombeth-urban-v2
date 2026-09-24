@@ -64,6 +64,10 @@ class ContabilidadAutomaticaServiceTest {
             asientoRepository;
 
     @Mock
+    private CuentaProveedorContableService
+            cuentaProveedorContableService;
+
+    @Mock
     private ContabilidadRecibo recibo;
 
     @Mock
@@ -336,6 +340,390 @@ class ContabilidadAutomaticaServiceTest {
         ).existsByComunidadIdAndNumeroAsiento(
                 33L,
                 "COBRO-RECIBO-1554"
+        );
+    }
+
+    @Test
+    void contabilizaGastoConCuenta410DelProveedor() {
+
+        ContabilidadGasto gasto =
+                org.mockito.Mockito.mock(
+                        ContabilidadGasto.class
+                );
+
+        CuentaContable cuentaProveedor =
+                new CuentaContable();
+
+        cuentaProveedor.setId(
+                3000L
+        );
+
+        when(
+                gastoRepository.findById(
+                        25L
+                )
+        ).thenReturn(
+                Optional.of(
+                        gasto
+                )
+        );
+
+        when(
+                gasto.getId()
+        ).thenReturn(
+                25L
+        );
+
+        when(
+                gasto.getNumeroAsiento()
+        ).thenReturn(
+                null
+        );
+
+        when(
+                gasto.getComunidadId()
+        ).thenReturn(
+                33L
+        );
+
+        when(
+                gasto.getCuentaGastoId()
+        ).thenReturn(
+                1957L
+        );
+
+        when(
+                gasto.getImporteTotal()
+        ).thenReturn(
+                new BigDecimal(
+                        "23.45"
+                )
+        );
+
+        when(
+                gasto.getProveedor()
+        ).thenReturn(
+                "PRUEBA PASO 2B"
+        );
+
+        when(
+                gasto.getFechaFactura()
+        ).thenReturn(
+                LocalDate.of(
+                        2026,
+                        9,
+                        17
+                )
+        );
+
+        when(
+                gasto.getNumeroFactura()
+        ).thenReturn(
+                "TEST-2B-20260917"
+        );
+
+        when(
+                cuentaProveedorContableService
+                        .resolverOCrear(
+                                33L,
+                                "PRUEBA PASO 2B"
+                        )
+        ).thenReturn(
+                cuentaProveedor
+        );
+
+        when(
+                asientoService.crearAsientoAutomatico(
+                        33L,
+                        LocalDate.of(
+                                2026,
+                                9,
+                                17
+                        ),
+                        "Factura proveedor PRUEBA PASO 2B",
+                        "GASTO_CONTABILIZADO",
+                        25L,
+                        null
+                )
+        ).thenReturn(
+                asiento
+        );
+
+        when(
+                asiento.getNumeroAsiento()
+        ).thenReturn(
+                17L
+        );
+
+        service.contabilizarGasto(
+                25L
+        );
+
+        verify(
+                cuentaProveedorContableService
+        ).resolverOCrear(
+                33L,
+                "PRUEBA PASO 2B"
+        );
+
+        verify(
+                movimientoRepository,
+                times(2)
+        ).save(
+                movimientoCaptor.capture()
+        );
+
+        List<ContabilidadMovimiento> movimientos =
+                movimientoCaptor.getAllValues();
+
+        assertEquals(
+                2,
+                movimientos.size()
+        );
+
+        ContabilidadMovimiento debeGasto =
+                movimientos.get(0);
+
+        assertEquals(
+                1957L,
+                debeGasto.getCuentaId()
+        );
+
+        assertEquals(
+                new BigDecimal("23.45"),
+                debeGasto.getDebe()
+        );
+
+        assertEquals(
+                BigDecimal.ZERO,
+                debeGasto.getHaber()
+        );
+
+        ContabilidadMovimiento haberProveedor =
+                movimientos.get(1);
+
+        assertEquals(
+                3000L,
+                haberProveedor.getCuentaId()
+        );
+
+        assertEquals(
+                BigDecimal.ZERO,
+                haberProveedor.getDebe()
+        );
+
+        assertEquals(
+                new BigDecimal("23.45"),
+                haberProveedor.getHaber()
+        );
+
+        verify(
+                gasto
+        ).setNumeroAsiento(
+                "GASTO-25-ASIENTO-17"
+        );
+
+        verify(
+                gastoRepository
+        ).save(
+                gasto
+        );
+    }
+
+    @Test
+    void usaReferenciaUnicaPorAsientoAlRecontabilizarGasto() {
+
+        ContabilidadGasto gasto =
+                org.mockito.Mockito.mock(
+                        ContabilidadGasto.class
+                );
+
+        ContabilidadAsiento primerAsiento =
+                org.mockito.Mockito.mock(
+                        ContabilidadAsiento.class
+                );
+
+        ContabilidadAsiento segundoAsiento =
+                org.mockito.Mockito.mock(
+                        ContabilidadAsiento.class
+                );
+
+        CuentaContable cuentaProveedor =
+                new CuentaContable();
+
+        cuentaProveedor.setId(
+                3000L
+        );
+
+        when(
+                gastoRepository.findById(
+                        25L
+                )
+        ).thenReturn(
+                Optional.of(
+                        gasto
+                )
+        );
+
+        when(
+                gasto.getId()
+        ).thenReturn(
+                25L
+        );
+
+        when(
+                gasto.getNumeroAsiento()
+        ).thenReturn(
+                null
+        );
+
+        when(
+                gasto.getComunidadId()
+        ).thenReturn(
+                33L
+        );
+
+        when(
+                gasto.getCuentaGastoId()
+        ).thenReturn(
+                1957L
+        );
+
+        when(
+                gasto.getImporteTotal()
+        ).thenReturn(
+                new BigDecimal(
+                        "23.45"
+                )
+        );
+
+        when(
+                gasto.getProveedor()
+        ).thenReturn(
+                "PRUEBA RECONTABILIZACION"
+        );
+
+        when(
+                gasto.getFechaFactura()
+        ).thenReturn(
+                LocalDate.of(
+                        2026,
+                        9,
+                        22
+                )
+        );
+
+        when(
+                gasto.getNumeroFactura()
+        ).thenReturn(
+                "TEST-RECONT-25"
+        );
+
+        when(
+                cuentaProveedorContableService
+                        .resolverOCrear(
+                                33L,
+                                "PRUEBA RECONTABILIZACION"
+                        )
+        ).thenReturn(
+                cuentaProveedor
+        );
+
+        when(
+                asientoService.crearAsientoAutomatico(
+                        33L,
+                        LocalDate.of(
+                                2026,
+                                9,
+                                22
+                        ),
+                        "Factura proveedor PRUEBA RECONTABILIZACION",
+                        "GASTO_CONTABILIZADO",
+                        25L,
+                        null
+                )
+        ).thenReturn(
+                primerAsiento,
+                segundoAsiento
+        );
+
+        when(
+                primerAsiento.getId()
+        ).thenReturn(
+                101L
+        );
+
+        when(
+                primerAsiento.getNumeroAsiento()
+        ).thenReturn(
+                17L
+        );
+
+        when(
+                segundoAsiento.getId()
+        ).thenReturn(
+                102L
+        );
+
+        when(
+                segundoAsiento.getNumeroAsiento()
+        ).thenReturn(
+                18L
+        );
+
+        service.contabilizarGasto(
+                25L
+        );
+
+        service.contabilizarGasto(
+                25L
+        );
+
+        verify(
+                movimientoRepository,
+                times(4)
+        ).save(
+                movimientoCaptor.capture()
+        );
+
+        List<ContabilidadMovimiento> movimientos =
+                movimientoCaptor.getAllValues();
+
+        assertEquals(
+                4,
+                movimientos.size()
+        );
+
+        assertEquals(
+                "ASIENTO-101",
+                movimientos.get(0).getNumeroAsiento()
+        );
+
+        assertEquals(
+                "ASIENTO-101",
+                movimientos.get(1).getNumeroAsiento()
+        );
+
+        assertEquals(
+                "ASIENTO-102",
+                movimientos.get(2).getNumeroAsiento()
+        );
+
+        assertEquals(
+                "ASIENTO-102",
+                movimientos.get(3).getNumeroAsiento()
+        );
+
+        verify(
+                gasto
+        ).setNumeroAsiento(
+                "GASTO-25-ASIENTO-17"
+        );
+
+        verify(
+                gasto
+        ).setNumeroAsiento(
+                "GASTO-25-ASIENTO-18"
         );
     }
 

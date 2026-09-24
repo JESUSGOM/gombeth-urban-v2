@@ -1,15 +1,13 @@
 import { CommonModule } from '@angular/common';
 import {
-  ChangeDetectorRef,
   Component,
-  OnDestroy,
+  DestroyRef,
   OnInit,
   inject
 } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
 
 import {
   GestionIncidencia,
@@ -40,15 +38,13 @@ interface ResumenIncidencias {
   templateUrl: './incidencias-list.html',
   styleUrl: './incidencias-list.scss'
 })
-export class IncidenciasList implements OnInit, OnDestroy {
+export class IncidenciasList implements OnInit {
 
   private incidenciasService = inject(IncidenciasService);
   private comunidadState = inject(ComunidadStateService);
   private router = inject(Router);
-  private changeDetectorRef = inject(ChangeDetectorRef);
 
-  private readonly destruir$ = new Subject<void>();
-  private componenteDestruido = false;
+  private readonly destroyRef = inject(DestroyRef);
 
   incidencias: GestionIncidencia[] = [];
   incidenciasFiltradas: GestionIncidencia[] = [];
@@ -78,7 +74,7 @@ export class IncidenciasList implements OnInit, OnDestroy {
 
     this.comunidadState.comunidad$
       .pipe(
-        takeUntil(this.destruir$)
+        takeUntilDestroyed(this.destroyRef)
       )
       .subscribe(comunidad => {
         if (!comunidad) {
@@ -86,11 +82,10 @@ export class IncidenciasList implements OnInit, OnDestroy {
           this.nombreComunidad = '';
           this.error =
             'Seleccione una comunidad en la parte superior.';
-
+          this.cargando = false;
           this.incidencias = [];
           this.incidenciasFiltradas = [];
           this.reiniciarResumen();
-          this.actualizarVista();
           return;
         }
 
@@ -110,13 +105,6 @@ export class IncidenciasList implements OnInit, OnDestroy {
       });
   }
 
-  ngOnDestroy(): void {
-    this.componenteDestruido = true;
-
-    this.destruir$.next();
-    this.destruir$.complete();
-  }
-
   cargarIncidencias(
     comunidadId: number
   ): void {
@@ -126,8 +114,10 @@ export class IncidenciasList implements OnInit, OnDestroy {
     ) {
       this.error =
         'El identificador de la comunidad no es válido.';
-
-      this.actualizarVista();
+      this.cargando = false;
+      this.incidencias = [];
+      this.incidenciasFiltradas = [];
+      this.reiniciarResumen();
       return;
     }
 
@@ -136,6 +126,9 @@ export class IncidenciasList implements OnInit, OnDestroy {
 
     this.incidenciasService
       .listarPorComunidad(comunidadId)
+      .pipe(
+        takeUntilDestroyed(this.destroyRef)
+      )
       .subscribe({
         next: (data: GestionIncidencia[]) => {
           this.incidencias = [
@@ -146,7 +139,6 @@ export class IncidenciasList implements OnInit, OnDestroy {
           this.aplicarFiltros();
 
           this.cargando = false;
-          this.actualizarVista();
         },
 
         error: error => {
@@ -165,7 +157,6 @@ export class IncidenciasList implements OnInit, OnDestroy {
           this.reiniciarResumen();
 
           this.cargando = false;
-          this.actualizarVista();
         }
       });
   }
@@ -255,8 +246,6 @@ export class IncidenciasList implements OnInit, OnDestroy {
           && coincideBusqueda
         );
       });
-
-    this.actualizarVista();
   }
 
   limpiarFiltros(): void {
@@ -452,11 +441,5 @@ export class IncidenciasList implements OnInit, OnDestroy {
       .replace(/[\u0300-\u036f]/g, '')
       .trim()
       .toLowerCase();
-  }
-
-  private actualizarVista(): void {
-    if (!this.componenteDestruido) {
-      this.changeDetectorRef.detectChanges();
-    }
   }
 }

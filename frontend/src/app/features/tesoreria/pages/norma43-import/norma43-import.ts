@@ -2,13 +2,17 @@ import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import {
   Component,
-  OnDestroy,
+  DestroyRef,
   OnInit,
   inject
 } from '@angular/core';
+
+import {
+  takeUntilDestroyed
+} from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { Subscription, finalize } from 'rxjs';
+import { finalize } from 'rxjs';
 
 import {
   Norma43MovimientoPreview,
@@ -30,13 +34,14 @@ import {
   templateUrl: './norma43-import.html',
   styleUrl: './norma43-import.scss'
 })
-export class Norma43Import implements OnInit, OnDestroy {
+export class Norma43Import implements OnInit {
 
   private readonly norma43Service = inject(Norma43Service);
   private readonly comunidadState = inject(ComunidadStateService);
   private readonly router = inject(Router);
+  private readonly destroyRef =
+    inject(DestroyRef);
 
-  private readonly subscriptions = new Subscription();
 
   comunidad: ComunidadSeleccionada | null = null;
   ficheroSeleccionado: File | null = null;
@@ -55,8 +60,14 @@ export class Norma43Import implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.comunidadState.init();
 
-    this.subscriptions.add(
-      this.comunidadState.comunidad$.subscribe(comunidad => {
+    this.comunidadState.comunidad$
+      .pipe(
+        takeUntilDestroyed(
+          this.destroyRef
+        )
+      )
+      .subscribe(comunidad => {
+
         const cambioComunidad =
           this.comunidad?.id !== comunidad?.id;
 
@@ -65,13 +76,9 @@ export class Norma43Import implements OnInit, OnDestroy {
         if (cambioComunidad) {
           this.reiniciarFlujo();
         }
-      })
-    );
+      });
   }
 
-  ngOnDestroy(): void {
-    this.subscriptions.unsubscribe();
-  }
 
   seleccionarFichero(evento: Event): void {
     const input = evento.target as HTMLInputElement;

@@ -3,7 +3,6 @@ import {
 } from '@angular/common';
 
 import {
-  ChangeDetectorRef,
   Component,
   OnDestroy,
   OnInit,
@@ -392,13 +391,10 @@ export class UsuariosEdit
   private readonly router =
     inject(Router);
 
-  private readonly changeDetectorRef =
-    inject(ChangeDetectorRef);
 
   private readonly destruir$ =
     new Subject<void>();
 
-  private componenteDestruido = false;
 
   modoEdicion = false;
 
@@ -457,9 +453,6 @@ export class UsuariosEdit
   }
 
   ngOnDestroy(): void {
-
-    this.componenteDestruido = true;
-
     this.destruir$.next();
     this.destruir$.complete();
   }
@@ -516,7 +509,6 @@ export class UsuariosEdit
 
             this.cargando = false;
 
-            this.actualizarVista();
           },
 
           error: error => {
@@ -559,7 +551,6 @@ export class UsuariosEdit
 
           this.cargando = false;
 
-          this.actualizarVista();
         },
 
         error: error => {
@@ -799,13 +790,7 @@ export class UsuariosEdit
 
     this.cargando = false;
 
-    this.actualizarVista();
   }
 
-  private actualizarVista(): void {
 
-    if (!this.componenteDestruido) {
-      this.changeDetectorRef.detectChanges();
-    }
-  }
 }

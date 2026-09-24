@@ -2,12 +2,15 @@ package com.gombeth.urban.controller;
 
 import com.gombeth.urban.dto.GastoGuardarRequest;
 import com.gombeth.urban.entity.ContabilidadGasto;
+import com.gombeth.urban.entity.Usuario;
 import com.gombeth.urban.service.AccesoComunidadService;
 import com.gombeth.urban.service.ContabilidadAutomaticaService;
 import com.gombeth.urban.service.ContabilidadGastoService;
 import com.gombeth.urban.service.CuentaContableService;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -18,6 +21,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
+
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Objects;
 
@@ -36,6 +41,18 @@ public class ContabilidadGastoController {
 
     private final AccesoComunidadService
             accesoComunidadService;
+
+    /*
+     * Mientras Gombeth Urban V2 conviva con la aplicación
+     * anterior utilizando la misma base de datos, el pago
+     * y la anulación de pagos permanecen deshabilitados
+     * por defecto.
+     *
+     * Solo se habilitarán expresamente cuando se decida
+     * que V2 es el propietario del ciclo de pagos.
+     */
+    @Value("${gombeth.gastos.pagos-habilitados:false}")
+    private boolean pagosHabilitados;
 
     public ContabilidadGastoController(
             ContabilidadGastoService gastoService,
@@ -87,6 +104,40 @@ public class ContabilidadGastoController {
         );
 
         return gasto;
+    }
+
+    @DeleteMapping("/{id}")
+    public void eliminar(
+            @PathVariable Long id,
+            Authentication authentication
+    ) {
+        ContabilidadGasto gasto =
+                obtenerGasto(
+                        id
+                );
+
+        accesoComunidadService.validarAcceso(
+                authentication,
+                gasto.getComunidadId()
+        );
+
+        try {
+            gastoService.eliminarPendiente(
+                    id
+            );
+
+        } catch (IllegalArgumentException error) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    error.getMessage()
+            );
+
+        } catch (IllegalStateException error) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    error.getMessage()
+            );
+        }
     }
 
     @PostMapping
@@ -220,6 +271,167 @@ public class ContabilidadGastoController {
         );
     }
 
+    @PostMapping("/{id}/pagar")
+    public ContabilidadGasto pagar(
+            @PathVariable Long id,
+            @RequestParam(required = false)
+            LocalDate fechaPago,
+            Authentication authentication
+    ) {
+        ContabilidadGasto gasto =
+                obtenerGasto(
+                        id
+                );
+
+        /*
+         * Primero comprobamos que el usuario puede acceder
+         * a la comunidad. No queremos revelar información
+         * sobre un gasto a un usuario no autorizado.
+         */
+        accesoComunidadService.validarAcceso(
+                authentication,
+                gasto.getComunidadId()
+        );
+
+        /*
+         * Durante la convivencia con el programa antiguo
+         * este punto permanece bloqueado.
+         */
+        validarPagosHabilitados();
+
+        Usuario usuario =
+                accesoComunidadService
+                        .obtenerUsuarioAutenticado(
+                                authentication
+                        );
+
+        try {
+            return gastoService.pagar(
+                    id,
+                    usuario.getId(),
+                    fechaPago
+            );
+
+        } catch (IllegalArgumentException error) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    error.getMessage()
+            );
+
+        } catch (IllegalStateException error) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    error.getMessage()
+            );
+        }
+    }
+
+    @PostMapping("/{id}/deshacer-pago")
+    public ContabilidadGasto deshacerPago(
+            @PathVariable Long id,
+            @RequestParam(required = false)
+            LocalDate fechaAnulacion,
+            Authentication authentication
+    ) {
+        ContabilidadGasto gasto =
+                obtenerGasto(
+                        id
+                );
+
+        /*
+         * Igual que en pagar(), validamos primero el acceso
+         * del usuario a la comunidad.
+         */
+        accesoComunidadService.validarAcceso(
+                authentication,
+                gasto.getComunidadId()
+        );
+
+        /*
+         * Durante la convivencia con el programa antiguo
+         * tampoco permitimos deshacer pagos desde V2.
+         */
+        validarPagosHabilitados();
+
+        Usuario usuario =
+                accesoComunidadService
+                        .obtenerUsuarioAutenticado(
+                                authentication
+                        );
+
+        try {
+            return gastoService.deshacerPago(
+                    id,
+                    usuario.getId(),
+                    fechaAnulacion
+            );
+
+        } catch (IllegalArgumentException error) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    error.getMessage()
+            );
+
+        } catch (IllegalStateException error) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    error.getMessage()
+            );
+        }
+    }
+
+    @PostMapping("/{id}/deshacer-contabilizacion")
+    public ContabilidadGasto deshacerContabilizacion(
+            @PathVariable Long id,
+            @RequestParam(required = false)
+            LocalDate fechaAnulacion,
+            Authentication authentication
+    ) {
+        ContabilidadGasto gasto =
+                obtenerGasto(
+                        id
+                );
+
+        accesoComunidadService.validarAcceso(
+                authentication,
+                gasto.getComunidadId()
+        );
+
+        /*
+         * Mientras V2 conviva con la aplicación anterior
+         * no permitimos revertir desde aquí un asiento
+         * contable compartido.
+         */
+        validarPagosHabilitados();
+
+        Usuario usuario =
+                accesoComunidadService
+                        .obtenerUsuarioAutenticado(
+                                authentication
+                        );
+
+        try {
+            return gastoService
+                    .deshacerContabilizacion(
+                            id,
+                            usuario.getId(),
+                            fechaAnulacion
+                    );
+
+        } catch (IllegalArgumentException error) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    error.getMessage()
+            );
+
+        } catch (IllegalStateException error) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    error.getMessage()
+            );
+        }
+    }
+
     private void validarRequest(
             GastoGuardarRequest request
     ) {
@@ -291,6 +503,18 @@ public class ContabilidadGastoController {
                     HttpStatus.BAD_REQUEST,
                     "La cuenta de gasto no pertenece "
                             + "a la comunidad indicada."
+            );
+        }
+    }
+
+    private void validarPagosHabilitados() {
+        if (!pagosHabilitados) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "El pago y la anulación de gastos desde "
+                            + "Gombeth Urban V2 están temporalmente "
+                            + "deshabilitados mientras convive con "
+                            + "la aplicación anterior."
             );
         }
     }

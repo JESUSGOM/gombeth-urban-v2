@@ -3,7 +3,6 @@ import {
 } from '@angular/common';
 
 import {
-  ChangeDetectorRef,
   Component,
   OnDestroy,
   OnInit,
@@ -299,13 +298,10 @@ export class UsuariosList
   private readonly router =
     inject(Router);
 
-  private readonly changeDetectorRef =
-    inject(ChangeDetectorRef);
 
   private readonly destruir$ =
     new Subject<void>();
 
-  private componenteDestruido = false;
 
   usuarios: UsuarioAdministracion[] = [];
 
@@ -318,8 +314,6 @@ export class UsuariosList
   }
 
   ngOnDestroy(): void {
-    this.componenteDestruido = true;
-
     this.destruir$.next();
     this.destruir$.complete();
   }
@@ -346,7 +340,6 @@ export class UsuariosList
 
           this.cargando = false;
 
-          this.actualizarVista();
         },
 
         error: error => {
@@ -376,7 +369,6 @@ export class UsuariosList
 
           this.cargando = false;
 
-          this.actualizarVista();
         }
       });
   }
@@ -417,10 +409,5 @@ export class UsuariosList
     return usuario.usuarioId;
   }
 
-  private actualizarVista(): void {
 
-    if (!this.componenteDestruido) {
-      this.changeDetectorRef.detectChanges();
-    }
-  }
 }

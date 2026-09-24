@@ -1,5 +1,4 @@
 import {
-  ChangeDetectorRef,
   Component,
   OnDestroy,
   OnInit,
@@ -27,7 +26,6 @@ export class ComunidadEdit implements OnInit, OnDestroy {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private comunidadService = inject(ComunidadService);
-  private cdr = inject(ChangeDetectorRef);
 
   private componenteDestruido = false;
 
@@ -84,7 +82,6 @@ export class ComunidadEdit implements OnInit, OnDestroy {
 
           this.cargarConfiguracionReparto();
           this.cargarQrComunidad();
-          this.actualizarVista();
         },
 
         error: error => {
@@ -98,7 +95,6 @@ export class ComunidadEdit implements OnInit, OnDestroy {
             || error?.error?.detail
             || 'No se pudo cargar la comunidad.';
 
-          this.actualizarVista();
         }
       });
   }
@@ -122,7 +118,6 @@ export class ComunidadEdit implements OnInit, OnDestroy {
             configuracion.metodoReparto
             || 'COEFICIENTE';
 
-          this.actualizarVista();
         },
 
         error: error => {
@@ -132,7 +127,6 @@ export class ComunidadEdit implements OnInit, OnDestroy {
           );
 
           this.metodoReparto = 'COEFICIENTE';
-          this.actualizarVista();
         }
       });
   }
@@ -164,7 +158,6 @@ export class ComunidadEdit implements OnInit, OnDestroy {
             this.mensajeErrorQr =
               'El servidor devolvió un código QR vacío.';
 
-            this.actualizarVista();
             return;
           }
 
@@ -176,7 +169,6 @@ export class ComunidadEdit implements OnInit, OnDestroy {
             URL.createObjectURL(contenidoQr);
 
           this.cargandoQr = false;
-          this.actualizarVista();
         },
 
         error: error => {
@@ -190,7 +182,6 @@ export class ComunidadEdit implements OnInit, OnDestroy {
             error?.error?.message
             || 'No se pudo generar el código QR de la comunidad.';
 
-          this.actualizarVista();
         }
       });
   }
@@ -244,7 +235,6 @@ export class ComunidadEdit implements OnInit, OnDestroy {
       this.mensajeErrorQr =
         'El navegador ha bloqueado la ventana de impresión.';
 
-      this.actualizarVista();
       return;
     }
 
@@ -402,7 +392,6 @@ export class ComunidadEdit implements OnInit, OnDestroy {
       this.mensajeError =
         'El nombre de la comunidad es obligatorio.';
 
-      this.actualizarVista();
       return;
     }
 
@@ -436,7 +425,6 @@ export class ComunidadEdit implements OnInit, OnDestroy {
               || error?.error?.detail
               || 'No se pudo crear la comunidad.';
 
-            this.actualizarVista();
           }
         });
 
@@ -448,7 +436,6 @@ export class ComunidadEdit implements OnInit, OnDestroy {
       this.mensajeError =
         'La comunidad no tiene un identificador válido.';
 
-      this.actualizarVista();
       return;
     }
 
@@ -478,7 +465,6 @@ export class ComunidadEdit implements OnInit, OnDestroy {
             || error?.error?.detail
             || 'No se pudo guardar la comunidad.';
 
-          this.actualizarVista();
         }
       });
   }
@@ -489,7 +475,6 @@ export class ComunidadEdit implements OnInit, OnDestroy {
       this.mensajeError =
         'No se pudo guardar la configuración de reparto.';
 
-      this.actualizarVista();
       return;
     }
 
@@ -507,7 +492,6 @@ export class ComunidadEdit implements OnInit, OnDestroy {
               ? 'Comunidad creada correctamente.'
               : 'Comunidad guardada correctamente.';
 
-          this.actualizarVista();
 
           setTimeout(() => {
             this.router.navigate([
@@ -531,7 +515,6 @@ export class ComunidadEdit implements OnInit, OnDestroy {
               : 'La comunidad se guardó, pero no se pudo guardar '
                 + 'el método de reparto.';
 
-          this.actualizarVista();
         }
       });
   }
@@ -555,9 +538,5 @@ export class ComunidadEdit implements OnInit, OnDestroy {
       .replace(/'/g, '&#039;');
   }
 
-  private actualizarVista(): void {
-    if (!this.componenteDestruido) {
-      this.cdr.detectChanges();
-    }
-  }
+
 }

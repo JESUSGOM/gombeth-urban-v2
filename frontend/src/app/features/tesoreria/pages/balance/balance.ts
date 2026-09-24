@@ -1,4 +1,13 @@
-import { Component, OnInit, inject } from '@angular/core';
+import {
+  Component,
+  DestroyRef,
+  OnInit,
+  inject
+} from '@angular/core';
+
+import {
+  takeUntilDestroyed
+} from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
@@ -23,6 +32,8 @@ export class BalanceComponent implements OnInit {
 
   private balanceService = inject(BalanceService);
   private comunidadState = inject(ComunidadStateService);
+  private readonly destroyRef =
+    inject(DestroyRef);
 
   lineas: BalanceLinea[] = [];
 
@@ -35,14 +46,20 @@ export class BalanceComponent implements OnInit {
 
   ngOnInit(): void {
 
-    this.comunidadState.comunidad$.subscribe(comunidad => {
+    this.comunidadState.comunidad$
+      .pipe(
+        takeUntilDestroyed(
+          this.destroyRef
+        )
+      )
+      .subscribe(comunidad => {
 
-      if (!comunidad?.id) return;
+        if (!comunidad?.id) return;
 
-      this.comunidadId = comunidad.id;
+        this.comunidadId = comunidad.id;
 
-      this.cargarBalance();
-    });
+        this.cargarBalance();
+      });
 
   }
 

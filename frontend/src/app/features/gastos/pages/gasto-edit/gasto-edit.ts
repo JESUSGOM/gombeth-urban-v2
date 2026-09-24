@@ -152,6 +152,16 @@ export class GastoEdit implements OnInit {
   error = '';
   mensaje = '';
 
+  facturaSeleccionada: File | null =
+    null;
+
+  analizandoFactura = false;
+
+  mensajeOcr = '';
+  errorOcr = '';
+
+  advertenciasOcr: string[] = [];
+
   ngOnInit(): void {
 
     this.comunidadState.init();
@@ -437,6 +447,197 @@ export class GastoEdit implements OnInit {
               error,
               'No se pudieron cargar las cuentas contables de la comunidad.'
             );
+        }
+      });
+  }
+
+  seleccionarFactura(
+    event: Event
+  ): void {
+
+    const input =
+      event.target as HTMLInputElement;
+
+    const archivo =
+      input.files?.[0] ?? null;
+
+    this.facturaSeleccionada =
+      null;
+
+    this.mensajeOcr = '';
+    this.errorOcr = '';
+    this.advertenciasOcr = [];
+
+    if (!archivo) {
+      return;
+    }
+
+    if (
+      archivo.type !== 'application/pdf'
+      && !archivo.name
+        .toLowerCase()
+        .endsWith('.pdf')
+    ) {
+      this.errorOcr =
+        'Seleccione un fichero PDF.';
+
+      input.value = '';
+
+      return;
+    }
+
+    this.facturaSeleccionada =
+      archivo;
+  }
+
+  analizarFactura(): void {
+
+    if (
+      this.analizandoFactura
+      || this.bloqueado
+    ) {
+      return;
+    }
+
+    const archivo =
+      this.facturaSeleccionada;
+
+    if (!archivo) {
+      this.errorOcr =
+        'Seleccione primero la factura en PDF.';
+
+      return;
+    }
+
+    const comunidadId =
+      Number(
+        this.gastoForm.controls
+          .comunidadId.value
+      );
+
+    if (
+      !Number.isInteger(
+        comunidadId
+      )
+      || comunidadId <= 0
+    ) {
+      this.errorOcr =
+        'La comunidad del gasto no es válida.';
+
+      return;
+    }
+
+    this.analizandoFactura = true;
+
+    this.mensajeOcr = '';
+    this.errorOcr = '';
+    this.advertenciasOcr = [];
+
+    this.gastoService
+      .analizarFactura(
+        comunidadId,
+        archivo
+      )
+      .pipe(
+        timeout(60000),
+
+        takeUntilDestroyed(
+          this.destroyRef
+        ),
+
+        finalize(() => {
+          this.analizandoFactura =
+            false;
+        })
+      )
+      .subscribe({
+
+        next: resultado => {
+
+          const datos: {
+            proveedor?: string;
+            fechaFactura?: string;
+            importeTotal?: number;
+            numeroFactura?: string;
+          } = {};
+
+          if (
+            resultado.proveedor
+            && resultado.proveedor.trim()
+          ) {
+            datos.proveedor =
+              resultado.proveedor.trim();
+          }
+
+          if (
+            resultado.fechaFactura
+            && resultado.fechaFactura.trim()
+          ) {
+            datos.fechaFactura =
+              resultado.fechaFactura.trim();
+          }
+
+          if (
+            resultado.importeTotal !== null
+            && resultado.importeTotal !== undefined
+            && Number.isFinite(
+              Number(
+                resultado.importeTotal
+              )
+            )
+          ) {
+            datos.importeTotal =
+              Number(
+                resultado.importeTotal
+              );
+          }
+
+          if (
+            resultado.numeroFactura
+            && resultado.numeroFactura.trim()
+          ) {
+            datos.numeroFactura =
+              resultado.numeroFactura.trim();
+          }
+
+          this.gastoForm.patchValue(
+            datos
+          );
+
+          this.advertenciasOcr =
+            [
+              ...(
+                resultado.advertencias
+                ?? []
+              )
+            ];
+
+          this.mensajeOcr =
+            resultado.ocrAplicado
+              ? 'Factura analizada mediante OCR. Revise los datos antes de guardar.'
+              : 'Datos extraídos del PDF. Revise los datos antes de guardar.';
+        },
+
+        error: error => {
+
+          console.error(
+            'Error analizando factura:',
+            error
+          );
+
+          if (
+            error?.name === 'TimeoutError'
+          ) {
+            this.errorOcr =
+              'El análisis de la factura ha tardado demasiado.';
+
+            return;
+          }
+
+          this.errorOcr =
+            error?.error?.message
+            || error?.error?.detail
+            || 'No se pudo analizar la factura.';
         }
       });
   }

@@ -1,9 +1,13 @@
 import {
-  ChangeDetectorRef,
   Component,
+  DestroyRef,
   OnInit,
   inject
 } from '@angular/core';
+
+import {
+  takeUntilDestroyed
+} from '@angular/core/rxjs-interop';
 
 import { CommonModule } from '@angular/common';
 import {
@@ -34,7 +38,8 @@ export class VecinosList implements OnInit {
   private vecinoService = inject(VecinoService);
   private comunidadService = inject(ComunidadService);
   private comunidadState = inject(ComunidadStateService);
-  private cdr = inject(ChangeDetectorRef);
+  private readonly destroyRef =
+    inject(DestroyRef);
 
   comunidadId = 0;
   comunidad?: Comunidad;
@@ -83,7 +88,6 @@ export class VecinosList implements OnInit {
 
         this.comunidadId = 0;
         this.limpiarDatos();
-        this.cdr.detectChanges();
         return;
       }
 
@@ -99,7 +103,6 @@ export class VecinosList implements OnInit {
 
         this.comunidadId = 0;
         this.limpiarDatos();
-        this.cdr.detectChanges();
         return;
       }
 
@@ -124,20 +127,27 @@ export class VecinosList implements OnInit {
 
     this.suscripcionEstadoInicializada = true;
 
-    this.comunidadState.comunidad$.subscribe(comunidad => {
-      if (!comunidad?.id) {
-        return;
-      }
+    this.comunidadState.comunidad$
+      .pipe(
+        takeUntilDestroyed(
+          this.destroyRef
+        )
+      )
+      .subscribe(comunidad => {
 
-      if (comunidad.id === this.comunidadId) {
-        return;
-      }
+        if (!comunidad?.id) {
+          return;
+        }
 
-      this.router.navigate([
-        '/vecinos/comunidad',
-        comunidad.id
-      ]);
-    });
+        if (comunidad.id === this.comunidadId) {
+          return;
+        }
+
+        this.router.navigate([
+          '/vecinos/comunidad',
+          comunidad.id
+        ]);
+      });
   }
 
   private limpiarDatos(): void {
@@ -165,7 +175,6 @@ export class VecinosList implements OnInit {
             this.error =
               'La comunidad recibida no tiene un identificador válido.';
 
-            this.cdr.detectChanges();
             return;
           }
 
@@ -179,7 +188,6 @@ export class VecinosList implements OnInit {
             });
           }
 
-          this.cdr.detectChanges();
         },
         error: (err: unknown) => {
           console.error(
@@ -190,7 +198,6 @@ export class VecinosList implements OnInit {
           this.error =
             'No se pudo cargar la comunidad seleccionada.';
 
-          this.cdr.detectChanges();
         }
       });
   }
@@ -201,7 +208,6 @@ export class VecinosList implements OnInit {
       .subscribe({
         next: (data: CoeficientesResumen) => {
           this.resumenCoeficientes = data;
-          this.cdr.detectChanges();
         },
         error: (err: unknown) => {
           console.error(
@@ -236,7 +242,6 @@ export class VecinosList implements OnInit {
             data.totalElements ?? 0;
 
           this.cargando = false;
-          this.cdr.detectChanges();
         },
         error: (err: unknown) => {
           console.error(
@@ -248,7 +253,6 @@ export class VecinosList implements OnInit {
             'No se pudieron cargar los propietarios.';
 
           this.cargando = false;
-          this.cdr.detectChanges();
         }
       });
   }
@@ -365,7 +369,6 @@ export class VecinosList implements OnInit {
           this.error =
             'No se pudo dar de baja el propietario.';
 
-          this.cdr.detectChanges();
         }
       });
   }

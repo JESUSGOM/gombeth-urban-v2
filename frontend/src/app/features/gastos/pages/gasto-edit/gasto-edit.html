@@ -66,6 +66,81 @@
 
     <div class="form-grid">
 
+      <div class="form-field campo-ancho">
+
+        <span>
+          Factura PDF
+        </span>
+
+        <input
+          type="file"
+          accept=".pdf,application/pdf"
+          [attr.disabled]="
+            guardando
+            || bloqueado
+            || analizandoFactura
+              ? true
+              : null
+          "
+          (change)="seleccionarFactura($event)">
+
+        <small *ngIf="facturaSeleccionada">
+          Archivo seleccionado:
+          <strong>
+            {{ facturaSeleccionada.name }}
+          </strong>
+        </small>
+
+        <button
+          type="button"
+          class="secondary-button"
+          [disabled]="
+            !facturaSeleccionada
+            || guardando
+            || bloqueado
+            || analizandoFactura
+          "
+          (click)="analizarFactura()">
+
+          {{
+            analizandoFactura
+              ? 'Analizando factura...'
+              : 'Analizar factura'
+          }}
+
+        </button>
+
+        <div
+          *ngIf="mensajeOcr"
+          class="alert success">
+          {{ mensajeOcr }}
+        </div>
+
+        <div
+          *ngIf="errorOcr"
+          class="alert error">
+          {{ errorOcr }}
+        </div>
+
+        <div
+          *ngIf="advertenciasOcr.length > 0"
+          class="alert warning">
+
+          <div
+            *ngFor="let advertencia of advertenciasOcr">
+            {{ advertencia }}
+          </div>
+
+        </div>
+
+        <small>
+          Los datos detectados se copiarán al formulario.
+          Revise proveedor, fecha, importe y número de factura
+          antes de guardar.
+        </small>
+
+      </div>
+
       <label class="form-field">
         <span>
           Fecha de factura

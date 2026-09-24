@@ -1,9 +1,13 @@
 import {
   Component,
+  DestroyRef,
   OnInit,
-  inject,
-  ChangeDetectorRef
+  inject
 } from '@angular/core';
+
+import {
+  takeUntilDestroyed
+} from '@angular/core/rxjs-interop';
 
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -35,7 +39,8 @@ export class PresupuestosList implements OnInit {
   private cuentasContablesService = inject(CuentasContablesService);
   private comunidadService = inject(ComunidadService);
   private comunidadState = inject(ComunidadStateService);
-  private cdr = inject(ChangeDetectorRef);
+  private readonly destroyRef =
+    inject(DestroyRef);
 
   comunidadId = 0;
   comunidad?: Comunidad;
@@ -75,6 +80,11 @@ export class PresupuestosList implements OnInit {
     this.comunidadState.init();
 
     this.comunidadState.comunidad$
+      .pipe(
+        takeUntilDestroyed(
+          this.destroyRef
+        )
+      )
       .subscribe(comunidad => {
 
         if (!comunidad || !comunidad.id) {
@@ -157,7 +167,7 @@ export class PresupuestosList implements OnInit {
               this.metodoRepartoPredeterminado;
           }
 
-          this.cdr.detectChanges();
+
         },
 
         error: err => {
@@ -188,7 +198,7 @@ export class PresupuestosList implements OnInit {
               )
             );
 
-          this.cdr.detectChanges();
+
         },
 
         error: err => {
@@ -203,7 +213,7 @@ export class PresupuestosList implements OnInit {
             'No se pudieron cargar los propietarios de la comunidad.'
           );
 
-          this.cdr.detectChanges();
+
         }
       });
   }
@@ -241,7 +251,7 @@ export class PresupuestosList implements OnInit {
                 : null;
           }
 
-          this.cdr.detectChanges();
+
         },
 
         error: err => {
@@ -255,7 +265,7 @@ export class PresupuestosList implements OnInit {
             'No se pudieron cargar las cuentas presupuestarias.'
           );
 
-          this.cdr.detectChanges();
+
         }
       });
   }
@@ -377,7 +387,7 @@ export class PresupuestosList implements OnInit {
         );
 
         this.guardandoPartida = false;
-        this.cdr.detectChanges();
+
       }
     });
   }
@@ -477,7 +487,7 @@ export class PresupuestosList implements OnInit {
           );
 
           this.eliminandoPartidaId = null;
-          this.cdr.detectChanges();
+
         }
       });
   }
@@ -616,7 +626,7 @@ export class PresupuestosList implements OnInit {
           );
 
           this.cargando = false;
-          this.cdr.detectChanges();
+
         }
       });
   }
@@ -630,7 +640,7 @@ export class PresupuestosList implements OnInit {
       .subscribe({
         next: data => {
           this.revisiones = data;
-          this.cdr.detectChanges();
+
         },
 
         error: err => {
@@ -666,7 +676,6 @@ export class PresupuestosList implements OnInit {
           );
 
           this.cargando = false;
-          this.cdr.detectChanges();
         }
       });
   }
@@ -681,7 +690,7 @@ export class PresupuestosList implements OnInit {
         next: data => {
           this.cuotasBorrador = data;
           this.cargando = false;
-          this.cdr.detectChanges();
+
         },
 
         error: err => {
@@ -696,7 +705,7 @@ export class PresupuestosList implements OnInit {
           );
 
           this.cargando = false;
-          this.cdr.detectChanges();
+
         }
       });
   }
@@ -739,7 +748,7 @@ export class PresupuestosList implements OnInit {
           );
 
           this.generandoCuotas = false;
-          this.cdr.detectChanges();
+
         }
       });
   }
@@ -765,7 +774,7 @@ export class PresupuestosList implements OnInit {
 
           this.cargarCuotasBorrador();
           this.cargarRevisiones();
-          this.cdr.detectChanges();
+
         },
 
         error: err => {
@@ -779,7 +788,7 @@ export class PresupuestosList implements OnInit {
             'No se pudieron aprobar las cuotas.'
           );
 
-          this.cdr.detectChanges();
+
         }
       });
   }
@@ -820,7 +829,7 @@ export class PresupuestosList implements OnInit {
             'No se pudo aprobar la revisión.'
           );
 
-          this.cdr.detectChanges();
+
         }
       });
   }
@@ -860,7 +869,7 @@ export class PresupuestosList implements OnInit {
             'No se pudo eliminar la revisión.'
           );
 
-          this.cdr.detectChanges();
+
         }
       });
   }
@@ -957,7 +966,7 @@ export class PresupuestosList implements OnInit {
           this.generandoRecibos = false;
 
           this.cargarCuotasBorrador();
-          this.cdr.detectChanges();
+
         },
 
         error: err => {
@@ -972,7 +981,7 @@ export class PresupuestosList implements OnInit {
           );
 
           this.generandoRecibos = false;
-          this.cdr.detectChanges();
+
         }
       });
   }
