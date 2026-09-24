@@ -126,6 +126,61 @@ class CuentaProveedorContableServiceTest {
     }
 
     @Test
+    void reutilizaCuentaHistoricaConCifEnElNombre() {
+
+        Comunidad comunidad =
+                comunidad(
+                        33L
+                );
+
+        CuentaContable cuentaHistorica =
+                cuenta(
+                        373L,
+                        "41030466",
+                        "PROV: Iberdrola Clientes, S.A.U. CIF: B12345678",
+                        comunidad
+                );
+
+        when(
+                comunidadRepository.findById(
+                        33L
+                )
+        ).thenReturn(
+                Optional.of(
+                        comunidad
+                )
+        );
+
+        when(
+                cuentaContableRepository.findByComunidadId(
+                        33L
+                )
+        ).thenReturn(
+                List.of(
+                        cuentaHistorica
+                )
+        );
+
+        CuentaContable resultado =
+                service.resolverOCrear(
+                        33L,
+                        "Iberdrola Clientes, S.A.U."
+                );
+
+        assertSame(
+                cuentaHistorica,
+                resultado
+        );
+
+        verify(
+                cuentaContableRepository,
+                never()
+        ).save(
+                any()
+        );
+    }
+
+    @Test
     void creaCuentaCompatibleSiNoExiste() {
 
         Comunidad comunidad =
@@ -344,5 +399,132 @@ class CuentaProveedorContableServiceTest {
         );
 
         return cuenta;
+    }
+
+    @Test
+    void reutilizaCuentaHistoricaConNifConcatenado() {
+
+        Comunidad comunidad =
+                comunidad(
+                        33L
+                );
+
+        CuentaContable cuentaHistorica =
+                cuenta(
+                        374L,
+                        "41012345",
+                        "PROV: MIGUEL VILLAR RAMOS 11951496Y",
+                        comunidad
+                );
+
+        when(
+                comunidadRepository.findById(
+                        33L
+                )
+        ).thenReturn(
+                Optional.of(
+                        comunidad
+                )
+        );
+
+        when(
+                cuentaContableRepository.findByComunidadId(
+                        33L
+                )
+        ).thenReturn(
+                List.of(
+                        cuentaHistorica
+                )
+        );
+
+        CuentaContable resultado =
+                service.resolverOCrear(
+                        33L,
+                        "MIGUEL VILLAR RAMOS",
+                        "11951496Y"
+                );
+
+        assertSame(
+                cuentaHistorica,
+                resultado
+        );
+
+        verify(
+                cuentaContableRepository,
+                never()
+        ).save(
+                any()
+        );
+    }
+
+    @Test
+    void creaCuentaConCifCuandoProveedorTieneNif() {
+
+        Comunidad comunidad =
+                comunidad(
+                        33L
+                );
+
+        when(
+                comunidadRepository.findById(
+                        33L
+                )
+        ).thenReturn(
+                Optional.of(
+                        comunidad
+                )
+        );
+
+        when(
+                cuentaContableRepository.findByComunidadId(
+                        33L
+                )
+        ).thenReturn(
+                List.of()
+        );
+
+        when(
+                cuentaContableRepository
+                        .findFirstByComunidad_IdAndCodigoOrderByIdAsc(
+                                33L,
+                                "41030466"
+                        )
+        ).thenReturn(
+                Optional.empty()
+        );
+
+        when(
+                cuentaContableRepository.save(
+                        any(
+                                CuentaContable.class
+                        )
+                )
+        ).thenAnswer(
+                invocation -> {
+
+                    CuentaContable cuenta =
+                            invocation.getArgument(
+                                    0
+                            );
+
+                    cuenta.setId(
+                            3001L
+                    );
+
+                    return cuenta;
+                }
+        );
+
+        CuentaContable resultado =
+                service.resolverOCrear(
+                        33L,
+                        "Iberdrola Clientes, S.A.U.",
+                        "B12345678"
+                );
+
+        assertEquals(
+                "PROV: Iberdrola Clientes, S.A.U. CIF: B12345678",
+                resultado.getNombre()
+        );
     }
 }

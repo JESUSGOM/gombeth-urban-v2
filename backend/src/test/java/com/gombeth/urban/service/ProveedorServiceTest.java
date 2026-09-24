@@ -48,17 +48,27 @@ class ProveedorServiceTest {
     private AdministradorRepository
             administradorRepository;
 
+    private CuentaProveedorContableService
+            cuentaProveedorContableService;
+
     private ProveedorService service;
 
     @BeforeEach
     void setUp() {
+
+        cuentaProveedorContableService =
+                new CuentaProveedorContableService(
+                        cuentaContableRepository,
+                        comunidadRepository
+                );
+
         service =
                 new ProveedorService(
                         proveedorRepository,
                         proveedorComunidadRepository,
                         comunidadRepository,
-                        cuentaContableRepository,
-                        administradorRepository
+                        administradorRepository,
+                        cuentaProveedorContableService
                 );
     }
 

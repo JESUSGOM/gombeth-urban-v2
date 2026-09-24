@@ -40,6 +40,31 @@ public class CuentaProveedorContableService {
             Long comunidadId,
             String nombreProveedor
     ) {
+        return resolverOCrearInterno(
+                comunidadId,
+                nombreProveedor,
+                null
+        );
+    }
+
+    @Transactional
+    public CuentaContable resolverOCrear(
+            Long comunidadId,
+            String nombreProveedor,
+            String nifCif
+    ) {
+        return resolverOCrearInterno(
+                comunidadId,
+                nombreProveedor,
+                nifCif
+        );
+    }
+
+    private CuentaContable resolverOCrearInterno(
+            Long comunidadId,
+            String nombreProveedor,
+            String nifCif
+    ) {
         validarDatos(
                 comunidadId,
                 nombreProveedor
@@ -61,13 +86,6 @@ public class CuentaProveedorContableService {
         String nombre =
                 nombreProveedor.trim();
 
-        /*
-         * 1. Intentamos reutilizar una cuenta 410 existente
-         *    cuyo nombre corresponda al proveedor.
-         *
-         * Esto permite aprovechar las cuentas creadas por
-         * el programa antiguo.
-         */
         List<CuentaContable> cuentas =
                 cuentaContableRepository
                         .findByComunidadId(
@@ -81,17 +99,16 @@ public class CuentaProveedorContableService {
                             cuenta,
                             nombre
                     )
+                            || esCuentaProveedorConNifConcatenado(
+                            cuenta,
+                            nombre,
+                            nifCif
+                    )
             ) {
                 return cuenta;
             }
         }
 
-        /*
-         * 2. Calculamos exactamente el mismo código que
-         *    utiliza el programa antiguo:
-         *
-         * 410 + 5 cifras obtenidas del hashCode del nombre.
-         */
         String codigo =
                 generarCodigoLegacy(
                         nombre
@@ -112,6 +129,11 @@ public class CuentaProveedorContableService {
                             cuentaMismoCodigo,
                             nombre
                     )
+                            || esCuentaProveedorConNifConcatenado(
+                            cuentaMismoCodigo,
+                            nombre,
+                            nifCif
+                    )
             ) {
                 return cuentaMismoCodigo;
             }
@@ -126,14 +148,13 @@ public class CuentaProveedorContableService {
             );
         }
 
-        /*
-         * 3. Si todavía no existe, se crea de forma
-         *    compatible con el programa antiguo.
-         */
         CuentaContable nuevaCuenta =
                 new CuentaContable(
                         codigo,
-                        "PROV: " + nombre,
+                        construirNombreCuenta(
+                                nombre,
+                                nifCif
+                        ),
                         TipoCuenta.PASIVO,
                         comunidad
                 );
@@ -141,6 +162,46 @@ public class CuentaProveedorContableService {
         return cuentaContableRepository.save(
                 nuevaCuenta
         );
+    }
+
+    private String construirNombreCuenta(
+            String nombreProveedor,
+            String nifCif
+    ) {
+        StringBuilder nombre =
+                new StringBuilder(
+                        "PROV: "
+                );
+
+        nombre.append(
+                nombreProveedor.trim()
+        );
+
+        if (
+                nifCif != null
+                        && !nifCif.isBlank()
+        ) {
+            nombre.append(
+                    " CIF: "
+            );
+
+            nombre.append(
+                    nifCif.trim()
+            );
+        }
+
+        /*
+         * contabilidad_cuentas.nombre utiliza VARCHAR(255).
+         */
+        if (nombre.length() > 255) {
+            return nombre
+                    .substring(
+                            0,
+                            255
+                    );
+        }
+
+        return nombre.toString();
     }
 
     String generarCodigoLegacy(
@@ -228,6 +289,48 @@ public class CuentaProveedorContableService {
                     ).trim();
         }
 
+        String mayusculas =
+                limpio.toUpperCase(
+                        Locale.ROOT
+                );
+
+        int posicionCif =
+                mayusculas.indexOf(
+                        " CIF:"
+                );
+
+        int posicionNif =
+                mayusculas.indexOf(
+                        " NIF:"
+                );
+
+        int posicionCorte =
+                -1;
+
+        if (posicionCif >= 0) {
+            posicionCorte =
+                    posicionCif;
+        }
+
+        if (
+                posicionNif >= 0
+                        && (
+                        posicionCorte < 0
+                                || posicionNif < posicionCorte
+                )
+        ) {
+            posicionCorte =
+                    posicionNif;
+        }
+
+        if (posicionCorte >= 0) {
+            limpio =
+                    limpio.substring(
+                            0,
+                            posicionCorte
+                    ).trim();
+        }
+
         String sinAcentos =
                 Normalizer.normalize(
                                 limpio.toUpperCase(
@@ -264,5 +367,70 @@ public class CuentaProveedorContableService {
                     "El proveedor es obligatorio."
             );
         }
+    }
+
+    private boolean esCuentaProveedorConNifConcatenado(
+            CuentaContable cuenta,
+            String nombreProveedor,
+            String nifCif
+    ) {
+        if (
+                cuenta == null
+                        || cuenta.getCodigo() == null
+                        || !cuenta.getCodigo()
+                        .startsWith(
+                                PREFIJO_PROVEEDOR
+                        )
+                        || cuenta.getNombre() == null
+        ) {
+            return false;
+        }
+
+        String nombreCuenta =
+                normalizarNombre(
+                        cuenta.getNombre()
+                );
+
+        String proveedor =
+                normalizarNombre(
+                        nombreProveedor
+                );
+
+        String nif =
+                normalizarSoloAlfanumerico(
+                        nifCif
+                );
+
+        return !proveedor.isBlank()
+                && !nif.isBlank()
+                && nombreCuenta.equals(
+                proveedor + nif
+        );
+    }
+
+    private String normalizarSoloAlfanumerico(
+            String valor
+    ) {
+        if (valor == null) {
+            return "";
+        }
+
+
+        String sinAcentos =
+                Normalizer.normalize(
+                                valor.toUpperCase(
+                                        Locale.ROOT
+                                ),
+                                Normalizer.Form.NFD
+                        )
+                        .replaceAll(
+                                "\\p{M}+",
+                                ""
+                        );
+
+        return sinAcentos.replaceAll(
+                "[^A-Z0-9]",
+                ""
+        );
     }
 }
