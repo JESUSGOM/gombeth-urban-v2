@@ -184,6 +184,85 @@
       </label>
 
       <label class="form-field campo-ancho">
+  <span>
+    Proveedor del catálogo
+  </span>
+
+        <select
+          [value]="
+      proveedorComunidadSeleccionadoId
+      ?? ''
+    "
+          [attr.disabled]="
+      guardando
+      || bloqueado
+      || cargandoProveedores
+        ? true
+        : null
+    "
+          (change)="
+      seleccionarProveedorCatalogo(
+        $event
+      )
+    ">
+
+          <option value="">
+            -- Seleccione un proveedor del catálogo --
+          </option>
+
+          <option
+            *ngFor="
+        let proveedor
+        of proveedoresComunidad
+      "
+            [value]="proveedor.proveedorId"
+            [disabled]="
+        !proveedor.proveedorActivo
+        || !proveedor.asociacionActiva
+      ">
+
+            {{ proveedor.nombre }}
+
+            <ng-container *ngIf="proveedor.nifCif">
+              - {{ proveedor.nifCif }}
+            </ng-container>
+
+          </option>
+
+        </select>
+
+        <small *ngIf="cargandoProveedores">
+          Cargando proveedores de la comunidad...
+        </small>
+
+        <small
+          *ngIf="
+      !cargandoProveedores
+      && proveedoresComunidad.length === 0
+      && !errorProveedores
+    ">
+          La comunidad no tiene proveedores asociados.
+        </small>
+
+        <small
+          *ngIf="errorProveedores"
+          class="warning-text">
+          {{ errorProveedores }}
+          Puede introducir el proveedor manualmente.
+        </small>
+
+        <small
+          *ngIf="
+      !cargandoProveedores
+      && proveedoresComunidad.length > 0
+      && !errorProveedores
+    ">
+          Al seleccionar un proveedor se copiará su nombre
+          al campo de proveedor del gasto.
+        </small>
+      </label>
+
+      <label class="form-field campo-ancho">
         <span>
           Proveedor
           <strong>*</strong>
@@ -194,11 +273,12 @@
           maxlength="255"
           formControlName="proveedor"
           [attr.disabled]="
-            guardando
-            || bloqueado
-              ? true
-              : null
-          "
+    guardando
+    || bloqueado
+      ? true
+      : null
+  "
+          (input)="marcarProveedorManual()"
           placeholder="Nombre del proveedor">
       </label>
 

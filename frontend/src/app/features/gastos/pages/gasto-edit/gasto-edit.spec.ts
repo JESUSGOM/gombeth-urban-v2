@@ -273,6 +273,17 @@ describe('GastoEdit', () => {
 
       peticionCuentas.flush([]);
 
+      const peticionProveedores =
+        httpTesting.expectOne(
+          '/api/comunidades/33/proveedores'
+        );
+
+      expect(
+        peticionProveedores.request.method
+      ).toBe('GET');
+
+      peticionProveedores.flush([]);
+
       expect(
         component.bloqueado
       ).toBe(true);
@@ -329,6 +340,17 @@ describe('GastoEdit', () => {
         );
 
       peticionCuentas.flush([]);
+
+      const peticionProveedores =
+        httpTesting.expectOne(
+          '/api/comunidades/33/proveedores'
+        );
+
+      expect(
+        peticionProveedores.request.method
+      ).toBe('GET');
+
+      peticionProveedores.flush([]);
 
       expect(
         component.bloqueado
@@ -432,6 +454,17 @@ describe('GastoEdit', () => {
         );
 
       peticionCuentas.flush([]);
+
+      const peticionProveedores =
+        httpTesting.expectOne(
+          '/api/comunidades/33/proveedores'
+        );
+
+      expect(
+        peticionProveedores.request.method
+      ).toBe('GET');
+
+      peticionProveedores.flush([]);
 
       expect(
         component.gastoForm.getRawValue()
@@ -591,6 +624,9 @@ describe('GastoEdit', () => {
       component.facturaSeleccionada =
         archivo;
 
+      component.proveedorComunidadSeleccionadoId =
+        10;
+
       component.analizarFactura();
 
       const peticion =
@@ -683,6 +719,151 @@ describe('GastoEdit', () => {
       expect(
         component.analizandoFactura
       ).toBe(false);
+
+      expect(
+        component.proveedorComunidadSeleccionadoId
+      ).toBeNull();
+    }
+  );
+
+  it(
+    'debe cargar y ordenar los proveedores de la comunidad',
+    () => {
+
+      component.cargarProveedores(
+        33
+      );
+
+      expect(
+        component.cargandoProveedores
+      ).toBe(true);
+
+      const peticion =
+        httpTesting.expectOne(
+          '/api/comunidades/33/proveedores'
+        );
+
+      expect(
+        peticion.request.method
+      ).toBe('GET');
+
+      peticion.flush([
+        {
+          asociacionId: 101,
+          proveedorId: 11,
+          nombre: 'Proveedor B',
+          nifCif: 'B22222222',
+          telefono: null,
+          email: null,
+          observaciones: null,
+          cuentaContableId: 4102,
+          proveedorActivo: true,
+          asociacionActiva: true
+        },
+        {
+          asociacionId: 100,
+          proveedorId: 10,
+          nombre: 'Proveedor A',
+          nifCif: 'B11111111',
+          telefono: null,
+          email: null,
+          observaciones: null,
+          cuentaContableId: 4101,
+          proveedorActivo: true,
+          asociacionActiva: true
+        }
+      ]);
+
+      expect(
+        component.proveedoresComunidad
+          .map(
+            proveedor =>
+              proveedor.nombre
+          )
+      ).toEqual([
+        'Proveedor A',
+        'Proveedor B'
+      ]);
+
+      expect(
+        component.cargandoProveedores
+      ).toBe(false);
+    }
+  );
+
+  it(
+    'debe copiar al gasto el proveedor seleccionado del catálogo',
+    () => {
+
+      component.proveedoresComunidad = [
+        {
+          asociacionId: 100,
+          proveedorId: 10,
+          nombre: 'Proveedor del catálogo',
+          nifCif: 'B11111111',
+          telefono: null,
+          email: null,
+          observaciones: null,
+          cuentaContableId: 4101,
+          proveedorActivo: true,
+          asociacionActiva: true
+        }
+      ];
+
+      component.gastoForm.controls
+        .proveedor
+        .setValue(
+          'Proveedor anterior'
+        );
+
+      const evento = {
+        target: {
+          value: '10'
+        }
+      } as unknown as Event;
+
+      component.seleccionarProveedorCatalogo(
+        evento
+      );
+
+      expect(
+        component.proveedorComunidadSeleccionadoId
+      ).toBe(10);
+
+      expect(
+        component.gastoForm.controls
+          .proveedor.value
+      ).toBe(
+        'Proveedor del catálogo'
+      );
+    }
+  );
+
+  it(
+    'debe conservar el proveedor manual y desmarcar el catálogo',
+    () => {
+
+      component.proveedorComunidadSeleccionadoId =
+        10;
+
+      component.gastoForm.controls
+        .proveedor
+        .setValue(
+          'Proveedor introducido manualmente'
+        );
+
+      component.marcarProveedorManual();
+
+      expect(
+        component.proveedorComunidadSeleccionadoId
+      ).toBeNull();
+
+      expect(
+        component.gastoForm.controls
+          .proveedor.value
+      ).toBe(
+        'Proveedor introducido manualmente'
+      );
     }
   );
 });

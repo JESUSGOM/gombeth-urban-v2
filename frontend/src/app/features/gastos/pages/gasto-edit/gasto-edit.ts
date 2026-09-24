@@ -47,6 +47,14 @@ import {
   ComunidadStateService
 } from '../../../../core/state/comunidad-state.service';
 
+import {
+  ProveedorComunidad
+} from '../../../../core/models/proveedor.model';
+
+import {
+  ProveedorService
+} from '../../../../core/services/proveedor.service';
+
 @Component({
   selector: 'app-gasto-edit',
   standalone: true,
@@ -67,6 +75,9 @@ export class GastoEdit implements OnInit {
 
   private readonly gastoService =
     inject(GastoService);
+
+  private readonly proveedorService =
+    inject(ProveedorService);
 
   private readonly cuentasService =
     inject(CuentasContablesService);
@@ -142,9 +153,17 @@ export class GastoEdit implements OnInit {
 
   cuentas: CuentaContable[] = [];
 
+  proveedoresComunidad: ProveedorComunidad[] = [];
+
+  proveedorComunidadSeleccionadoId:
+    number | null = null;
+
   cargando = false;
   cargandoCuentas = false;
+  cargandoProveedores = false;
   guardando = false;
+
+  errorProveedores = '';
 
   bloqueado = false;
   motivoBloqueo = '';
@@ -242,6 +261,13 @@ export class GastoEdit implements OnInit {
 
     this.nombreComunidad =
       comunidad.nombre;
+
+    this.proveedorComunidadSeleccionadoId =
+      null;
+
+    this.cargarProveedores(
+      comunidadId
+    );
 
     this.cargarCuentas(
       comunidadId
@@ -387,6 +413,130 @@ export class GastoEdit implements OnInit {
     this.cargarCuentas(
       comunidadId
     );
+
+    this.proveedorComunidadSeleccionadoId =
+      null;
+
+    this.cargarProveedores(
+      comunidadId
+    );
+  }
+
+  cargarProveedores(
+    comunidadId: number
+  ): void {
+
+    this.cargandoProveedores = true;
+    this.errorProveedores = '';
+
+    this.proveedorService
+      .listarPorComunidad(
+        comunidadId
+      )
+      .pipe(
+        timeout(15000),
+
+        takeUntilDestroyed(
+          this.destroyRef
+        ),
+
+        finalize(() => {
+          this.cargandoProveedores =
+            false;
+        })
+      )
+      .subscribe({
+
+        next: proveedores => {
+
+          this.proveedoresComunidad =
+            [
+              ...(proveedores ?? [])
+            ].sort(
+              (a, b) =>
+                String(
+                  a.nombre ?? ''
+                ).localeCompare(
+                  String(
+                    b.nombre ?? ''
+                  ),
+                  'es',
+                  {
+                    sensitivity: 'base'
+                  }
+                )
+            );
+        },
+
+        error: error => {
+
+          console.error(
+            'Error cargando proveedores:',
+            error
+          );
+
+          this.proveedoresComunidad = [];
+
+          this.errorProveedores =
+            error?.error?.detail
+            || error?.error?.message
+            || 'No se pudo cargar el catálogo de proveedores.';
+        }
+      });
+  }
+
+  seleccionarProveedorCatalogo(
+    event: Event
+  ): void {
+
+    const select =
+      event.target as HTMLSelectElement;
+
+    const proveedorId =
+      Number(
+        select.value
+      );
+
+    if (
+      !Number.isInteger(
+        proveedorId
+      )
+      || proveedorId <= 0
+    ) {
+      this.proveedorComunidadSeleccionadoId =
+        null;
+
+      return;
+    }
+
+    const proveedor =
+      this.proveedoresComunidad.find(
+        item =>
+          Number(
+            item.proveedorId
+          ) === proveedorId
+      );
+
+    if (!proveedor) {
+      this.proveedorComunidadSeleccionadoId =
+        null;
+
+      return;
+    }
+
+    this.proveedorComunidadSeleccionadoId =
+      proveedorId;
+
+    this.gastoForm.patchValue({
+      proveedor:
+        proveedor.nombre ?? ''
+    });
+  }
+
+  marcarProveedorManual(): void {
+
+    this.proveedorComunidadSeleccionadoId =
+      null;
   }
 
   cargarCuentas(
@@ -603,6 +753,13 @@ export class GastoEdit implements OnInit {
           this.gastoForm.patchValue(
             datos
           );
+
+          if (
+            datos.proveedor !== undefined
+          ) {
+            this.proveedorComunidadSeleccionadoId =
+              null;
+          }
 
           this.advertenciasOcr =
             [
