@@ -31,6 +31,11 @@ public class ProductionDatabaseGuard
     public void run(
             ApplicationArguments args
     ) {
+        comprobarSeguridad();
+    }
+
+    public void comprobarSeguridad() {
+
         String datasourceUrl =
                 environment.getProperty(
                         "spring.datasource.url",
@@ -56,6 +61,7 @@ public class ProductionDatabaseGuard
     }
 
     private void comprobarPerfilProduccion() {
+
         boolean perfilProduccionActivo =
                 Arrays.stream(
                                 environment.getActiveProfiles()
@@ -77,6 +83,7 @@ public class ProductionDatabaseGuard
     }
 
     private void comprobarConfirmacionExplicita() {
+
         boolean produccionConfirmada =
                 environment.getProperty(
                         "gombeth.production.confirmed",
@@ -94,6 +101,7 @@ public class ProductionDatabaseGuard
     }
 
     private void comprobarDdlSeguro() {
+
         String ddlAuto =
                 environment.getProperty(
                                 "spring.jpa.hibernate.ddl-auto",
@@ -118,6 +126,7 @@ public class ProductionDatabaseGuard
             String datasourceUrl,
             String databaseName
     ) {
+
         if (
                 datasourceUrl == null
                         || datasourceUrl.isBlank()
