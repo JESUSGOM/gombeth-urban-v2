@@ -2,6 +2,7 @@ package com.gombeth.urban.service;
 
 import com.gombeth.urban.dto.GastoGuardarRequest;
 import com.gombeth.urban.entity.ContabilidadGasto;
+import com.gombeth.urban.entity.Proveedor;
 import com.gombeth.urban.repository.ContabilidadGastoRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,6 +16,8 @@ public class ContabilidadGastoService {
 
     private final ContabilidadGastoRepository gastoRepository;
 
+    private final ProveedorService proveedorService;
+
     private final PagoGastoContableService
             pagoGastoContableService;
 
@@ -26,6 +29,7 @@ public class ContabilidadGastoService {
 
     public ContabilidadGastoService(
             ContabilidadGastoRepository gastoRepository,
+            ProveedorService proveedorService,
             PagoGastoContableService pagoGastoContableService,
             AnulacionPagoGastoContableService
                     anulacionPagoGastoContableService,
@@ -34,6 +38,9 @@ public class ContabilidadGastoService {
     ) {
         this.gastoRepository =
                 gastoRepository;
+
+        this.proveedorService =
+                proveedorService;
 
         this.pagoGastoContableService =
                 pagoGastoContableService;
@@ -62,12 +69,18 @@ public class ContabilidadGastoService {
                 request
         );
 
+        String proveedor =
+                resolverProveedor(
+                        request
+                );
+
         ContabilidadGasto gasto =
                 new ContabilidadGasto();
 
         copiarDatosEditables(
                 request,
-                gasto
+                gasto,
+                proveedor
         );
 
         gasto.setPagado(
@@ -139,9 +152,15 @@ public class ContabilidadGastoService {
             );
         }
 
+        String proveedor =
+                resolverProveedor(
+                        request
+                );
+
         copiarDatosEditables(
                 request,
-                gasto
+                gasto,
+                proveedor
         );
 
         return gastoRepository.save(
@@ -392,6 +411,14 @@ public class ContabilidadGastoService {
             );
         }
 
+        /*
+         * El nombre textual del proveedor se mantiene obligatorio
+         * durante la migración.
+         *
+         * Si además se informa proveedorComunidadId,
+         * resolverProveedor() validará la asociación y utilizará
+         * el nombre actual del proveedor del maestro.
+         */
         if (
                 request.proveedor() == null
                         || request.proveedor()
@@ -415,9 +442,49 @@ public class ContabilidadGastoService {
         }
     }
 
+    private String resolverProveedor(
+            GastoGuardarRequest request
+    ) {
+        /*
+         * Flujo histórico/manual:
+         *
+         * todavía no existe una asociación estructurada
+         * persistida en contabilidad_gastos.
+         */
+        if (
+                request.proveedorComunidadId() == null
+        ) {
+            return limpiar(
+                    request.proveedor()
+            );
+        }
+
+        /*
+         * Flujo estructurado:
+         *
+         * validamos que la asociación indicada corresponde
+         * a la comunidad del gasto y que tanto la asociación
+         * como el proveedor están activos.
+         *
+         * En esta fase todavía NO guardamos el identificador
+         * proveedorComunidadId en ContabilidadGasto.
+         */
+        Proveedor proveedor =
+                proveedorService
+                        .obtenerProveedorActivoPorAsociacion(
+                                request.comunidadId(),
+                                request.proveedorComunidadId()
+                        );
+
+        return limpiar(
+                proveedor.getNombre()
+        );
+    }
+
     private void copiarDatosEditables(
             GastoGuardarRequest request,
-            ContabilidadGasto gasto
+            ContabilidadGasto gasto,
+            String proveedor
     ) {
         gasto.setComunidadId(
                 request.comunidadId()
@@ -443,10 +510,18 @@ public class ContabilidadGastoService {
                 )
         );
 
+        /*
+         * No usamos directamente request.proveedor().
+         *
+         * Si existe proveedorComunidadId, el valor ya ha sido
+         * validado y obtenido desde el maestro de proveedores
+         * mediante resolverProveedor().
+         *
+         * Si no existe asociación, este valor contiene el texto
+         * histórico/manual saneado.
+         */
         gasto.setProveedor(
-                limpiar(
-                        request.proveedor()
-                )
+                proveedor
         );
 
         gasto.setCuentaGastoId(

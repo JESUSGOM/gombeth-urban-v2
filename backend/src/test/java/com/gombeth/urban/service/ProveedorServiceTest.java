@@ -657,6 +657,221 @@ class ProveedorServiceTest {
         );
     }
 
+    @Test
+    void obtieneProveedorActivoDesdeAsociacionValida() {
+
+        ProveedorComunidad asociacion =
+                asociacion(
+                        100L,
+                        10L,
+                        33L,
+                        true
+                );
+
+        Proveedor proveedor =
+                proveedor(
+                        10L,
+                        2L,
+                        "Proveedor asociado",
+                        "B12345678"
+                );
+
+        when(
+                proveedorComunidadRepository
+                        .findByIdAndComunidadId(
+                                100L,
+                                33L
+                        )
+        ).thenReturn(
+                Optional.of(
+                        asociacion
+                )
+        );
+
+        when(
+                proveedorRepository.findById(
+                        10L
+                )
+        ).thenReturn(
+                Optional.of(
+                        proveedor
+                )
+        );
+
+        Proveedor resultado =
+                service.obtenerProveedorActivoPorAsociacion(
+                        33L,
+                        100L
+                );
+
+        assertEquals(
+                10L,
+                resultado.getId()
+        );
+
+        assertEquals(
+                "Proveedor asociado",
+                resultado.getNombre()
+        );
+
+        verify(
+                proveedorComunidadRepository
+        ).findByIdAndComunidadId(
+                100L,
+                33L
+        );
+
+        verify(
+                proveedorRepository
+        ).findById(
+                10L
+        );
+    }
+
+    @Test
+    void rechazaAsociacionProveedorDeOtraComunidad() {
+
+        when(
+                proveedorComunidadRepository
+                        .findByIdAndComunidadId(
+                                100L,
+                                33L
+                        )
+        ).thenReturn(
+                Optional.empty()
+        );
+
+        IllegalArgumentException error =
+                assertThrows(
+                        IllegalArgumentException.class,
+                        () ->
+                                service.obtenerProveedorActivoPorAsociacion(
+                                        33L,
+                                        100L
+                                )
+                );
+
+        assertEquals(
+                "La asociación de proveedor indicada "
+                        + "no pertenece a la comunidad.",
+                error.getMessage()
+        );
+
+        verify(
+                proveedorRepository,
+                never()
+        ).findById(
+                any()
+        );
+    }
+
+    @Test
+    void rechazaAsociacionProveedorInactiva() {
+
+        ProveedorComunidad asociacion =
+                asociacion(
+                        100L,
+                        10L,
+                        33L,
+                        false
+                );
+
+        when(
+                proveedorComunidadRepository
+                        .findByIdAndComunidadId(
+                                100L,
+                                33L
+                        )
+        ).thenReturn(
+                Optional.of(
+                        asociacion
+                )
+        );
+
+        IllegalArgumentException error =
+                assertThrows(
+                        IllegalArgumentException.class,
+                        () ->
+                                service.obtenerProveedorActivoPorAsociacion(
+                                        33L,
+                                        100L
+                                )
+                );
+
+        assertEquals(
+                "La asociación de proveedor está inactiva.",
+                error.getMessage()
+        );
+
+        verify(
+                proveedorRepository,
+                never()
+        ).findById(
+                any()
+        );
+    }
+
+    @Test
+    void rechazaProveedorAsociadoInactivo() {
+
+        ProveedorComunidad asociacion =
+                asociacion(
+                        100L,
+                        10L,
+                        33L,
+                        true
+                );
+
+        Proveedor proveedor =
+                proveedor(
+                        10L,
+                        2L,
+                        "Proveedor inactivo",
+                        "B12345678"
+                );
+
+        proveedor.setActivo(
+                false
+        );
+
+        when(
+                proveedorComunidadRepository
+                        .findByIdAndComunidadId(
+                                100L,
+                                33L
+                        )
+        ).thenReturn(
+                Optional.of(
+                        asociacion
+                )
+        );
+
+        when(
+                proveedorRepository.findById(
+                        10L
+                )
+        ).thenReturn(
+                Optional.of(
+                        proveedor
+                )
+        );
+
+        IllegalArgumentException error =
+                assertThrows(
+                        IllegalArgumentException.class,
+                        () ->
+                                service.obtenerProveedorActivoPorAsociacion(
+                                        33L,
+                                        100L
+                                )
+                );
+
+        assertEquals(
+                "El proveedor asociado está inactivo.",
+                error.getMessage()
+        );
+    }
+
     private Proveedor proveedor(
             Long id,
             Long administradorId,
@@ -667,14 +882,56 @@ class ProveedorServiceTest {
                 new Proveedor();
 
         proveedor.setId(id);
+
         proveedor.setAdministradorId(
                 administradorId
         );
-        proveedor.setNombre(nombre);
-        proveedor.setNifCif(nifCif);
-        proveedor.setActivo(true);
+
+        proveedor.setNombre(
+                nombre
+        );
+
+        proveedor.setNifCif(
+                nifCif
+        );
+
+        proveedor.setActivo(
+                true
+        );
 
         return proveedor;
+    }
+
+    private ProveedorComunidad asociacion(
+            Long id,
+            Long proveedorId,
+            Long comunidadId,
+            Boolean activo
+    ) {
+        ProveedorComunidad asociacion =
+                new ProveedorComunidad();
+
+        asociacion.setId(
+                id
+        );
+
+        asociacion.setProveedorId(
+                proveedorId
+        );
+
+        asociacion.setComunidadId(
+                comunidadId
+        );
+
+        asociacion.setCuentaContableId(
+                373L
+        );
+
+        asociacion.setActivo(
+                activo
+        );
+
+        return asociacion;
     }
 
     private Comunidad comunidad(
@@ -685,6 +942,7 @@ class ProveedorServiceTest {
                 new Comunidad();
 
         comunidad.setId(id);
+
         comunidad.setAdministradorId(
                 administradorId
         );

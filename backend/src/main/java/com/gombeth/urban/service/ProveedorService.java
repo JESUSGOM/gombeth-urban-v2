@@ -18,7 +18,6 @@ import java.util.Objects;
 @Service
 public class ProveedorService {
 
-
     private final ProveedorRepository
             proveedorRepository;
 
@@ -27,7 +26,6 @@ public class ProveedorService {
 
     private final ComunidadRepository
             comunidadRepository;
-
 
     private final AdministradorRepository
             administradorRepository;
@@ -99,6 +97,7 @@ public class ProveedorService {
                 );
 
         if (nifNormalizado != null) {
+
             boolean existe =
                     proveedorRepository
                             .findByAdministradorIdAndNifCifIgnoreCase(
@@ -346,6 +345,7 @@ public class ProveedorService {
                         .orElse(null);
 
         if (existente != null) {
+
             if (
                     !Boolean.TRUE.equals(
                             existente.getActivo()
@@ -364,12 +364,12 @@ public class ProveedorService {
         }
 
         CuentaContable cuentaProveedor =
-            cuentaProveedorContableService
-                .resolverOCrear(
-                        comunidad.getId(),
-                        proveedor.getNombre(),
-                        proveedor.getNifCif()
-                );
+                cuentaProveedorContableService
+                        .resolverOCrear(
+                                comunidad.getId(),
+                                proveedor.getNombre(),
+                                proveedor.getNifCif()
+                        );
 
         ProveedorComunidad asociacion =
                 new ProveedorComunidad();
@@ -425,6 +425,74 @@ public class ProveedorService {
                 );
     }
 
+    public Proveedor obtenerProveedorActivoPorAsociacion(
+            Long comunidadId,
+            Long proveedorComunidadId
+    ) {
+        if (
+                comunidadId == null
+                        || comunidadId <= 0
+        ) {
+            throw new IllegalArgumentException(
+                    "La comunidad es obligatoria."
+            );
+        }
+
+        if (
+                proveedorComunidadId == null
+                        || proveedorComunidadId <= 0
+        ) {
+            throw new IllegalArgumentException(
+                    "La asociación de proveedor es obligatoria."
+            );
+        }
+
+        ProveedorComunidad asociacion =
+                proveedorComunidadRepository
+                        .findByIdAndComunidadId(
+                                proveedorComunidadId,
+                                comunidadId
+                        )
+                        .orElseThrow(() ->
+                                new IllegalArgumentException(
+                                        "La asociación de proveedor indicada "
+                                                + "no pertenece a la comunidad."
+                                )
+                        );
+
+        if (
+                !Boolean.TRUE.equals(
+                        asociacion.getActivo()
+                )
+        ) {
+            throw new IllegalArgumentException(
+                    "La asociación de proveedor está inactiva."
+            );
+        }
+
+        Proveedor proveedor =
+                proveedorRepository
+                        .findById(
+                                asociacion.getProveedorId()
+                        )
+                        .orElseThrow(() ->
+                                new IllegalArgumentException(
+                                        "El proveedor asociado no existe."
+                                )
+                        );
+
+        if (
+                !Boolean.TRUE.equals(
+                        proveedor.getActivo()
+                )
+        ) {
+            throw new IllegalArgumentException(
+                    "El proveedor asociado está inactivo."
+            );
+        }
+
+        return proveedor;
+    }
 
     private String normalizarNif(
             String nifCif
