@@ -49,6 +49,10 @@ import {
   ComunidadStateService
 } from '../../../../core/state/comunidad-state.service';
 
+import {
+  GombethDialogService
+} from '../../../../shared/gombeth-dialog/gombeth-dialog.service';
+
 @Component({
   selector: 'app-recibos-list',
   standalone: true,
@@ -100,6 +104,9 @@ export class RecibosList implements OnInit {
    * que pudiera estar guardada en localStorage.
    */
   private sincronizandoRuta = false;
+
+  private readonly gombethDialog =
+    inject(GombethDialogService);
 
   paginaActual = 1;
   registrosPorPagina = 10;
@@ -681,6 +688,19 @@ export class RecibosList implements OnInit {
   toggleRecibo(
     id: number
   ): void {
+
+    const recibo =
+      this.recibos.find(r => r.id === id);
+
+    if (
+      !recibo ||
+      recibo.estado !== 'PENDIENTE' ||
+      this.estaRemesado(recibo)
+    ) {
+      this.recibosSeleccionados.delete(id);
+      return;
+    }
+
     if (
       this.recibosSeleccionados.has(id)
     ) {
@@ -696,6 +716,13 @@ export class RecibosList implements OnInit {
     return this.recibosSeleccionados.has(id);
   }
 
+  estaRemesado(
+    recibo: Recibo
+  ): boolean {
+    return recibo.remesado === true
+      && recibo.remesaId !== null;
+  }
+
   seleccionarTodos(
     event: Event
   ): void {
@@ -706,9 +733,15 @@ export class RecibosList implements OnInit {
     if (marcado) {
       this.recibosPaginados.forEach(
         recibo => {
-          this.recibosSeleccionados.add(
-            recibo.id
-          );
+
+          if (
+            recibo.estado === 'PENDIENTE' &&
+            !this.estaRemesado(recibo)
+          ) {
+            this.recibosSeleccionados.add(
+              recibo.id
+            );
+          }
         }
       );
     } else {
@@ -785,12 +818,24 @@ export class RecibosList implements OnInit {
     return `${anio}-${mes}-${dia}`;
   }
 
-  generarRemesa(): void {
-    if (
-      this.recibosSeleccionados.size === 0
-    ) {
-      alert(
-        'Debe seleccionar al menos un recibo'
+  async generarRemesa(): Promise<void> {
+
+    const recibosValidos =
+      this.recibos.filter(
+        recibo =>
+          this.recibosSeleccionados.has(
+            recibo.id
+          ) &&
+          recibo.estado === 'PENDIENTE' &&
+          !this.estaRemesado(recibo)
+      );
+
+    if (recibosValidos.length === 0) {
+
+      this.recibosSeleccionados.clear();
+
+      await this.gombethDialog.warning(
+        'No hay recibos pendientes disponibles para generar la remesa.'
       );
 
       return;
@@ -799,7 +844,8 @@ export class RecibosList implements OnInit {
     if (
       this.cuentaPresentadorId === null
     ) {
-      alert(
+
+      await this.gombethDialog.warning(
         'Debe seleccionar una cuenta presentadora activa.'
       );
 
@@ -814,37 +860,57 @@ export class RecibosList implements OnInit {
         this.comunidadId,
         this.cuentaPresentadorId,
         fechaCobro,
-        [
-          ...this.recibosSeleccionados
-        ]
+        recibosValidos.map(
+          recibo => recibo.id
+        )
       )
       .pipe(
         takeUntilDestroyed(this.destroyRef)
       )
       .subscribe({
-        next: response => {
-          alert(
+
+        next: async response => {
+
+          const remesaId =
+            Number(response?.remesaId);
+
+          if (
+            !Number.isInteger(remesaId) ||
+            remesaId <= 0
+          ) {
+
+            this.recibosSeleccionados.clear();
+
+            await this.gombethDialog.warning(
+              response?.mensaje ||
+              'No se ha generado ninguna remesa.'
+            );
+
+            this.cargarRecibos();
+            return;
+          }
+
+          await this.gombethDialog.success(
             'Remesa generada correctamente. ID: ' +
-            response.remesaId
+            remesaId
           );
 
           this.recibosSeleccionados.clear();
-
-          /*
-           * Refresca los recibos después de generar
-           * correctamente la remesa.
-           */
           this.cargarRecibos();
         },
 
-        error: error => {
+        error: async error => {
+
           console.error(
             'Error generando remesa:',
             error
           );
 
-          alert(
-            'Error generando remesa'
+          await this.gombethDialog.error(
+            this.obtenerMensajeError(
+              error,
+              'Error generando remesa.'
+            )
           );
         }
       });
@@ -907,18 +973,21 @@ export class RecibosList implements OnInit {
       });
   }
 
-  enviarEmail(
+  async enviarEmail(
     recibo: Recibo
-  ): void {
+  ): Promise<void> {
     if (!recibo.id) {
       return;
     }
 
-    const confirmado = window.confirm(
-      '¿Desea enviar por correo electrónico el PDF del recibo ' +
-      recibo.id +
-      ' al propietario?'
-    );
+    const confirmado =
+      await this.gombethDialog.confirm(
+        '¿Desea enviar por correo electrónico el PDF del recibo ' +
+        recibo.id +
+        ' al propietario?',
+        'Enviar email',
+        'Cancelar'
+      );
 
     if (!confirmado) {
       return;
@@ -960,9 +1029,9 @@ export class RecibosList implements OnInit {
       });
   }
 
-  cobrarRecibo(
+  async cobrarRecibo(
     recibo: Recibo
-  ): void {
+  ): Promise<void> {
     if (!recibo.id) {
       return;
     }
@@ -974,13 +1043,16 @@ export class RecibosList implements OnInit {
       return;
     }
 
-    const confirmado = window.confirm(
-      '¿Desea registrar manualmente el cobro del recibo ' +
-      recibo.id +
-      ' por ' +
-      recibo.importe.toFixed(2) +
-      ' €?'
-    );
+    const confirmado =
+      await this.gombethDialog.confirm(
+        '¿Desea registrar manualmente el cobro del recibo ' +
+        recibo.id +
+        ' por ' +
+        recibo.importe.toFixed(2) +
+        ' €?',
+        'Registrar cobro',
+        'Cancelar'
+      );
 
     if (!confirmado) {
       return;
@@ -1038,9 +1110,9 @@ export class RecibosList implements OnInit {
       });
   }
 
-  anularCobro(
+  async anularCobro(
     recibo: Recibo
-  ): void {
+  ): Promise<void> {
     if (!recibo.id) {
       return;
     }
@@ -1052,11 +1124,14 @@ export class RecibosList implements OnInit {
       return;
     }
 
-    const confirmado = window.confirm(
-      '¿Desea anular el cobro del recibo ' +
-      recibo.id +
-      '? Se generará el asiento contable inverso.'
-    );
+    const confirmado =
+      await this.gombethDialog.confirm(
+        '¿Desea anular el cobro del recibo ' +
+        recibo.id +
+        '? Se generará el asiento contable inverso.',
+        'Anular cobro',
+        'Cancelar'
+      );
 
     if (!confirmado) {
       return;

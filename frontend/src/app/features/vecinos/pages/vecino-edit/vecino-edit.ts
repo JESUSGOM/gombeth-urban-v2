@@ -15,6 +15,9 @@ import { VecinoService } from '../../../../core/services/vecino';
 import {
   VecinoDocumentoService
 } from '../../../../core/services/vecino-documento.service';
+import {
+  GombethDialogService
+} from '../../../../shared/gombeth-dialog/gombeth-dialog.service';
 
 @Component({
   selector: 'app-vecino-edit',
@@ -34,7 +37,8 @@ export class VecinoEdit implements OnInit {
 
   private documentoService =
     inject(VecinoDocumentoService);
-
+  private readonly gombethDialog =
+    inject(GombethDialogService);
 
   vecino?: Vecino;
 
@@ -569,9 +573,9 @@ export class VecinoEdit implements OnInit {
     );
   }
 
-  eliminarDocumento(
+  async eliminarDocumento(
     documento: VecinoDocumento
-  ): void {
+  ): Promise<void> {
     if (
       this.eliminandoDocumentoId
       || !this.vecino?.id
@@ -579,10 +583,13 @@ export class VecinoEdit implements OnInit {
       return;
     }
 
-    const confirmado = confirm(
-      '¿Desea eliminar el documento '
-      + `"${documento.nombreArchivo}"?`
-    );
+    const confirmado =
+      await this.gombethDialog.confirm(
+        '¿Desea eliminar el documento ' +
+        `"${documento.nombreArchivo}"?`,
+        'Eliminar documento',
+        'Cancelar'
+      );
 
     if (!confirmado) {
       return;
@@ -615,10 +622,9 @@ export class VecinoEdit implements OnInit {
           this.cargarDocumentos(
             this.vecino?.id
           );
-
-
         },
-        error: (err) => {
+
+        error: err => {
           console.error(
             'Error eliminando documento:',
             err
@@ -629,8 +635,6 @@ export class VecinoEdit implements OnInit {
 
           this.eliminandoDocumentoId =
             undefined;
-
-
         }
       });
   }

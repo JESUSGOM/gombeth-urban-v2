@@ -27,6 +27,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
+import com.gombeth.urban.service.RemesaService;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -64,6 +65,8 @@ public class ReciboController {
 
     private final ReciboEmailService reciboEmailService;
 
+    private final RemesaService remesaService;
+
     public ReciboController(
             CuotaPresupuestoRepository cuotaPresupuestoRepository,
             ContabilidadReciboRepository contabilidadReciboRepository,
@@ -73,7 +76,8 @@ public class ReciboController {
             AccesoComunidadService accesoComunidadService,
             ReciboCobroService reciboCobroService,
             PdfService pdfService,
-            ReciboEmailService reciboEmailService
+            ReciboEmailService reciboEmailService,
+            RemesaService remesaService
     ) {
         this.cuotaPresupuestoRepository =
                 cuotaPresupuestoRepository;
@@ -99,6 +103,8 @@ public class ReciboController {
         this.pdfService = pdfService;
 
         this.reciboEmailService = reciboEmailService;
+
+        this.remesaService = remesaService;
     }
 
     @PostMapping("/generar-desde-cuotas")
@@ -512,6 +518,11 @@ public class ReciboController {
                         ? vecino.getVivienda()
                         : "";
 
+        Long remesaId =
+                remesaService.obtenerRemesaActivaIdDeRecibo(
+                        recibo.getId()
+                );
+
         return new ReciboResponse(
                 recibo.getId(),
                 recibo.getFechaEmision(),
@@ -522,7 +533,9 @@ public class ReciboController {
                 recibo.getImporte(),
                 recibo.getEstado(),
                 recibo.getTipoRemesa(),
-                recibo.getEtiquetaExtra()
+                recibo.getEtiquetaExtra(),
+                remesaId,
+                remesaId != null
         );
     }
 }

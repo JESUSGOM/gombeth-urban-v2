@@ -14,4 +14,6 @@ export interface Recibo {
   concepto: string | null;
   tipoRemesa: string | null;
   etiquetaExtra: string | null;
+  remesaId: number | null;
+  remesado: boolean;
 }

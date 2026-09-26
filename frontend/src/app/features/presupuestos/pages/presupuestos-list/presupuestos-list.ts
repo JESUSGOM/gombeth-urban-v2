@@ -18,13 +18,16 @@ import { CuotaPresupuesto } from '../../../../core/models/cuota-presupuesto.mode
 import { Comunidad } from '../../../../core/models/comunidad.model';
 import { PresupuestoRevision } from '../../../../core/models/presupuesto-revision.model';
 import { CoeficienteVecinoDetalle } from '../../../../core/models/coeficiente-vecino-detalle.model';
-
+import {
+  GombethDialogService
+} from '../../../../shared/gombeth-dialog/gombeth-dialog.service';
 import { PresupuestoService } from '../../../../core/services/presupuesto';
 import {
   CuentaContable,
   CuentasContablesService
 } from '../../../../core/services/cuentas-contables.service';
 import { ComunidadService } from '../../../../core/services/comunidad';
+
 import { ComunidadStateService } from '../../../../core/state/comunidad-state.service';
 
 @Component({
@@ -39,6 +42,10 @@ export class PresupuestosList implements OnInit {
   private cuentasContablesService = inject(CuentasContablesService);
   private comunidadService = inject(ComunidadService);
   private comunidadState = inject(ComunidadStateService);
+
+  private readonly gombethDialog =
+    inject(GombethDialogService);
+
   private readonly destroyRef =
     inject(DestroyRef);
 
@@ -427,69 +434,72 @@ export class PresupuestosList implements OnInit {
     this.mensaje = '';
   }
 
-  eliminarPartida(
-    presupuesto: Presupuesto
-  ): void {
-    const descripcion =
-      `${presupuesto.cuentaCodigo} — ` +
-      `${presupuesto.cuentaDescripcion}`;
+  async eliminarPartida(
+      presupuesto: Presupuesto
+  ): Promise<void> {
 
-    if (
-      !confirm(
-        `¿Desea eliminar la partida ${descripcion}?\n\n` +
-        'Si existen cuotas en BORRADOR para este año, ' +
-        'se eliminarán porque deben recalcularse con el ' +
-        'nuevo presupuesto.'
-      )
-    ) {
+    const descripcion =
+        `${presupuesto.cuentaCodigo} — ` +
+        `${presupuesto.cuentaDescripcion}`;
+
+    const confirmado =
+        await this.gombethDialog.confirm(
+            `¿Desea eliminar la partida ${descripcion}?\n\n` +
+            'Si existen cuotas en BORRADOR para este año, ' +
+            'se eliminarán porque deben recalcularse con el ' +
+            'nuevo presupuesto.',
+            'Eliminar partida',
+            'Cancelar'
+        );
+
+    if (!confirmado) {
       return;
     }
 
     this.eliminandoPartidaId =
-      presupuesto.id;
+        presupuesto.id;
 
     this.error = '';
     this.mensaje = '';
 
     this.presupuestoService
-      .eliminarPartida(
-        presupuesto.id
-      )
-      .subscribe({
-        next: () => {
-          this.eliminandoPartidaId = null;
-
-          if (
-            this.partidaEditandoId ===
+        .eliminarPartida(
             presupuesto.id
-          ) {
-            this.resetFormularioPartida();
+        )
+        .subscribe({
+          next: () => {
+            this.eliminandoPartidaId = null;
+
+            if (
+                this.partidaEditandoId ===
+                presupuesto.id
+            ) {
+              this.resetFormularioPartida();
+            }
+
+            this.mensaje =
+                `Partida ${descripcion} eliminada correctamente. ` +
+                'Si había cuotas en BORRADOR, se han eliminado. ' +
+                'Genere un nuevo borrador de cuotas cuando el ' +
+                'presupuesto esté definitivo.';
+
+            this.cargarPresupuestos(false);
+          },
+
+          error: err => {
+            console.error(
+                'Error eliminando partida presupuestaria:',
+                err
+            );
+
+            this.error = this.obtenerMensajeError(
+                err,
+                'No se pudo eliminar la partida presupuestaria.'
+            );
+
+            this.eliminandoPartidaId = null;
           }
-
-          this.mensaje =
-            `Partida ${descripcion} eliminada correctamente. ` +
-            'Si había cuotas en BORRADOR, se han eliminado. ' +
-            'Genere un nuevo borrador de cuotas cuando el ' +
-            'presupuesto esté definitivo.';
-
-          this.cargarPresupuestos(false);
-        },
-
-        error: err => {
-          console.error(
-            'Error eliminando partida presupuestaria:',
-            err
-          );
-
-          this.error = this.obtenerMensajeError(
-            err,
-            'No se pudo eliminar la partida presupuestaria.'
-          );
-
-          this.eliminandoPartidaId = null;
-
-        }
-      });
+        });
   }
 
   cambiarAlcancePartida(): void {
@@ -793,14 +803,17 @@ export class PresupuestosList implements OnInit {
       });
   }
 
-  aprobarRevision(
-    id: number
-  ): void {
-    if (
-      !confirm(
-        '¿Desea aprobar esta revisión presupuestaria?'
-      )
-    ) {
+    async aprobarRevision(
+      id: number
+    ): Promise<void> {
+      const confirmado =
+        await this.gombethDialog.confirm(
+          '¿Desea aprobar esta revisión presupuestaria?',
+          'Aprobar revisión',
+          'Cancelar'
+        );
+
+      if (!confirmado) {
       return;
     }
 
@@ -834,14 +847,17 @@ export class PresupuestosList implements OnInit {
       });
   }
 
-  eliminarRevision(
-    id: number
-  ): void {
-    if (
-      !confirm(
-        '¿Desea eliminar esta revisión presupuestaria?'
-      )
-    ) {
+    async eliminarRevision(
+      id: number
+    ): Promise<void> {
+      const confirmado =
+        await this.gombethDialog.confirm(
+          '¿Desea eliminar esta revisión presupuestaria?',
+          'Eliminar revisión',
+          'Cancelar'
+        );
+
+      if (!confirmado) {
       return;
     }
 
@@ -934,16 +950,18 @@ export class PresupuestosList implements OnInit {
     );
   }
 
-  generarRecibos(): void {
+  async generarRecibos(): Promise<void> {
+
     if (this.comunidadId <= 0) {
       return;
     }
 
-    if (
-      !confirm(
+    const confirmado =
+      await this.gombethDialog.confirm(
         '¿Desea generar los recibos desde las cuotas aprobadas?'
-      )
-    ) {
+      );
+
+    if (!confirmado) {
       return;
     }
 

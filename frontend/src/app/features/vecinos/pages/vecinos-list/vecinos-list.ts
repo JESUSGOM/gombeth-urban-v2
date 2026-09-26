@@ -21,6 +21,9 @@ import { Comunidad } from '../../../../core/models/comunidad.model';
 import { ComunidadService } from '../../../../core/services/comunidad';
 import { CoeficientesResumen } from '../../../../core/models/coeficientes-resumen.model';
 import { ComunidadStateService } from '../../../../core/state/comunidad-state.service';
+import {
+  GombethDialogService
+} from '../../../../shared/gombeth-dialog/gombeth-dialog.service';
 
 @Component({
   selector: 'app-vecinos-list',
@@ -40,6 +43,8 @@ export class VecinosList implements OnInit {
   private comunidadState = inject(ComunidadStateService);
   private readonly destroyRef =
     inject(DestroyRef);
+  private readonly gombethDialog =
+    inject(GombethDialogService);
 
   comunidadId = 0;
   comunidad?: Comunidad;
@@ -337,16 +342,18 @@ export class VecinosList implements OnInit {
     ]);
   }
 
-  eliminarVecino(
+  async eliminarVecino(
     id?: number
-  ): void {
+  ): Promise<void> {
     if (!id) {
       return;
     }
 
     const confirmado =
-      confirm(
-        '¿Desea dar de baja este propietario?'
+      await this.gombethDialog.confirm(
+        '¿Desea dar de baja este propietario?',
+        'Dar de baja',
+        'Cancelar'
       );
 
     if (!confirmado) {

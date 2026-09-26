@@ -27,6 +27,10 @@ import {
   CuentaPresentadorService
 } from '../../../../core/services/cuenta-presentador.service';
 
+import {
+  GombethDialogService
+} from '../../../../shared/gombeth-dialog/gombeth-dialog.service';
+
 @Component({
   selector: 'app-cuentas-presentador',
   standalone: true,
@@ -45,6 +49,9 @@ export class CuentasPresentador
 
   private readonly changeDetector =
     inject(ChangeDetectorRef);
+
+  private readonly gombethDialog =
+    inject(GombethDialogService);
 
   cuentas: CuentaPresentador[] = [];
 
@@ -396,9 +403,9 @@ export class CuentasPresentador
       });
   }
 
-  eliminarCuenta(
+  async eliminarCuenta(
     cuenta: CuentaPresentador
-  ): void {
+  ): Promise<void> {
     if (
       this.eliminandoId !== null
       || this.actualizandoEstadoId !== null
@@ -406,13 +413,18 @@ export class CuentasPresentador
       return;
     }
 
-    const confirmado = confirm(
-      `¿Desea eliminar la cuenta presentadora "${cuenta.alias}"?`
-    );
+    const confirmado =
+      await this.gombethDialog.confirm(
+        `¿Desea eliminar la cuenta presentadora "${cuenta.alias}"?`,
+        'Eliminar cuenta',
+        'Cancelar'
+      );
 
     if (!confirmado) {
       return;
     }
+
+    this.error = '';
 
     this.error = '';
     this.mensaje = '';

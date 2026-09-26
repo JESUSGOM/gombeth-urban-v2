@@ -1,0 +1,97 @@
+﻿@if (estado(); as dialogo) {
+
+  <div class="gombeth-dialog-backdrop">
+
+    <section
+      class="gombeth-dialog"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="gombeth-dialog-title">
+
+      <header class="gombeth-dialog-header">
+
+        <img
+          src="/images/logo.png"
+          alt="Gombeth Urban"
+          class="gombeth-dialog-logo">
+
+        <strong id="gombeth-dialog-title">
+          Gombeth-urban dice
+        </strong>
+
+      </header>
+
+      <div
+        class="gombeth-dialog-body"
+        [class.info]="dialogo.tipo === 'info'"
+        [class.success]="dialogo.tipo === 'success'"
+        [class.warning]="dialogo.tipo === 'warning'"
+        [class.error]="dialogo.tipo === 'error'"
+        [class.confirm]="dialogo.tipo === 'confirm'">
+
+        <div
+          class="gombeth-dialog-icon"
+          aria-hidden="true">
+
+          @switch (dialogo.tipo) {
+
+            @case ('success') {
+              ✓
+            }
+
+            @case ('warning') {
+              !
+            }
+
+            @case ('error') {
+              ×
+            }
+
+            @case ('confirm') {
+              ?
+            }
+
+            @default {
+              i
+            }
+          }
+
+        </div>
+
+        <p>
+          {{ dialogo.mensaje }}
+        </p>
+
+      </div>
+
+      <footer class="gombeth-dialog-actions">
+
+        @if (dialogo.mostrarCancelar) {
+
+          <button
+            type="button"
+            class="btn-dialog secondary"
+            (click)="cancelar()">
+
+            {{ dialogo.textoCancelar }}
+
+          </button>
+
+        }
+
+        <button
+          type="button"
+          class="btn-dialog primary"
+          (click)="aceptar()">
+
+          {{ dialogo.textoAceptar }}
+
+        </button>
+
+      </footer>
+
+    </section>
+
+  </div>
+
+}

@@ -178,7 +178,9 @@
             Propietario
           </th>
 
-          <th (click)="ordenar('concepto')">
+          <th
+            class="concepto"
+            (click)="ordenar('concepto')">
             Concepto
           </th>
 
@@ -212,9 +214,10 @@
               type="checkbox"
               [checked]="estaSeleccionado(r.id)"
               [disabled]="
-                  r.estado !== 'PENDIENTE' ||
-                  procesandoReciboId === r.id
-                "
+                r.estado !== 'PENDIENTE' ||
+                estaRemesado(r) ||
+                procesandoReciboId === r.id
+              "
               (change)="toggleRecibo(r.id)">
           </td>
 
@@ -241,13 +244,19 @@
           </td>
 
           <td>
-              <span
-                class="badge"
-                [class.pending]="r.estado === 'PENDIENTE'"
-                [class.paid]="r.estado === 'COBRADO'"
-                [class.returned]="r.estado === 'DEVUELTO'">
-                {{ r.estado }}
-              </span>
+            <span
+              class="badge"
+              [class.pending]="r.estado === 'PENDIENTE'"
+              [class.paid]="r.estado === 'COBRADO'"
+              [class.returned]="r.estado === 'DEVUELTO'">
+              {{ r.estado }}
+            </span>
+
+                      <span
+                        *ngIf="estaRemesado(r)"
+                        class="remesa-reference">
+              Remesa #{{ r.remesaId }}
+            </span>
           </td>
 
           <td>

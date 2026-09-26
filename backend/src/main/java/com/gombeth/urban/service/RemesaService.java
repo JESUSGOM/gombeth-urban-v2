@@ -322,8 +322,22 @@ public class RemesaService {
     }
 
 
-    public boolean reciboYaIncluidoEnRemesa(Long reciboId) {
-        return remesaLineaRepository.existsByReciboContableId(reciboId);
+    public Long obtenerRemesaActivaIdDeRecibo(
+            Long reciboId
+    ) {
+        if (reciboId == null) {
+            return null;
+        }
+
+        return remesaLineaRepository
+                .findRemesaActivaIdByReciboContableId(reciboId)
+                .orElse(null);
+    }
+
+    public boolean reciboYaIncluidoEnRemesa(
+            Long reciboId
+    ) {
+        return obtenerRemesaActivaIdDeRecibo(reciboId) != null;
     }
 
     public boolean esReciboPendiente(ContabilidadRecibo recibo) {

@@ -13,6 +13,8 @@ public record ReciboResponse(
         BigDecimal importe,
         String estado,
         String tipoRemesa,
-        String etiquetaExtra
+        String etiquetaExtra,
+        Long remesaId,
+        boolean remesado
 ) {
 }

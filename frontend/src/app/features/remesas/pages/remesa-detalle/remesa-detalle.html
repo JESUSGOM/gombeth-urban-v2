@@ -222,6 +222,44 @@
         Las remesas históricas creadas antes de incorporar
         la trazabilidad pueden no disponer de eventos.
       </div>
+      <div
+        *ngIf="
+    !cargandoEventos &&
+    !errorEventos &&
+    eventos.length > 0
+  "
+        class="historial-controles">
+
+        <div class="historial-tamanio">
+
+          <label for="tamPaginaHistorial">
+            Eventos por página
+          </label>
+
+          <select
+            id="tamPaginaHistorial"
+            [value]="tamanioPaginaHistorial"
+            (change)="cambiarTamPaginaHistorial($event)">
+
+            <option
+              *ngFor="let opcion of opcionesTamPaginaHistorial"
+              [value]="opcion">
+
+              {{ opcion }}
+
+            </option>
+
+          </select>
+
+        </div>
+
+        <span>
+    Mostrando
+          {{ inicioEventoHistorial }}-{{ finEventoHistorial }}
+          de {{ eventos.length }}
+  </span>
+
+      </div>
 
       <div
         *ngIf="
@@ -232,7 +270,7 @@
         class="timeline">
 
         <article
-          *ngFor="let evento of eventos"
+          *ngFor="let evento of eventosPaginados"
           class="timeline-item">
 
           <div
@@ -304,6 +342,43 @@
           </div>
 
         </article>
+
+      </div>
+
+      <div
+        *ngIf="
+    !cargandoEventos &&
+    !errorEventos &&
+    eventos.length > 0
+  "
+        class="historial-paginacion">
+
+        <button
+          type="button"
+          (click)="historialAnterior()"
+          [disabled]="paginaHistorial === 1">
+
+          ‹ Anterior
+
+        </button>
+
+        <span>
+    Página
+    <strong>{{ paginaHistorial }}</strong>
+    de
+    <strong>{{ totalPaginasHistorial }}</strong>
+  </span>
+
+        <button
+          type="button"
+          (click)="historialSiguiente()"
+          [disabled]="
+      paginaHistorial >= totalPaginasHistorial
+    ">
+
+          Siguiente ›
+
+        </button>
 
       </div>
 

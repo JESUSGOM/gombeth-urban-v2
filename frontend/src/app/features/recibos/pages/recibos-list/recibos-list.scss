@@ -138,12 +138,35 @@
 
 .recibos-table th,
 .recibos-table td {
-  box-sizing: border-box;
-  padding: 7px 5px;
-  border-bottom: 1px solid #e5e7eb;
-  vertical-align: middle;
+  padding-top: 6px;
+  padding-bottom: 6px;
+}
+
+.recibos-table .concepto {
+  max-width: 300px;
+  width: 300px;
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.recibos-table .actions-column,
+.recibos-table .actions-cell {
+  width: 190px;
+  min-width: 190px;
+}
+
+.actions-cell {
+  white-space: nowrap;
+}
+
+.actions-cell .action-button {
+  margin: 1px 2px;
+}
+
+.remesa-reference {
+  margin-top: 2px;
+  line-height: 1.1;
 }
 
 .recibos-table th {
@@ -429,5 +452,124 @@
   .selection-summary .primary-button,
   .selection-summary select {
     width: 100%;
+  }
+}
+
+.remesa-reference {
+  display: block;
+  margin-top: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+/* =========================================================
+   Ajuste final escritorio 100 %
+   ========================================================= */
+
+@media (min-width: 1100px) {
+
+  .table-wrapper {
+    overflow-x: hidden;
+  }
+
+  .recibos-table {
+    width: 100%;
+    min-width: 0;
+    table-layout: fixed;
+  }
+
+  /* Selección */
+  .recibos-table th:nth-child(1),
+  .recibos-table td:nth-child(1) {
+    width: 36px;
+  }
+
+  /* ID */
+  .recibos-table th:nth-child(2),
+  .recibos-table td:nth-child(2) {
+    width: 48px;
+  }
+
+  /* Fecha */
+  .recibos-table th:nth-child(3),
+  .recibos-table td:nth-child(3) {
+    width: 78px;
+  }
+
+  /* Propietario */
+  .recibos-table th:nth-child(4),
+  .recibos-table td:nth-child(4) {
+    width: 165px;
+  }
+
+  /* Concepto */
+  .recibos-table th:nth-child(5),
+  .recibos-table td:nth-child(5) {
+    width: 240px;
+  }
+
+  /* Importe */
+  .recibos-table th:nth-child(6),
+  .recibos-table td:nth-child(6) {
+    width: 75px;
+  }
+
+  /* Estado + Remesa */
+  .recibos-table th:nth-child(7),
+  .recibos-table td:nth-child(7) {
+    width: 105px;
+  }
+
+  /* Tipo */
+  .recibos-table th:nth-child(8),
+  .recibos-table td:nth-child(8) {
+    width: 78px;
+  }
+
+  /* Versión */
+  .recibos-table th:nth-child(9),
+  .recibos-table td:nth-child(9) {
+    width: 58px;
+  }
+
+  /* Acciones */
+  .recibos-table th:nth-child(10),
+  .recibos-table td:nth-child(10) {
+    width: 190px;
+  }
+
+  /*
+   * No convertir un TD en flex.
+   * Conservamos el comportamiento normal de celda de tabla.
+   */
+  .recibos-table td.actions-cell {
+    display: table-cell;
+    text-align: center;
+    white-space: nowrap;
+  }
+
+  .actions-cell .action-button {
+    display: inline-block;
+    min-height: 25px;
+    margin: 1px;
+    padding: 4px 6px;
+    font-size: 10px;
+    vertical-align: middle;
+  }
+
+  .recibos-table .concepto,
+  .recibos-table .propietario {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .remesa-reference {
+    display: block;
+    margin-top: 2px;
+    line-height: 1.1;
+    font-size: 10px;
+    font-weight: 600;
+    white-space: nowrap;
   }
 }

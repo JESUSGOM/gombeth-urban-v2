@@ -40,6 +40,10 @@ import {
   ComunidadStateService
 } from '../../../../core/state/comunidad-state.service';
 
+import {
+  GombethDialogService
+} from '../../../../shared/gombeth-dialog/gombeth-dialog.service';
+
 type CampoOrdenacion =
   | 'vecino'
   | 'reciboContableId'
@@ -63,6 +67,7 @@ export class RemesaDetalle implements OnInit {
   private router = inject(Router);
   private remesaService = inject(RemesaService);
   private comunidadState = inject(ComunidadStateService);
+  private readonly gombethDialog = inject(GombethDialogService);
   private destroyRef = inject(DestroyRef);
 
   remesaId = 0;
@@ -73,6 +78,18 @@ export class RemesaDetalle implements OnInit {
   lineasPaginadas: RemesaLineaDetalle[] = [];
 
   eventos: RemesaEvento[] = [];
+
+  eventosPaginados: RemesaEvento[] = [];
+
+  paginaHistorial = 1;
+  tamanioPaginaHistorial = 5;
+  totalPaginasHistorial = 1;
+
+  opcionesTamPaginaHistorial = [
+    5,
+    10,
+    20
+  ];
 
   cargando = false;
   cargandoEventos = false;
@@ -227,7 +244,25 @@ export class RemesaDetalle implements OnInit {
       )
       .subscribe({
         next: eventos => {
-          this.eventos = eventos ?? [];
+
+          this.eventos =
+            eventos ?? [];
+
+          /*
+           * Al actualizar el historial mostramos la página más
+           * reciente. Los eventos actuales llegan en orden
+           * cronológico ascendente.
+           */
+          this.paginaHistorial =
+            Math.max(
+              1,
+              Math.ceil(
+                this.eventos.length /
+                this.tamanioPaginaHistorial
+              )
+            );
+
+          this.aplicarPaginacionHistorial();
         },
 
         error: error => {
@@ -237,6 +272,9 @@ export class RemesaDetalle implements OnInit {
           );
 
           this.eventos = [];
+          this.eventosPaginados = [];
+          this.paginaHistorial = 1;
+          this.totalPaginasHistorial = 1;
 
           this.errorEventos =
             error?.error?.message ||
@@ -279,7 +317,8 @@ export class RemesaDetalle implements OnInit {
     );
   }
 
-  anular(): void {
+  async anular(): Promise<void> {
+
     if (
       !this.detalle ||
       !this.puedeAnular ||
@@ -289,11 +328,13 @@ export class RemesaDetalle implements OnInit {
     }
 
     const confirmado =
-      window.confirm(
+      await this.gombethDialog.confirm(
         '¿Confirmas que quieres anular esta remesa?\n\n' +
-        'La remesa quedará marcada como ANULADA y ' +
-        'se registrará el evento correspondiente en el historial.\n\n' +
-        'Esta opción no está disponible para remesas ya PRESENTADAS.'
+        'La remesa quedará marcada como ANULADA y se registrará ' +
+        'el evento correspondiente en el historial.\n\n' +
+        'Esta opción no está disponible para remesas ya PRESENTADAS.',
+        'Anular remesa',
+        'Cancelar'
       );
 
     if (!confirmado) {
@@ -315,6 +356,7 @@ export class RemesaDetalle implements OnInit {
       )
       .subscribe({
         next: resultado => {
+
           this.mensajeOperacion =
             resultado?.mensaje ||
             'La remesa ha quedado marcada como ANULADA.';
@@ -324,12 +366,14 @@ export class RemesaDetalle implements OnInit {
         },
 
         error: error => {
+
           console.error(
             'Error anulando la remesa:',
             error
           );
 
           if (error?.status === 409) {
+
             this.errorOperacion =
               error?.error?.detail ||
               error?.error?.message ||
@@ -339,6 +383,7 @@ export class RemesaDetalle implements OnInit {
           }
 
           if (error?.status === 403) {
+
             this.errorOperacion =
               'No tienes permiso para modificar esta remesa.';
 
@@ -353,7 +398,8 @@ export class RemesaDetalle implements OnInit {
       });
   }
 
-  presentar(): void {
+  async presentar(): Promise<void> {
+
     if (
       !this.detalle ||
       !this.puedePresentar ||
@@ -363,10 +409,12 @@ export class RemesaDetalle implements OnInit {
     }
 
     const confirmado =
-      window.confirm(
+      await this.gombethDialog.confirm(
         '¿Confirmas que esta remesa ya ha sido presentada al banco?\n\n' +
         'Esta acción dejará registrada la remesa como PRESENTADA ' +
-        'y añadirá el evento correspondiente al historial.'
+        'y añadirá el evento correspondiente al historial.',
+        'Marcar presentada',
+        'Cancelar'
       );
 
     if (!confirmado) {
@@ -388,6 +436,7 @@ export class RemesaDetalle implements OnInit {
       )
       .subscribe({
         next: resultado => {
+
           this.mensajeOperacion =
             resultado?.mensaje ||
             'La remesa ha quedado marcada como PRESENTADA.';
@@ -397,12 +446,14 @@ export class RemesaDetalle implements OnInit {
         },
 
         error: error => {
+
           console.error(
             'Error marcando la remesa como presentada:',
             error
           );
 
           if (error?.status === 409) {
+
             this.errorOperacion =
               error?.error?.detail ||
               error?.error?.message ||
@@ -412,6 +463,7 @@ export class RemesaDetalle implements OnInit {
           }
 
           if (error?.status === 403) {
+
             this.errorOperacion =
               'No tienes permiso para modificar esta remesa.';
 
@@ -687,6 +739,110 @@ export class RemesaDetalle implements OnInit {
       default:
         return 'evento-normal';
     }
+  }
+
+  cambiarTamPaginaHistorial(
+    event: Event
+  ): void {
+
+    const select =
+      event.target as HTMLSelectElement;
+
+    const tamanio =
+      Number(select.value);
+
+    if (
+      Number.isNaN(tamanio) ||
+      tamanio <= 0
+    ) {
+      return;
+    }
+
+    this.tamanioPaginaHistorial = tamanio;
+    this.paginaHistorial = 1;
+
+    this.aplicarPaginacionHistorial();
+  }
+
+  historialAnterior(): void {
+
+    if (this.paginaHistorial <= 1) {
+      return;
+    }
+
+    this.paginaHistorial--;
+
+    this.aplicarPaginacionHistorial();
+  }
+
+  historialSiguiente(): void {
+
+    if (
+      this.paginaHistorial >=
+      this.totalPaginasHistorial
+    ) {
+      return;
+    }
+
+    this.paginaHistorial++;
+
+    this.aplicarPaginacionHistorial();
+  }
+
+  get inicioEventoHistorial(): number {
+
+    if (this.eventos.length === 0) {
+      return 0;
+    }
+
+    return (
+      (this.paginaHistorial - 1) *
+      this.tamanioPaginaHistorial
+    ) + 1;
+  }
+
+  get finEventoHistorial(): number {
+
+    if (this.eventos.length === 0) {
+      return 0;
+    }
+
+    return Math.min(
+      this.paginaHistorial *
+      this.tamanioPaginaHistorial,
+      this.eventos.length
+    );
+  }
+
+  private aplicarPaginacionHistorial(): void {
+
+    this.totalPaginasHistorial =
+      Math.max(
+        1,
+        Math.ceil(
+          this.eventos.length /
+          this.tamanioPaginaHistorial
+        )
+      );
+
+    if (
+      this.paginaHistorial >
+      this.totalPaginasHistorial
+    ) {
+      this.paginaHistorial =
+        this.totalPaginasHistorial;
+    }
+
+    const inicio =
+      (this.paginaHistorial - 1) *
+      this.tamanioPaginaHistorial;
+
+    this.eventosPaginados =
+      this.eventos.slice(
+        inicio,
+        inicio +
+        this.tamanioPaginaHistorial
+      );
   }
 
   private aplicarOrdenacionYPaginacion(): void {

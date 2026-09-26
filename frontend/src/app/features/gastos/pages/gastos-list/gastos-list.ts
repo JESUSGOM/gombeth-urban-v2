@@ -39,6 +39,10 @@ import {
   ComunidadStateService
 } from '../../../../core/state/comunidad-state.service';
 
+import {
+  GombethDialogService
+} from '../../../../shared/gombeth-dialog/gombeth-dialog.service';
+
 type FiltroEstado =
   'TODOS'
   | 'PENDIENTE'
@@ -68,6 +72,9 @@ export class GastosList implements OnInit {
 
   private readonly router =
     inject(Router);
+
+  private readonly gombethDialog =
+    inject(GombethDialogService);
 
   gastos: Gasto[] = [];
   gastosFiltrados: Gasto[] = [];
@@ -320,9 +327,9 @@ export class GastosList implements OnInit {
     return '';
   }
 
-  eliminarGasto(
+  async eliminarGasto(
     gasto: Gasto
-  ): void {
+  ): Promise<void> {
 
     if (!this.puedeEliminar(gasto)) {
 
@@ -354,10 +361,12 @@ export class GastosList implements OnInit {
     }
 
     const confirmado =
-      window.confirm(
+      await this.gombethDialog.confirm(
         '¿Desea eliminar este gasto pendiente? '
         + 'Esta operación eliminará el registro del gasto, '
-        + 'pero no eliminará físicamente el PDF de la factura.'
+        + 'pero no eliminará físicamente el PDF de la factura.',
+        'Eliminar gasto',
+        'Cancelar'
       );
 
     if (!confirmado) {

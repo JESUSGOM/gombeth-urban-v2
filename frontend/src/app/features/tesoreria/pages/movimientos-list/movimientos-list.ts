@@ -14,6 +14,7 @@ import { FormsModule } from '@angular/forms';
 import { MovimientoBancario } from '../../../../core/models/movimiento-bancario.model';
 import { MovimientoBancarioService } from '../../../../core/services/movimiento-bancario.service';
 import { ComunidadStateService } from '../../../../core/state/comunidad-state.service';
+import { GombethDialogService } from '../../../../shared/gombeth-dialog/gombeth-dialog.service';
 
 @Component({
   selector: 'app-movimientos-list',
@@ -25,9 +26,8 @@ export class MovimientosList implements OnInit {
 
   private movimientoService = inject(MovimientoBancarioService);
   private comunidadState = inject(ComunidadStateService);
-  private readonly destroyRef =
-    inject(DestroyRef);
-
+  private readonly destroyRef = inject(DestroyRef);
+  private readonly gombethDialog = inject(GombethDialogService);
 
   movimientos: MovimientoBancario[] = [];
   movimientosFiltrados: MovimientoBancario[] = [];
@@ -371,13 +371,15 @@ export class MovimientosList implements OnInit {
     );
   }
 
-  conciliarSeleccionados(): void {
+  async conciliarSeleccionados(): Promise<void> {
     if (!this.movimientoSeleccionado) {
       return;
     }
 
     if (this.recibosSeleccionados.length === 0) {
-      alert('Debe seleccionar al menos un recibo.');
+      await this.gombethDialog.warning(
+        'Debe seleccionar al menos un recibo.'
+      );
       return;
     }
 
@@ -391,15 +393,19 @@ export class MovimientosList implements OnInit {
         this.getUsuarioId()
       )
       .subscribe({
-        next: () => {
-          alert('Movimiento conciliado correctamente.');
+        next: async () => {
+          await this.gombethDialog.success(
+            'Movimiento conciliado correctamente.'
+          );
 
           this.volverMovimientos();
           this.cargarMovimientos();
         },
-        error: (err) => {
+
+        error: async (err) => {
           console.error(err);
-          alert(
+
+          await this.gombethDialog.error(
             err?.error?.message ||
             'No se pudo conciliar el movimiento.'
           );
@@ -407,25 +413,35 @@ export class MovimientosList implements OnInit {
       });
   }
 
-  desconciliarMovimiento(
+  async desconciliarMovimiento(
     movimiento: MovimientoBancario
-  ): void {
-    if (!movimiento?.id || !movimiento.conciliado) {
+  ): Promise<void> {
+
+    if (
+      !movimiento?.id ||
+      !movimiento.conciliado
+    ) {
       return;
     }
 
-    const confirmado = window.confirm(
-      `Se va a desconciliar el movimiento #${movimiento.id}.\n\n` +
-      'Se generará un contrasiento contable, los recibos asociados volverán a PENDIENTE ' +
-      'y el movimiento quedará disponible para una nueva conciliación.\n\n' +
-      '¿Desea continuar?'
-    );
+    const confirmado =
+      await this.gombethDialog.confirm(
+        `Se va a desconciliar el movimiento #${movimiento.id}.\n\n` +
+        'Se generará un contrasiento contable, los recibos asociados ' +
+        'volverán a PENDIENTE y el movimiento quedará disponible ' +
+        'para una nueva conciliación.\n\n' +
+        '¿Desea continuar?',
+        'Desconciliar movimiento',
+        'Cancelar'
+      );
 
     if (!confirmado) {
       return;
     }
 
-    this.movimientoDesconciliandoId = movimiento.id;
+    this.movimientoDesconciliandoId =
+      movimiento.id;
+
     this.error = '';
 
     this.movimientoService
@@ -434,23 +450,27 @@ export class MovimientosList implements OnInit {
         this.getUsuarioId()
       )
       .subscribe({
-        next: () => {
-          this.movimientoDesconciliandoId = null;
+        next: async () => {
+          this.movimientoDesconciliandoId =
+            null;
 
-          alert(
+          await this.gombethDialog.success(
             'Movimiento desconciliado correctamente. ' +
-            'Se ha generado el contrasiento contable y los recibos vuelven a estar pendientes.'
+            'Se ha generado el contrasiento contable y los recibos ' +
+            'vuelven a estar pendientes.'
           );
 
           this.cargarMovimientos();
         },
-        error: (err) => {
+
+        error: async (err) => {
           console.error(
             'Error desconciliando el movimiento:',
             err
           );
 
-          this.movimientoDesconciliandoId = null;
+          this.movimientoDesconciliandoId =
+            null;
 
           const mensaje =
             err?.error?.detail ||
@@ -458,7 +478,9 @@ export class MovimientosList implements OnInit {
             err?.error?.error ||
             'No se pudo desconciliar el movimiento.';
 
-          alert(mensaje);
+          await this.gombethDialog.error(
+            mensaje
+          );
         }
       });
   }

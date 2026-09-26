@@ -1,28 +1,14 @@
 import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
-import {
-  Component,
-  DestroyRef,
-  OnInit,
-  inject
-} from '@angular/core';
-
-import {
-  takeUntilDestroyed
-} from '@angular/core/rxjs-interop';
+import { Component, DestroyRef, OnInit, inject} from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { finalize } from 'rxjs';
-
-import {
-  Norma43MovimientoPreview,
-  Norma43Previsualizacion
-} from '../../../../core/models/norma43.model';
+import {Norma43MovimientoPreview, Norma43Previsualizacion} from '../../../../core/models/norma43.model';
 import { Norma43Service } from '../../../../core/services/norma43.service';
-import {
-  ComunidadSeleccionada,
-  ComunidadStateService
-} from '../../../../core/state/comunidad-state.service';
+import { ComunidadSeleccionada, ComunidadStateService } from '../../../../core/state/comunidad-state.service';
+import { GombethDialogService } from '../../../../shared/gombeth-dialog/gombeth-dialog.service';
 
 @Component({
   selector: 'app-norma43-import',
@@ -39,9 +25,8 @@ export class Norma43Import implements OnInit {
   private readonly norma43Service = inject(Norma43Service);
   private readonly comunidadState = inject(ComunidadStateService);
   private readonly router = inject(Router);
-  private readonly destroyRef =
-    inject(DestroyRef);
-
+  private readonly destroyRef = inject(DestroyRef);
+  private readonly gombethDialog = inject(GombethDialogService);
 
   comunidad: ComunidadSeleccionada | null = null;
   ficheroSeleccionado: File | null = null;
@@ -146,7 +131,7 @@ export class Norma43Import implements OnInit {
       });
   }
 
-  confirmarImportacion(): void {
+  async confirmarImportacion(): Promise<void> {
     if (
       !this.comunidad ||
       !this.ficheroSeleccionado ||
@@ -157,11 +142,18 @@ export class Norma43Import implements OnInit {
       return;
     }
 
-    const confirmado = window.confirm(
-      `Se importarán ${this.previsualizacion.numeroMovimientos} ` +
-      `movimientos en la comunidad "${this.comunidad.nombre}". ` +
-      'La conciliación no se ejecutará automáticamente. ¿Continuar?'
-    );
+    const confirmado =
+      await this.gombethDialog.confirm(
+        `Se importarán ${this.previsualizacion.numeroMovimientos} ` +
+        `movimientos en la comunidad "${this.comunidad.nombre}". ` +
+        'La conciliación no se ejecutará automáticamente. ¿Continuar?',
+        'Importar movimientos',
+        'Cancelar'
+      );
+
+    if (!confirmado) {
+      return;
+    }
 
     if (!confirmado) {
       return;
