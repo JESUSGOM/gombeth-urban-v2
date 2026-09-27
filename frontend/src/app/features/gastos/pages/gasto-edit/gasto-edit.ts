@@ -415,7 +415,12 @@ export class GastoEdit implements OnInit {
     );
 
     this.proveedorComunidadSeleccionadoId =
-      null;
+      gasto.proveedorComunidadId === null
+      || gasto.proveedorComunidadId === undefined
+        ? null
+        : Number(
+          gasto.proveedorComunidadId
+        );
 
     this.cargarProveedores(
       comunidadId
@@ -492,16 +497,16 @@ export class GastoEdit implements OnInit {
     const select =
       event.target as HTMLSelectElement;
 
-    const proveedorId =
+    const asociacionId =
       Number(
         select.value
       );
 
     if (
       !Number.isInteger(
-        proveedorId
+        asociacionId
       )
-      || proveedorId <= 0
+      || asociacionId <= 0
     ) {
       this.proveedorComunidadSeleccionadoId =
         null;
@@ -513,8 +518,8 @@ export class GastoEdit implements OnInit {
       this.proveedoresComunidad.find(
         item =>
           Number(
-            item.proveedorId
-          ) === proveedorId
+            item.asociacionId
+          ) === asociacionId
       );
 
     if (!proveedor) {
@@ -525,7 +530,7 @@ export class GastoEdit implements OnInit {
     }
 
     this.proveedorComunidadSeleccionadoId =
-      proveedorId;
+      asociacionId;
 
     this.gastoForm.patchValue({
       proveedor:
@@ -998,7 +1003,9 @@ export class GastoEdit implements OnInit {
       numeroFactura:
         numeroFactura || null,
       proveedor,
-      cuentaGastoId
+      cuentaGastoId,
+      proveedorComunidadId:
+        this.proveedorComunidadSeleccionadoId
     };
   }
 

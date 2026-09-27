@@ -448,8 +448,8 @@ public class ContabilidadGastoService {
         /*
          * Flujo histórico/manual:
          *
-         * todavía no existe una asociación estructurada
-         * persistida en contabilidad_gastos.
+         * no se ha informado una asociación estructurada
+         * para este gasto.
          */
         if (
                 request.proveedorComunidadId() == null
@@ -466,8 +466,8 @@ public class ContabilidadGastoService {
          * a la comunidad del gasto y que tanto la asociación
          * como el proveedor están activos.
          *
-         * En esta fase todavía NO guardamos el identificador
-         * proveedorComunidadId en ContabilidadGasto.
+         * El identificador proveedorComunidadId validado se conserva
+         * en ContabilidadGasto al copiar los datos editables.
          */
         Proveedor proveedor =
                 proveedorService
@@ -522,6 +522,10 @@ public class ContabilidadGastoService {
          */
         gasto.setProveedor(
                 proveedor
+        );
+
+        gasto.setProveedorComunidadId(
+                request.proveedorComunidadId()
         );
 
         gasto.setCuentaGastoId(

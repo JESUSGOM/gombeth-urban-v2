@@ -28,6 +28,9 @@ public class ContabilidadGasto {
     @Column(length = 255)
     private String proveedor;
 
+    @Column(name = "proveedor_comunidad_id")
+    private Long proveedorComunidadId;
+
     @Column(name = "comunidad_id", nullable = false)
     private Long comunidadId;
 
@@ -87,6 +90,14 @@ public class ContabilidadGasto {
 
     public void setProveedor(String proveedor) {
         this.proveedor = proveedor;
+    }
+
+    public Long getProveedorComunidadId() {
+        return proveedorComunidadId;
+    }
+
+    public void setProveedorComunidadId(Long proveedorComunidadId) {
+        this.proveedorComunidadId = proveedorComunidadId;
     }
 
     public Long getComunidadId() {

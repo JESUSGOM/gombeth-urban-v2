@@ -5,6 +5,7 @@ export interface Gasto {
   importeTotal: number | null;
   numeroFactura: string | null;
   proveedor: string | null;
+  proveedorComunidadId: number | null;
   comunidadId: number;
   cuentaGastoId: number | null;
   fechaPago: string | null;
@@ -21,4 +22,5 @@ export interface GastoGuardarRequest {
   numeroFactura: string | null;
   proveedor: string;
   cuentaGastoId: number | null;
+  proveedorComunidadId: number | null;
 }

@@ -212,14 +212,18 @@
 
           <option
             *ngFor="
-        let proveedor
-        of proveedoresComunidad
-      "
-            [value]="proveedor.proveedorId"
+              let proveedor
+              of proveedoresComunidad
+            "
+            [value]="proveedor.asociacionId"
+            [selected]="
+              proveedor.asociacionId
+              === proveedorComunidadSeleccionadoId
+            "
             [disabled]="
-        !proveedor.proveedorActivo
-        || !proveedor.asociacionActiva
-      ">
+              !proveedor.proveedorActivo
+              || !proveedor.asociacionActiva
+            ">
 
             {{ proveedor.nombre }}
 
