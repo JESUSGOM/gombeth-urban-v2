@@ -130,6 +130,7 @@ describe('GastoEdit', () => {
         importeTotal: 125.50,
         numeroFactura: 'F-002',
         proveedor: 'Proveedor prueba',
+        proveedorComunidadId: null,
         cuentaGastoId: 1
       });
 
@@ -200,6 +201,7 @@ describe('GastoEdit', () => {
         importeTotal: 217.71,
         numeroFactura: 'FAC-23',
         proveedor: 'Proveedor actualizado',
+        proveedorComunidadId: null,
         cuentaGastoId: 1
       });
 
@@ -521,6 +523,7 @@ describe('GastoEdit', () => {
           'RF-001',
         proveedor:
           'Proveedor Reactive',
+        proveedorComunidadId: null,
         cuentaGastoId:
           7
       });
@@ -818,7 +821,7 @@ describe('GastoEdit', () => {
 
       const evento = {
         target: {
-          value: '10'
+          value: '100'
         }
       } as unknown as Event;
 
@@ -828,7 +831,7 @@ describe('GastoEdit', () => {
 
       expect(
         component.proveedorComunidadSeleccionadoId
-      ).toBe(10);
+      ).toBe(100);
 
       expect(
         component.gastoForm.controls

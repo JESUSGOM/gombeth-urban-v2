@@ -53,6 +53,33 @@ describe('GastoService', () => {
   });
 
   it(
+    'debe obtener la configuracion de gastos',
+    () => {
+
+      service
+        .obtenerConfiguracion()
+        .subscribe(configuracion => {
+
+          expect(
+            configuracion.pagosHabilitados
+          ).toBe(false);
+        });
+
+      const peticion =
+        httpTesting.expectOne(
+          '/api/gastos/configuracion'
+        );
+
+      expect(
+        peticion.request.method
+      ).toBe('GET');
+
+      peticion.flush({
+        pagosHabilitados: false
+      });
+    }
+  );
+  it(
     'debe enviar la fecha de pago al registrar un pago',
     () => {
 
@@ -63,6 +90,7 @@ describe('GastoService', () => {
         importeTotal: 23.45,
         numeroFactura: 'TEST-25',
         proveedor: 'Proveedor prueba',
+        proveedorComunidadId: null,
         comunidadId: 33,
         cuentaGastoId: 1957,
         fechaPago: '2026-09-18',
@@ -158,6 +186,7 @@ describe('GastoService', () => {
         importeTotal: 82.82,
         numeroFactura: '37',
         proveedor: 'Proveedor histórico',
+        proveedorComunidadId: null,
         comunidadId: 17,
         cuentaGastoId: 1862,
         fechaPago: null,
@@ -241,6 +270,60 @@ describe('GastoService', () => {
   );
 
   it(
+    'debe deshacer la contabilizacion sin enviar fecha de anulacion',
+    () => {
+
+      const respuesta: Gasto = {
+        id: 25,
+        concepto: 'Gasto contabilizado',
+        fechaFactura: '2026-09-17',
+        importeTotal: 23.45,
+        numeroFactura: 'TEST-25',
+        proveedor: 'Proveedor prueba',
+        proveedorComunidadId: null,
+        comunidadId: 33,
+        cuentaGastoId: 1957,
+        fechaPago: null,
+        pagado: false,
+        numeroAsiento: null,
+        rutaPdf: null
+      };
+
+      service
+        .deshacerContabilizacion(
+          25
+        )
+        .subscribe(gasto => {
+
+          expect(
+            gasto.numeroAsiento
+          ).toBeNull();
+        });
+
+      const peticion =
+        httpTesting.expectOne(
+          request =>
+            request.url
+            === '/api/gastos/25/deshacer-contabilizacion'
+            && !request.params.has(
+              'fechaAnulacion'
+            )
+        );
+
+      expect(
+        peticion.request.method
+      ).toBe('POST');
+
+      expect(
+        peticion.request.body
+      ).toBeNull();
+
+      peticion.flush(
+        respuesta
+      );
+    }
+  );
+  it(
     'debe subir el PDF de una factura como multipart form data',
     () => {
 
@@ -272,6 +355,7 @@ describe('GastoService', () => {
         importeTotal: 23.45,
         numeroFactura: 'TEST-25',
         proveedor: 'Proveedor prueba',
+        proveedorComunidadId: null,
         comunidadId: 33,
         cuentaGastoId: 1957,
         fechaPago: null,

@@ -25,6 +25,10 @@ import {
 } from '../../../../core/state/comunidad-state.service';
 
 import {
+  GombethDialogService
+} from '../../../../shared/gombeth-dialog/gombeth-dialog.service';
+
+import {
   GastosList
 } from './gastos-list';
 
@@ -42,6 +46,9 @@ describe('GastosList', () => {
 
   let comunidadState:
     ComunidadStateService;
+
+  let gombethDialog:
+    GombethDialogService;
 
   beforeEach(async () => {
 
@@ -75,6 +82,11 @@ describe('GastosList', () => {
       TestBed.inject(
         ComunidadStateService
       );
+
+    gombethDialog =
+      TestBed.inject(
+        GombethDialogService
+      );
   });
 
   afterEach(() => {
@@ -95,6 +107,7 @@ describe('GastosList', () => {
         importeTotal: 100,
         numeroFactura: 'F-1',
         proveedor: 'Proveedor 1',
+        proveedorComunidadId: null,
         comunidadId: 18,
         cuentaGastoId: 1,
         fechaPago: null,
@@ -110,6 +123,7 @@ describe('GastosList', () => {
         importeTotal: 200,
         numeroFactura: 'F-2',
         proveedor: 'Proveedor 2',
+        proveedorComunidadId: null,
         comunidadId: 18,
         cuentaGastoId: 1,
         fechaPago: '2026-09-10',
@@ -138,6 +152,19 @@ describe('GastosList', () => {
     () => {
 
       component.ngOnInit();
+
+      const configuracion =
+        httpTesting.expectOne(
+          '/api/gastos/configuracion'
+        );
+
+      expect(
+        configuracion.request.method
+      ).toBe('GET');
+
+      configuracion.flush({
+        pagosHabilitados: false
+      });
 
       comunidadState.setComunidad({
         id: 18,
@@ -182,6 +209,7 @@ describe('GastosList', () => {
         importeTotal: 217.71,
         numeroFactura: 'B-1',
         proveedor: 'Proveedor B',
+        proveedorComunidadId: null,
         comunidadId: 33,
         cuentaGastoId: 1,
         fechaPago: null,
@@ -217,7 +245,236 @@ describe('GastosList', () => {
   );
 
   it(
-    'debe bloquear el pago desde la interfaz durante la convivencia',
+    'debe mantener los pagos bloqueados si falla la configuracion',
+    () => {
+
+      const consoleSpy =
+        vi.spyOn(
+          console,
+          'error'
+        ).mockImplementation(
+          () => undefined
+        );
+
+      component.ngOnInit();
+
+      const configuracion =
+        httpTesting.expectOne(
+          '/api/gastos/configuracion'
+        );
+
+      configuracion.flush(
+        null,
+        {
+          status: 500,
+          statusText: 'Server Error'
+        }
+      );
+
+      expect(
+        component.pagosHabilitadosEnInterfaz
+      ).toBe(false);
+
+      expect(
+        consoleSpy
+      ).toHaveBeenCalled();
+
+      consoleSpy.mockRestore();
+    }
+  );
+  it(
+    'debe habilitar el pago cuando el backend lo permite',
+    () => {
+
+      component.ngOnInit();
+
+      const configuracion =
+        httpTesting.expectOne(
+          '/api/gastos/configuracion'
+        );
+
+      configuracion.flush({
+        pagosHabilitados: true
+      });
+
+      const gasto: Gasto = {
+        id: 25,
+        concepto: 'Gasto contabilizado',
+        fechaFactura: '2026-09-17',
+        importeTotal: 23.45,
+        numeroFactura: 'TEST-2B-20260917',
+        proveedor: 'PRUEBA PASO 2B',
+        proveedorComunidadId: null,
+        comunidadId: 33,
+        cuentaGastoId: 1957,
+        fechaPago: null,
+        pagado: false,
+        numeroAsiento: 'GASTO-25-ASIENTO-4',
+        rutaPdf: null
+      };
+
+      expect(
+        component.pagosHabilitadosEnInterfaz
+      ).toBe(true);
+
+      expect(
+        component.puedePagar(gasto)
+      ).toBe(true);
+    }
+  );
+  it(
+    'debe enviar el pago al backend cuando la configuracion esta habilitada',
+    () => {
+
+      component.ngOnInit();
+
+      const configuracion =
+        httpTesting.expectOne(
+          '/api/gastos/configuracion'
+        );
+
+      configuracion.flush({
+        pagosHabilitados: true
+      });
+
+      const gasto: Gasto = {
+        id: 25,
+        concepto: 'Gasto contabilizado',
+        fechaFactura: '2026-09-17',
+        importeTotal: 23.45,
+        numeroFactura: 'TEST-2B-20260917',
+        proveedor: 'PRUEBA PASO 2B',
+        proveedorComunidadId: null,
+        comunidadId: 33,
+        cuentaGastoId: 1957,
+        fechaPago: null,
+        pagado: false,
+        numeroAsiento: 'GASTO-25-ASIENTO-4',
+        rutaPdf: null
+      };
+
+      component.pagarGasto(
+        gasto
+      );
+
+      const peticion =
+        httpTesting.expectOne(
+          '/api/gastos/25/pagar'
+        );
+
+      expect(
+        peticion.request.method
+      ).toBe(
+        'POST'
+      );
+
+      expect(
+        peticion.request.body
+      ).toBeNull();
+
+      peticion.flush({
+        ...gasto,
+        fechaPago: '2026-09-28',
+        pagado: true
+      });
+
+      expect(
+        component.procesandoGastoId
+      ).toBeNull();
+
+      expect(
+        component.mensajeOperacion
+      ).toBe(
+        'Pago registrado correctamente.'
+      );
+
+      expect(
+        component.errorOperacion
+      ).toBe(
+        ''
+      );
+    }
+  );
+  it(
+    'debe deshacer la contabilizacion cuando la configuracion esta habilitada',
+    () => {
+
+      component.ngOnInit();
+
+      const configuracion =
+        httpTesting.expectOne(
+          '/api/gastos/configuracion'
+        );
+
+      configuracion.flush({
+        pagosHabilitados: true
+      });
+
+      const gasto: Gasto = {
+        id: 25,
+        concepto: 'Gasto contabilizado',
+        fechaFactura: '2026-09-17',
+        importeTotal: 23.45,
+        numeroFactura: 'TEST-25',
+        proveedor: 'Proveedor prueba',
+        proveedorComunidadId: null,
+        comunidadId: 33,
+        cuentaGastoId: 1957,
+        fechaPago: null,
+        pagado: false,
+        numeroAsiento: 'GASTO-25-ASIENTO-4',
+        rutaPdf: null
+      };
+
+      expect(
+        component
+          .puedeDeshacerContabilizacion(
+            gasto
+          )
+      ).toBe(true);
+
+      component
+        .deshacerContabilizacionGasto(
+          gasto
+        );
+
+      const peticion =
+        httpTesting.expectOne(
+          '/api/gastos/25/deshacer-contabilizacion'
+        );
+
+      expect(
+        peticion.request.method
+      ).toBe('POST');
+
+      expect(
+        peticion.request.body
+      ).toBeNull();
+
+      peticion.flush({
+        ...gasto,
+        numeroAsiento: null
+      });
+
+      expect(
+        component.procesandoGastoId
+      ).toBeNull();
+
+      expect(
+        component.mensajeOperacion
+      ).toBe(
+        'Contabilización deshecha correctamente.'
+      );
+
+      expect(
+        component.errorOperacion
+      ).toBe(
+        ''
+      );
+    }
+  );
+  it(
+    'debe bloquear el pago cuando la configuracion esta deshabilitada',
     () => {
 
       const gasto: Gasto = {
@@ -227,6 +484,7 @@ describe('GastosList', () => {
         importeTotal: 23.45,
         numeroFactura: 'TEST-2B-20260917',
         proveedor: 'PRUEBA PASO 2B',
+        proveedorComunidadId: null,
         comunidadId: 33,
         cuentaGastoId: 1957,
         fechaPago: null,
@@ -274,7 +532,7 @@ describe('GastosList', () => {
   );
 
   it(
-    'debe bloquear deshacer pago desde la interfaz durante la convivencia',
+    'debe bloquear deshacer pago cuando la configuracion esta deshabilitada',
     () => {
 
       const gasto: Gasto = {
@@ -284,6 +542,7 @@ describe('GastosList', () => {
         importeTotal: 82.82,
         numeroFactura: '37',
         proveedor: 'María Bueviaje Martín',
+        proveedorComunidadId: null,
         comunidadId: 17,
         cuentaGastoId: 1862,
         fechaPago: '2026-03-10',
@@ -343,6 +602,7 @@ describe('GastosList', () => {
         importeTotal: 23.45,
         numeroFactura: 'PDF-25',
         proveedor: 'Proveedor prueba',
+        proveedorComunidadId: null,
         comunidadId: 33,
         cuentaGastoId: 1957,
         fechaPago: null,
@@ -443,6 +703,7 @@ describe('GastosList', () => {
         importeTotal: 23.45,
         numeroFactura: 'TEST-25',
         proveedor: 'Proveedor prueba',
+        proveedorComunidadId: null,
         comunidadId: 33,
         cuentaGastoId: 1957,
         fechaPago: null,
@@ -498,6 +759,7 @@ describe('GastosList', () => {
         importeTotal: 100,
         numeroFactura: 'FAT-2026-054412',
         proveedor: 'ATENCO ENERGIA SL',
+        proveedorComunidadId: null,
         comunidadId: 18,
         cuentaGastoId: 1,
         fechaPago: null,
@@ -563,6 +825,7 @@ describe('GastosList', () => {
         importeTotal: 82.82,
         numeroFactura: '37',
         proveedor: 'Proveedor histórico',
+        proveedorComunidadId: null,
         comunidadId: 17,
         cuentaGastoId: 1862,
         fechaPago: null,
@@ -597,7 +860,7 @@ describe('GastosList', () => {
 
   it(
     'debe eliminar un gasto pendiente confirmado',
-    () => {
+    async () => {
 
       const gasto: Gasto = {
         id: 25,
@@ -606,6 +869,7 @@ describe('GastosList', () => {
         importeTotal: 23.45,
         numeroFactura: 'TEST-25',
         proveedor: 'Proveedor prueba',
+        proveedorComunidadId: null,
         comunidadId: 33,
         cuentaGastoId: 1957,
         fechaPago: null,
@@ -622,13 +886,13 @@ describe('GastosList', () => {
 
       const confirmSpy =
         vi.spyOn(
-          window,
+          gombethDialog,
           'confirm'
-        ).mockReturnValue(
+        ).mockResolvedValue(
           true
         );
 
-      component.eliminarGasto(
+      await component.eliminarGasto(
         gasto
       );
 

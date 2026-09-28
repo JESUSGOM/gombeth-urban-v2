@@ -71,7 +71,121 @@ class ContabilidadGastoControllerTest {
     }
 
     @Test
-    void bloqueaPagoMientrasConviveConAplicacionAnterior() {
+    void configuracionMantienePagosDeshabilitadosPorDefecto() {
+
+        var configuracion =
+                controller.configuracion();
+
+        assertEquals(
+                Boolean.FALSE,
+                configuracion.get(
+                        "pagosHabilitados"
+                )
+        );
+    }
+
+    @Test
+    void permitePagoCuandoConfiguracionLoHabilita() {
+
+        org.springframework.test.util.ReflectionTestUtils
+                .setField(
+                        controller,
+                        "pagosHabilitados",
+                        true
+                );
+
+        ContabilidadGasto gasto =
+                new ContabilidadGasto();
+
+        gasto.setComunidadId(
+                33L
+        );
+
+        com.gombeth.urban.entity.Usuario usuario =
+                org.mockito.Mockito.mock(
+                        com.gombeth.urban.entity.Usuario.class
+                );
+
+        LocalDate fechaPago =
+                LocalDate.of(
+                        2026,
+                        9,
+                        18
+                );
+
+        when(
+                gastoService.findById(
+                        25L
+                )
+        ).thenReturn(
+                gasto
+        );
+
+        when(
+                accesoComunidadService
+                        .obtenerUsuarioAutenticado(
+                                authentication
+                        )
+        ).thenReturn(
+                usuario
+        );
+
+        when(
+                usuario.getId()
+        ).thenReturn(
+                7L
+        );
+
+        when(
+                gastoService.pagar(
+                        25L,
+                        7L,
+                        fechaPago
+                )
+        ).thenReturn(
+                gasto
+        );
+
+        var configuracion =
+                controller.configuracion();
+
+        assertEquals(
+                Boolean.TRUE,
+                configuracion.get(
+                        "pagosHabilitados"
+                )
+        );
+
+        ContabilidadGasto resultado =
+                controller.pagar(
+                        25L,
+                        fechaPago,
+                        authentication
+                );
+
+        assertEquals(
+                gasto,
+                resultado
+        );
+
+        verify(
+                accesoComunidadService
+        ).validarAcceso(
+                authentication,
+                33L
+        );
+
+        verify(
+                gastoService
+        ).pagar(
+                25L,
+                7L,
+                fechaPago
+        );
+    }
+
+    @Test
+    void bloqueaPagoCuandoConfiguracionEstaDeshabilitada() {
 
         ContabilidadGasto gasto =
                 new ContabilidadGasto();
@@ -109,10 +223,8 @@ class ContabilidadGastoControllerTest {
         );
 
         assertEquals(
-                "El pago y la anulación de gastos desde "
-                        + "Gombeth Urban V2 están temporalmente "
-                        + "deshabilitados mientras convive con "
-                        + "la aplicación anterior.",
+                "Las operaciones de pago y reversión de gastos "
+                        + "están deshabilitadas por configuración.",
                 error.getReason()
         );
 
@@ -149,7 +261,7 @@ class ContabilidadGastoControllerTest {
     }
 
     @Test
-    void bloqueaDeshacerPagoMientrasConviveConAplicacionAnterior() {
+    void bloqueaDeshacerPagoCuandoConfiguracionEstaDeshabilitada() {
 
         ContabilidadGasto gasto =
                 new ContabilidadGasto();
@@ -187,10 +299,8 @@ class ContabilidadGastoControllerTest {
         );
 
         assertEquals(
-                "El pago y la anulación de gastos desde "
-                        + "Gombeth Urban V2 están temporalmente "
-                        + "deshabilitados mientras convive con "
-                        + "la aplicación anterior.",
+                "Las operaciones de pago y reversión de gastos "
+                        + "están deshabilitadas por configuración.",
                 error.getReason()
         );
 
@@ -219,7 +329,7 @@ class ContabilidadGastoControllerTest {
     }
 
     @Test
-    void bloqueaDeshacerContabilizacionMientrasConviveConAplicacionAnterior() {
+    void bloqueaDeshacerContabilizacionCuandoConfiguracionEstaDeshabilitada() {
 
         ContabilidadGasto gasto =
                 new ContabilidadGasto();
@@ -257,10 +367,8 @@ class ContabilidadGastoControllerTest {
         );
 
         assertEquals(
-                "El pago y la anulación de gastos desde "
-                        + "Gombeth Urban V2 están temporalmente "
-                        + "deshabilitados mientras convive con "
-                        + "la aplicación anterior.",
+                "Las operaciones de pago y reversión de gastos "
+                        + "están deshabilitadas por configuración.",
                 error.getReason()
         );
 

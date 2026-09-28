@@ -24,6 +24,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 @RestController
@@ -43,13 +44,9 @@ public class ContabilidadGastoController {
             accesoComunidadService;
 
     /*
-     * Mientras Gombeth Urban V2 conviva con la aplicación
-     * anterior utilizando la misma base de datos, el pago
-     * y la anulación de pagos permanecen deshabilitados
-     * por defecto.
-     *
-     * Solo se habilitarán expresamente cuando se decida
-     * que V2 es el propietario del ciclo de pagos.
+     * Las operaciones de pago y reversión permanecen
+     * deshabilitadas por defecto. Solo se habilitan
+     * mediante configuración explícita del backend.
      */
     @Value("${gombeth.gastos.pagos-habilitados:false}")
     private boolean pagosHabilitados;
@@ -71,6 +68,14 @@ public class ContabilidadGastoController {
 
         this.accesoComunidadService =
                 accesoComunidadService;
+    }
+
+    @GetMapping("/configuracion")
+    public Map<String, Boolean> configuracion() {
+        return Map.of(
+                "pagosHabilitados",
+                pagosHabilitados
+        );
     }
 
     @GetMapping
@@ -294,8 +299,8 @@ public class ContabilidadGastoController {
         );
 
         /*
-         * Durante la convivencia con el programa antiguo
-         * este punto permanece bloqueado.
+         * Esta operación solo está disponible cuando
+         * la configuración de pagos está habilitada.
          */
         validarPagosHabilitados();
 
@@ -348,8 +353,8 @@ public class ContabilidadGastoController {
         );
 
         /*
-         * Durante la convivencia con el programa antiguo
-         * tampoco permitimos deshacer pagos desde V2.
+         * Esta operación solo está disponible cuando
+         * la configuración de pagos está habilitada.
          */
         validarPagosHabilitados();
 
@@ -398,9 +403,8 @@ public class ContabilidadGastoController {
         );
 
         /*
-         * Mientras V2 conviva con la aplicación anterior
-         * no permitimos revertir desde aquí un asiento
-         * contable compartido.
+         * Esta operación solo está disponible cuando
+         * la configuración de pagos está habilitada.
          */
         validarPagosHabilitados();
 
@@ -511,10 +515,8 @@ public class ContabilidadGastoController {
         if (!pagosHabilitados) {
             throw new ResponseStatusException(
                     HttpStatus.CONFLICT,
-                    "El pago y la anulación de gastos desde "
-                            + "Gombeth Urban V2 están temporalmente "
-                            + "deshabilitados mientras convive con "
-                            + "la aplicación anterior."
+                    "Las operaciones de pago y reversión de gastos "
+                            + "están deshabilitadas por configuración."
             );
         }
     }

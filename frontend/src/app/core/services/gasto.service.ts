@@ -17,6 +17,10 @@ import {
   GastoGuardarRequest
 } from '../models/gasto.model';
 
+export interface GastoConfiguracion {
+  pagosHabilitados: boolean;
+}
+
 export interface FacturaOcrResultado {
   proveedor: string | null;
   fechaFactura: string | null;
@@ -36,6 +40,14 @@ export class GastoService {
 
   private readonly api =
     '/api/gastos';
+
+  obtenerConfiguracion(
+  ): Observable<GastoConfiguracion> {
+
+    return this.http.get<GastoConfiguracion>(
+      `${this.api}/configuracion`
+    );
+  }
 
   analizarFactura(
     comunidadId: number,
@@ -180,6 +192,33 @@ export class GastoService {
     );
   }
 
+  deshacerContabilizacion(
+    id: number,
+    fechaAnulacion?: string | null
+  ): Observable<Gasto> {
+
+    let params =
+      new HttpParams();
+
+    if (
+      fechaAnulacion
+      && fechaAnulacion.trim() !== ''
+    ) {
+      params =
+        params.set(
+          'fechaAnulacion',
+          fechaAnulacion
+        );
+    }
+
+    return this.http.post<Gasto>(
+      `${this.api}/${id}/deshacer-contabilizacion`,
+      null,
+      {
+        params
+      }
+    );
+  }
   subirPdf(
     id: number,
     file: File

@@ -98,23 +98,16 @@ export class GastosList implements OnInit {
     10 * 1024 * 1024;
 
   /*
-   * IMPORTANTE:
-   *
-   * Mientras Gombeth Urban V2 comparta la base de datos
-   * con la aplicación antigua, las operaciones de pagar
-   * y deshacer pago permanecen deshabilitadas también
-   * en la interfaz.
-   *
-   * El backend dispone además de su propio bloqueo.
+   * La disponibilidad de las operaciones de pago y reversión
+   * la determina el backend. La interfaz empieza siempre
+   * bloqueada y solo se habilita tras recibir true.
    */
-  readonly pagosHabilitadosEnInterfaz =
+  pagosHabilitadosEnInterfaz =
     false;
 
   readonly avisoPagos =
-    'El pago y la anulación de gastos desde '
-    + 'Gombeth Urban V2 están temporalmente '
-    + 'deshabilitados mientras convive con '
-    + 'la aplicación anterior.';
+    'Las operaciones de pago y reversión de gastos '
+    + 'están deshabilitadas por configuración.';
 
   textoBusqueda = '';
 
@@ -125,6 +118,8 @@ export class GastosList implements OnInit {
   registrosPorPagina = 10;
 
   ngOnInit(): void {
+
+    this.cargarConfiguracionPagos();
 
     this.comunidadState.init();
 
@@ -225,6 +220,39 @@ export class GastosList implements OnInit {
       });
   }
 
+  private cargarConfiguracionPagos(): void {
+
+    this.pagosHabilitadosEnInterfaz =
+      false;
+
+    this.gastoService
+      .obtenerConfiguracion()
+      .pipe(
+        takeUntilDestroyed(
+          this.destroyRef
+        )
+      )
+      .subscribe({
+
+        next: configuracion => {
+
+          this.pagosHabilitadosEnInterfaz =
+            configuracion.pagosHabilitados
+            === true;
+        },
+
+        error: error => {
+
+          console.error(
+            'Error cargando configuracion de gastos:',
+            error
+          );
+
+          this.pagosHabilitadosEnInterfaz =
+            false;
+        }
+      });
+  }
   nuevoGasto(): void {
 
     if (
@@ -500,6 +528,43 @@ export class GastosList implements OnInit {
     return '';
   }
 
+  puedeDeshacerContabilizacion(
+    gasto: Gasto
+  ): boolean {
+
+    return (
+      this.pagosHabilitadosEnInterfaz
+      && this.estaContabilizado(gasto)
+      && !this.estaPagado(gasto)
+      && this.procesandoGastoId === null
+    );
+  }
+
+  motivoNoDeshacerContabilizacion(
+    gasto: Gasto
+  ): string {
+
+    if (!this.pagosHabilitadosEnInterfaz) {
+      return this.avisoPagos;
+    }
+
+    if (this.estaPagado(gasto)) {
+      return (
+        'El gasto está pagado. '
+        + 'Primero debe deshacerse el pago.'
+      );
+    }
+
+    if (!this.estaContabilizado(gasto)) {
+      return 'El gasto no está contabilizado.';
+    }
+
+    if (this.procesandoGastoId !== null) {
+      return 'Hay otra operación de gasto en curso.';
+    }
+
+    return '';
+  }
   pagarGasto(
     gasto: Gasto
   ): void {
@@ -994,6 +1059,88 @@ export class GastosList implements OnInit {
       });
   }
 
+  deshacerContabilizacionGasto(
+    gasto: Gasto
+  ): void {
+
+    if (!this.puedeDeshacerContabilizacion(gasto)) {
+      this.errorOperacion =
+        this.motivoNoDeshacerContabilizacion(
+          gasto
+        );
+
+      this.mensajeOperacion = '';
+
+      return;
+    }
+
+    const gastoId =
+      Number(gasto.id);
+
+    if (
+      !Number.isInteger(gastoId)
+      || gastoId <= 0
+    ) {
+      this.errorOperacion =
+        'El identificador del gasto no es válido.';
+
+      this.mensajeOperacion = '';
+
+      return;
+    }
+
+    this.procesandoGastoId =
+      gastoId;
+
+    this.mensajeOperacion = '';
+    this.errorOperacion = '';
+
+    this.gastoService
+      .deshacerContabilizacion(
+        gastoId
+      )
+      .pipe(
+        takeUntilDestroyed(
+          this.destroyRef
+        )
+      )
+      .subscribe({
+
+        next: gastoActualizado => {
+
+          this.procesandoGastoId =
+            null;
+
+          this.reemplazarGasto(
+            gastoActualizado
+          );
+
+          this.mensajeOperacion =
+            'Contabilización deshecha correctamente.';
+
+          this.errorOperacion = '';
+        },
+
+        error: error => {
+
+          console.error(
+            'Error deshaciendo contabilización:',
+            error
+          );
+
+          this.procesandoGastoId =
+            null;
+
+          this.mensajeOperacion = '';
+
+          this.errorOperacion =
+            this.obtenerMensajeErrorOperacion(
+              error,
+              'No se pudo deshacer la contabilización.'
+            );
+        }
+      });
+  }
   cargarGastos(): void {
 
     if (

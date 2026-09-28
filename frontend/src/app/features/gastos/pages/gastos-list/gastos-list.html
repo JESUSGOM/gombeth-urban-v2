@@ -146,9 +146,8 @@
   </div>
 
   <!--
-    Mientras Gombeth Urban V2 conviva con la aplicación
-    anterior, mostramos al usuario por qué las operaciones
-    de pago permanecen bloqueadas.
+    El backend determina si las operaciones de pago
+    y reversión están disponibles en la interfaz.
   -->
   <div
     *ngIf="
@@ -158,7 +157,7 @@
     class="alert info">
 
     <strong>
-      Pago de gastos temporalmente bloqueado.
+      Operaciones de pago deshabilitadas.
     </strong>
 
     {{ avisoPagos }}
@@ -497,8 +496,8 @@
 
           <!--
             Un gasto contabilizado y todavía no pagado
-            tendrá disponible aquí la operación Pagar
-            cuando finalice la convivencia.
+            permite registrar el pago cuando la configuración
+            del backend tiene habilitada esta operación.
           -->
           <button
             *ngIf="
@@ -526,9 +525,38 @@
           </button>
 
           <!--
+            Un gasto contabilizado y todavía no pagado
+            puede revertir su contabilización cuando la
+            configuración del backend lo permite.
+          -->
+          <button
+            *ngIf="
+                estadoGasto(gasto)
+                  === 'Contabilizado'
+              "
+            type="button"
+            class="edit-button"
+            [disabled]="
+                !puedeDeshacerContabilizacion(gasto)
+              "
+            [title]="
+                puedeDeshacerContabilizacion(gasto)
+                  ? 'Deshacer contabilización'
+                  : motivoNoDeshacerContabilizacion(gasto)
+              "
+            (click)="deshacerContabilizacionGasto(gasto)">
+
+            {{
+              procesandoGastoId === gasto.id
+                ? 'Procesando...'
+                : 'Deshacer contabilización'
+            }}
+
+          </button>
+          <!--
             Para un gasto pagado mostramos la operación
-            inversa, pero permanece igualmente bloqueada
-            mientras convive la aplicación antigua.
+            inversa cuando la configuración del backend
+            permite operaciones de pago y reversión.
           -->
           <button
             *ngIf="
