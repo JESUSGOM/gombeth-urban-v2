@@ -3,6 +3,7 @@ package com.gombeth.urban.service;
 import com.gombeth.urban.entity.ContabilidadGasto;
 import com.gombeth.urban.repository.ContabilidadGastoRepository;
 import com.gombeth.urban.service.storage.GastoPdfStorageService;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -19,6 +20,9 @@ public class ContabilidadGastoPdfService {
 
     private final GastoPdfStorageService
             gastoPdfStorageService;
+
+    @Value("${gombeth.gastos.pdf-reemplazo-habilitado:false}")
+    private boolean reemplazoPdfHabilitado;
 
     public ContabilidadGastoPdfService(
             ContabilidadGastoRepository gastoRepository,
@@ -48,12 +52,17 @@ public class ContabilidadGastoPdfService {
                         gastoId
                 );
 
-        if (
+        boolean tienePdfAsociado =
                 gasto.getRutaPdf() != null
-                        && !gasto.getRutaPdf().isBlank()
+                        && !gasto.getRutaPdf().isBlank();
+
+        if (
+                tienePdfAsociado
+                        && !reemplazoPdfHabilitado
         ) {
             throw new IllegalStateException(
-                    "El gasto ya tiene un PDF asociado."
+                    "El reemplazo del PDF está deshabilitado "
+                            + "por configuración."
             );
         }
 

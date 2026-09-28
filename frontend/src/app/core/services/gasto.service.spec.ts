@@ -63,6 +63,10 @@ describe('GastoService', () => {
           expect(
             configuracion.pagosHabilitados
           ).toBe(false);
+
+          expect(
+            configuracion.reemplazoPdfHabilitado
+          ).toBe(false);
         });
 
       const peticion =
@@ -75,7 +79,8 @@ describe('GastoService', () => {
       ).toBe('GET');
 
       peticion.flush({
-        pagosHabilitados: false
+        pagosHabilitados: false,
+        reemplazoPdfHabilitado: false
       });
     }
   );

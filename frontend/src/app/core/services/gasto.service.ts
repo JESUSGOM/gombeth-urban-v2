@@ -19,6 +19,7 @@ import {
 
 export interface GastoConfiguracion {
   pagosHabilitados: boolean;
+  reemplazoPdfHabilitado: boolean;
 }
 
 export interface FacturaOcrResultado {

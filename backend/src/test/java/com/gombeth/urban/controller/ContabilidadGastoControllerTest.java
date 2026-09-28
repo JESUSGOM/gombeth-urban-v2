@@ -71,7 +71,7 @@ class ContabilidadGastoControllerTest {
     }
 
     @Test
-    void configuracionMantienePagosDeshabilitadosPorDefecto() {
+    void configuracionMantieneOperacionesDeshabilitadasPorDefecto() {
 
         var configuracion =
                 controller.configuracion();
@@ -80,6 +80,13 @@ class ContabilidadGastoControllerTest {
                 Boolean.FALSE,
                 configuracion.get(
                         "pagosHabilitados"
+                )
+        );
+
+        assertEquals(
+                Boolean.FALSE,
+                configuracion.get(
+                        "reemplazoPdfHabilitado"
                 )
         );
     }

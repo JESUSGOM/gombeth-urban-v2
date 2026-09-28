@@ -7,6 +7,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.AfterEach;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
@@ -130,7 +131,7 @@ class ContabilidadGastoPdfServiceTest {
     }
 
     @Test
-    void noPermiteReemplazarUnPdfYaAsociado() {
+    void noPermiteReemplazarPdfSiLaConfiguracionEstaDeshabilitada() {
 
         ContabilidadGasto gasto =
                 crearGasto(
@@ -167,7 +168,8 @@ class ContabilidadGastoPdfServiceTest {
                 );
 
         assertEquals(
-                "El gasto ya tiene un PDF asociado.",
+                "El reemplazo del PDF está deshabilitado "
+                        + "por configuración.",
                 error.getMessage()
         );
 
@@ -186,6 +188,94 @@ class ContabilidadGastoPdfServiceTest {
         );
     }
 
+    @Test
+    void reemplazaPdfCuandoLaConfiguracionEstaHabilitada() {
+
+        TransactionSynchronizationManager
+                .initSynchronization();
+
+        ReflectionTestUtils.setField(
+                service,
+                "reemplazoPdfHabilitado",
+                true
+        );
+
+        String nombreAnterior =
+                "1776847724991_FAT-2026-054412.pdf";
+
+        String nombreNuevo =
+                "1776847725999_factura-nueva.pdf";
+
+        ContabilidadGasto gasto =
+                crearGasto(
+                        23L,
+                        nombreAnterior
+                );
+
+        MockMultipartFile archivo =
+                new MockMultipartFile(
+                        "file",
+                        "factura-nueva.pdf",
+                        "application/pdf",
+                        "%PDF-1.7 nueva".getBytes()
+                );
+
+        when(
+                gastoRepository.findByIdForUpdate(
+                        23L
+                )
+        ).thenReturn(
+                Optional.of(
+                        gasto
+                )
+        );
+
+        when(
+                gastoPdfStorageService.guardarPdf(
+                        archivo
+                )
+        ).thenReturn(
+                nombreNuevo
+        );
+
+        when(
+                gastoRepository.save(
+                        gasto
+                )
+        ).thenReturn(
+                gasto
+        );
+
+        ContabilidadGasto resultado =
+                service.subirPdf(
+                        23L,
+                        archivo
+                );
+
+        assertEquals(
+                nombreNuevo,
+                resultado.getRutaPdf()
+        );
+
+        verify(
+                gastoPdfStorageService
+        ).guardarPdf(
+                archivo
+        );
+
+        verify(
+                gastoRepository
+        ).save(
+                gasto
+        );
+
+        verify(
+                gastoPdfStorageService,
+                never()
+        ).eliminarPdfRecienCreado(
+                nombreAnterior
+        );
+    }
     @Test
     void recuperaElPdfHistoricoUsandoRutaPdf() {
 

@@ -435,15 +435,30 @@
               "
               [title]="
                 puedeAdjuntarPdf(gasto)
-                  ? 'Adjuntar PDF de la factura'
+                  ? (
+                    tienePdf(gasto)
+                    && reemplazoPdfHabilitadoEnInterfaz
+                      ? 'Sustituir PDF de la factura'
+                      : 'Adjuntar PDF de la factura'
+                  )
                   : motivoNoAdjuntarPdf(gasto)
               "
               (click)="pdfInput.click()">
 
               {{
                 procesandoPdfGastoId === gasto.id
-                  ? 'Adjuntando...'
-                  : 'Adjuntar PDF'
+                  ? (
+                    tienePdf(gasto)
+                    && reemplazoPdfHabilitadoEnInterfaz
+                      ? 'Sustituyendo...'
+                      : 'Adjuntando...'
+                  )
+                  : (
+                    tienePdf(gasto)
+                    && reemplazoPdfHabilitadoEnInterfaz
+                      ? 'Sustituir PDF'
+                      : 'Adjuntar PDF'
+                  )
               }}
 
             </button>

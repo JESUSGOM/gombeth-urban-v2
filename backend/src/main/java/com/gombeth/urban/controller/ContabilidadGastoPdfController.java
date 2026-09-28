@@ -100,9 +100,9 @@ public class ContabilidadGastoPdfController {
 
         } catch (IllegalStateException error) {
             /*
-             * Durante la convivencia no permitimos
-             * reemplazar silenciosamente un PDF ya
-             * asociado al gasto.
+             * Los conflictos de estado, incluido un reemplazo
+             * de PDF deshabilitado por configuración, se
+             * devuelven como 409.
              */
             throw new ResponseStatusException(
                     HttpStatus.CONFLICT,

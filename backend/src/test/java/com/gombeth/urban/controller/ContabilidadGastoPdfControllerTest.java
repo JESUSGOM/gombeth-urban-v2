@@ -151,7 +151,7 @@ class ContabilidadGastoPdfControllerTest {
     }
 
     @Test
-    void devuelveConflictSiElGastoYaTienePdf() {
+    void devuelveConflictSiElReemplazoPdfEstaDeshabilitado() {
 
         ContabilidadGasto gasto =
                 crearGasto(
@@ -184,7 +184,7 @@ class ContabilidadGastoPdfControllerTest {
                 )
         ).thenThrow(
                 new IllegalStateException(
-                        "El gasto ya tiene un PDF asociado."
+                        "El reemplazo del PDF está deshabilitado por configuración."
                 )
         );
 
@@ -205,7 +205,7 @@ class ContabilidadGastoPdfControllerTest {
         );
 
         assertEquals(
-                "El gasto ya tiene un PDF asociado.",
+                "El reemplazo del PDF está deshabilitado por configuración.",
                 error.getReason()
         );
 

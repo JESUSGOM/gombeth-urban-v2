@@ -51,6 +51,9 @@ public class ContabilidadGastoController {
     @Value("${gombeth.gastos.pagos-habilitados:false}")
     private boolean pagosHabilitados;
 
+    @Value("${gombeth.gastos.pdf-reemplazo-habilitado:false}")
+    private boolean reemplazoPdfHabilitado;
+
     public ContabilidadGastoController(
             ContabilidadGastoService gastoService,
             ContabilidadAutomaticaService
@@ -74,7 +77,9 @@ public class ContabilidadGastoController {
     public Map<String, Boolean> configuracion() {
         return Map.of(
                 "pagosHabilitados",
-                pagosHabilitados
+                pagosHabilitados,
+                "reemplazoPdfHabilitado",
+                reemplazoPdfHabilitado
         );
     }
 

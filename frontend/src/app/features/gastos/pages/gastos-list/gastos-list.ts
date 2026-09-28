@@ -105,6 +105,9 @@ export class GastosList implements OnInit {
   pagosHabilitadosEnInterfaz =
     false;
 
+  reemplazoPdfHabilitadoEnInterfaz =
+    false;
+
   readonly avisoPagos =
     'Las operaciones de pago y reversión de gastos '
     + 'están deshabilitadas por configuración.';
@@ -119,7 +122,7 @@ export class GastosList implements OnInit {
 
   ngOnInit(): void {
 
-    this.cargarConfiguracionPagos();
+    this.cargarConfiguracionGastos();
 
     this.comunidadState.init();
 
@@ -220,9 +223,12 @@ export class GastosList implements OnInit {
       });
   }
 
-  private cargarConfiguracionPagos(): void {
+  private cargarConfiguracionGastos(): void {
 
     this.pagosHabilitadosEnInterfaz =
+      false;
+
+    this.reemplazoPdfHabilitadoEnInterfaz =
       false;
 
     this.gastoService
@@ -239,6 +245,10 @@ export class GastosList implements OnInit {
           this.pagosHabilitadosEnInterfaz =
             configuracion.pagosHabilitados
             === true;
+
+          this.reemplazoPdfHabilitadoEnInterfaz =
+            configuracion.reemplazoPdfHabilitado
+            === true;
         },
 
         error: error => {
@@ -249,6 +259,9 @@ export class GastosList implements OnInit {
           );
 
           this.pagosHabilitadosEnInterfaz =
+            false;
+
+          this.reemplazoPdfHabilitadoEnInterfaz =
             false;
         }
       });
@@ -743,7 +756,10 @@ export class GastosList implements OnInit {
   ): boolean {
 
     return (
-      !this.tienePdf(gasto)
+      (
+        !this.tienePdf(gasto)
+        || this.reemplazoPdfHabilitadoEnInterfaz
+      )
       && this.procesandoPdfGastoId === null
     );
   }
@@ -752,10 +768,13 @@ export class GastosList implements OnInit {
     gasto: Gasto
   ): string {
 
-    if (this.tienePdf(gasto)) {
+    if (
+      this.tienePdf(gasto)
+      && !this.reemplazoPdfHabilitadoEnInterfaz
+    ) {
       return (
-        'El gasto ya tiene un PDF asociado. '
-        + 'Durante la convivencia no se permite sustituirlo.'
+        'El reemplazo del PDF está deshabilitado '
+        + 'por configuración.'
       );
     }
 

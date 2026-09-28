@@ -163,7 +163,8 @@ describe('GastosList', () => {
       ).toBe('GET');
 
       configuracion.flush({
-        pagosHabilitados: false
+        pagosHabilitados: false,
+        reemplazoPdfHabilitado: false
       });
 
       comunidadState.setComunidad({
@@ -276,6 +277,10 @@ describe('GastosList', () => {
       ).toBe(false);
 
       expect(
+        component.reemplazoPdfHabilitadoEnInterfaz
+      ).toBe(false);
+
+      expect(
         consoleSpy
       ).toHaveBeenCalled();
 
@@ -294,7 +299,8 @@ describe('GastosList', () => {
         );
 
       configuracion.flush({
-        pagosHabilitados: true
+        pagosHabilitados: true,
+        reemplazoPdfHabilitado: false
       });
 
       const gasto: Gasto = {
@@ -334,7 +340,8 @@ describe('GastosList', () => {
         );
 
       configuracion.flush({
-        pagosHabilitados: true
+        pagosHabilitados: true,
+        reemplazoPdfHabilitado: false
       });
 
       const gasto: Gasto = {
@@ -407,7 +414,8 @@ describe('GastosList', () => {
         );
 
       configuracion.flush({
-        pagosHabilitados: true
+        pagosHabilitados: true,
+        reemplazoPdfHabilitado: false
       });
 
       const gasto: Gasto = {
@@ -800,8 +808,8 @@ describe('GastosList', () => {
       expect(
         component.errorOperacion
       ).toBe(
-        'El gasto ya tiene un PDF asociado. '
-        + 'Durante la convivencia no se permite sustituirlo.'
+        'El reemplazo del PDF está deshabilitado '
+        + 'por configuración.'
       );
 
       expect(
@@ -811,6 +819,107 @@ describe('GastosList', () => {
       httpTesting.expectNone(
         '/api/gastos/23/pdf'
       );
+    }
+  );
+
+  it(
+    'debe permitir sustituir un PDF cuando la configuracion esta habilitada',
+    () => {
+
+      component.ngOnInit();
+
+      const configuracion =
+        httpTesting.expectOne(
+          '/api/gastos/configuracion'
+        );
+
+      expect(
+        configuracion.request.method
+      ).toBe('GET');
+
+      configuracion.flush({
+        pagosHabilitados: false,
+        reemplazoPdfHabilitado: true
+      });
+
+      expect(
+        component.reemplazoPdfHabilitadoEnInterfaz
+      ).toBe(true);
+
+      expect(
+        component.pagosHabilitadosEnInterfaz
+      ).toBe(false);
+
+      const gasto: Gasto = {
+        id: 23,
+        concepto: 'Gasto histórico',
+        fechaFactura: '2026-04-22',
+        importeTotal: 100,
+        numeroFactura: 'FAT-2026-054412',
+        proveedor: 'ATENCO ENERGIA SL',
+        proveedorComunidadId: null,
+        comunidadId: 18,
+        cuentaGastoId: 1,
+        fechaPago: null,
+        pagado: false,
+        numeroAsiento: null,
+        rutaPdf:
+          '1776847724991_FAT-2026-054412.pdf'
+      };
+
+      const archivo =
+        new File(
+          [
+            '%PDF-1.7 sustitucion'
+          ],
+          'nuevo.pdf',
+          {
+            type: 'application/pdf'
+          }
+        );
+
+      expect(
+        component.puedeAdjuntarPdf(
+          gasto
+        )
+      ).toBe(true);
+
+      component.adjuntarPdf(
+        gasto,
+        archivo
+      );
+
+      expect(
+        component.procesandoPdfGastoId
+      ).toBe(23);
+
+      const peticion =
+        httpTesting.expectOne(
+          '/api/gastos/23/pdf'
+        );
+
+      expect(
+        peticion.request.method
+      ).toBe('POST');
+
+      expect(
+        peticion.request.body
+          instanceof FormData
+      ).toBe(true);
+
+      const actualizado: Gasto = {
+        ...gasto,
+        rutaPdf:
+          '1776847725999_nuevo.pdf'
+      };
+
+      peticion.flush(
+        actualizado
+      );
+
+      expect(
+        component.procesandoPdfGastoId
+      ).toBeNull();
     }
   );
 
