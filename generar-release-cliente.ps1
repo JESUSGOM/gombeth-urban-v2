@@ -41,7 +41,7 @@ $ConfigText = @(
     "gombeth.production.database-name=sepa_1914",
     "gombeth.production.confirmed=true",
     "",
-    "logging.file.name=./logs/gombeth-urban.log",
+    "logging.file.path=./logs",
     "logging.level.root=INFO"
 ) -join [Environment]::NewLine
 

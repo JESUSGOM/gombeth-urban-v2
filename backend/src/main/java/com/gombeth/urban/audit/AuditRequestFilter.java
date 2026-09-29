@@ -4,6 +4,8 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -14,6 +16,11 @@ import java.util.concurrent.TimeUnit;
 
 public class AuditRequestFilter
         extends OncePerRequestFilter {
+
+    private static final Logger TECHNICAL_LOG =
+            LoggerFactory.getLogger(
+                    AuditRequestFilter.class
+            );
 
     private static final int REQUEST_CACHE_LIMIT =
             128 * 1024;
@@ -95,9 +102,24 @@ public class AuditRequestFilter
                             .getContext()
                             .getAuthentication();
 
+            int statusAuditoria =
+                    error != null
+                            ? HttpServletResponse.SC_INTERNAL_SERVER_ERROR
+                            : response.getStatus();
+
+            if (error != null) {
+                TECHNICAL_LOG.error(
+                        "Error no controlado en " +
+                                request.getMethod()
+                                + " " +
+                                request.getRequestURI(),
+                        error
+                );
+            }
+
             auditLogService.registrarPeticion(
                     wrappedRequest,
-                    response.getStatus(),
+                    statusAuditoria,
                     duracionMs,
                     authenticationAntes,
                     authenticationDespues,

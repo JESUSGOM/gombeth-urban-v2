@@ -44,6 +44,7 @@ interface EventoFrontend {
   fichero?: string | null;
   linea?: number | null;
   columna?: number | null;
+  stack?: string | null;
 }
 
 @Injectable({
@@ -127,7 +128,10 @@ export class AuditoriaFrontendService {
             500
           ),
           linea: event.lineno || null,
-          columna: event.colno || null
+          columna: event.colno || null,
+          stack: this.obtenerStack(
+            event.error
+          )
         });
       }
     );
@@ -145,6 +149,9 @@ export class AuditoriaFrontendService {
               event.reason
             ),
             2000
+          ),
+          stack: this.obtenerStack(
+            event.reason
           )
         });
       }
@@ -333,6 +340,20 @@ export class AuditoriaFrontendService {
     return texto
       ? this.limitar(texto, 300)
       : null;
+  }
+
+  private obtenerStack(
+    error: unknown
+  ): string | null {
+
+    if (!(error instanceof Error)) {
+      return null;
+    }
+
+    return this.limitar(
+      error.stack,
+      8000
+    );
   }
 
   private descripcionError(

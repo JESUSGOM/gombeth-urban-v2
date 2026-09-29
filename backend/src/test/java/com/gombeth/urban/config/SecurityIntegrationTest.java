@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -373,6 +374,50 @@ class SecurityIntegrationTest {
 
         assertTrue(
                 session.isInvalid()
+        );
+    }
+
+    @Test
+    void excepcionNoControladaSePropagaHastaElFiltro() {
+
+        when(
+                usuarioAdministracionService
+                        .listarUsuarios(
+                                any(Authentication.class)
+                        )
+        ).thenThrow(
+                new IllegalStateException(
+                        "FALLO_CONTROLADO_LOG_TEST"
+                )
+        );
+
+        Exception exception =
+                assertThrows(
+                        Exception.class,
+                        () -> mockMvc.perform(
+                                get("/api/admin/usuarios")
+                                        .with(
+                                                user("Administrador")
+                                                        .roles(
+                                                                "ADMIN"
+                                                        )
+                                        )
+                        )
+                );
+
+        assertTrue(
+                exception.toString().contains(
+                        "FALLO_CONTROLADO_LOG_TEST"
+                )
+                        || (
+                        exception.getCause() != null
+                                && exception
+                                .getCause()
+                                .toString()
+                                .contains(
+                                        "FALLO_CONTROLADO_LOG_TEST"
+                                )
+                )
         );
     }
 }
